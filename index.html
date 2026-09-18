@@ -351,7 +351,7 @@
      rather than merging their own copy back over it.
    ============================================================ */
 
-const APP_VERSION = "1.2";
+const APP_VERSION = "1.3";
 const EDITION   = "shared";   // "private" = Matt's synced vault; "shared" = the copy coworkers get
 const SHARE_URL = "https://gnome-vault.52bulls.workers.dev/share";
 const STORE_KEY   = "gnome-vault-v1";
@@ -631,6 +631,40 @@ async function shareApp(){
   }
   await copyText(text, "Link copied — paste it into a text message");
 }
+/* ---------- share one card ----------
+   Hands the entry to the phone's share sheet (Messages, Mail, AirDrop…)
+   as plain text, with the photo attached where the browser allows files.
+   Everything must happen inside the tap, so the photo is unpacked
+   synchronously — no awaits before navigator.share(). */
+function entryText(e){
+  const lines = [e.site || ""];
+  if (e.user) lines.push("Username: " + e.user);
+  lines.push("Password: " + (e.pass || ""));
+  if (e.notes) lines.push("Notes: " + e.notes);
+  return lines.join("\n");
+}
+function entryPhotoFile(e){
+  try {
+    const m = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+\/=]+)$/i.exec(e.photo || "");
+    if (!m || typeof File !== "function") return null;
+    const type = m[1].toLowerCase();
+    const ext = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
+    const stem = (e.site || "").replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "card";
+    return new File([unb64(m[2])], stem + "." + ext, { type });
+  } catch(err){ return null; }
+}
+async function shareEntry(e){
+  const text = entryText(e);
+  if (navigator.share){
+    const payload = { title: e.site || "Gnome Vault card", text };
+    const file = entryPhotoFile(e);
+    if (file && navigator.canShare && navigator.canShare({ files:[file] })) payload.files = [file];
+    try { await navigator.share(payload); return; }
+    catch(err){ if (err && err.name === "AbortError") return; }   // user closed the sheet
+  }
+  // no share sheet here (desktop browser, or it refused) — put the card on the clipboard instead
+  await copyText(text, "Card copied — paste it into a message");
+}
 function fillVersion(){
   const line = "Gnome Vault v" + APP_VERSION + (EDITION === "shared" ? " · web edition" : "");
   document.querySelectorAll(".foot").forEach(el => { el.textContent = line; });
@@ -695,6 +729,7 @@ function render(){
     div.className = "entry";
     div.innerHTML =
       '<div class="toprow"><div class="name">'+esc(e.site)+'</div>'+
+      '<button class="small ghost" data-act="share" title="Send this card to someone">📤 Share</button>'+
       '<button class="small ghost" data-act="edit">✏️ Edit</button></div>'+
       (e.user ? '<div class="field"><span class="flabel">Username</span>'+
         '<span class="fval mono">'+esc(e.user)+'</span>'+
@@ -710,6 +745,7 @@ function render(){
       const act = ev.target.getAttribute("data-act");
       if (!act) return;
       if (act === "edit") openEdit(e.id);
+      else if (act === "share") shareEntry(e);
       else if (act === "photo"){ $("photoFull").src = e.photo; $("photoOverlay").classList.remove("hidden"); }
       else if (act === "copyuser") copyText(e.user || "", "Username copied");
       else if (act === "copypw") copyText(e.pass || "", "Password copied");
