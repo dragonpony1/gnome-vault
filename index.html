@@ -135,6 +135,8 @@
   .modal .sub{font-size:14.5px; margin-top:6px}
   .modalbtns{display:flex; gap:10px; margin-top:22px}
   .modalbtns .primary{flex:1}
+  .sharebtns{display:flex; flex-direction:column; gap:10px; margin-top:18px}
+  .sharebtns button{width:100%; padding:13px; font-size:16px}
   .pwrow{display:flex; gap:8px}
   .pwrow input{flex:1}
   .genrow{margin-top:8px}
@@ -313,6 +315,20 @@
   </div>
 </div>
 
+<!-- ============ SHARE A CARD ============ -->
+<div class="overlay hidden" id="shareOverlay">
+  <div class="modal">
+    <h2>Share this card</h2>
+    <p class="sub">This card has a photo. What should go out?</p>
+    <div class="sharebtns">
+      <button class="primary" id="shareBothBtn">Details and photo</button>
+      <button id="shareTextBtn">Details only</button>
+      <button id="sharePhotoBtn">Photo only</button>
+      <button class="ghost" id="shareCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="photoOverlay"><img id="photoFull" alt=""></div>
 
 <input type="file" id="importFile" accept=".vault,.json" class="hidden">
@@ -332,7 +348,7 @@
    restored backup and the local copy can be merged without loss.
    ============================================================ */
 
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/";   // the one Gnome Vault link — this is what gets shared
 const STORE_KEY   = "gnome-vault-v1";
 const PENDING_KEY = "gnome-vault-pending-v1";
@@ -630,18 +646,50 @@ function entryPhotoFile(e){
     return new File([unb64(m[2])], stem + "." + ext, { type });
   } catch(err){ return null; }
 }
-async function shareEntry(e){
-  const text = entryText(e);
-  if (navigator.share){
-    const payload = { title: e.site || "Gnome Vault card", text };
-    const file = entryPhotoFile(e);
-    if (file && navigator.canShare && navigator.canShare({ files:[file] })) payload.files = [file];
-    try { await navigator.share(payload); return; }
-    catch(err){ if (err && err.name === "AbortError") return; }   // user closed the sheet
-  }
-  // no share sheet here (desktop browser, or it refused) — put the card on the clipboard instead
-  await copyText(text, "Card copied — paste it into a message");
+let shareTarget = null;   // the card the share chooser is open for
+function shareEntry(e){
+  if (!e.photo) return sendCard(e, "text");
+  shareTarget = e;
+  $("shareOverlay").classList.remove("hidden");
 }
+function closeShare(){ shareTarget = null; $("shareOverlay").classList.add("hidden"); }
+// what: "text" (details), "photo", or "both". Some apps on the receiving end only
+// take one kind of thing, so each choice is its own share.
+async function sendCard(e, what){
+  const text = entryText(e);
+  const file = what === "text" ? null : entryPhotoFile(e);
+  const canFiles = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files:[file] }));
+  if (navigator.share){
+    const payload = {};
+    if (what !== "photo"){ payload.title = e.site || "Gnome Vault card"; payload.text = text; }
+    if (canFiles) payload.files = [file];
+    if (payload.text || payload.files){
+      try {
+        await navigator.share(payload);
+        if (what === "both" && !canFiles) toast("Sent the details — this phone won't attach photos here");
+        else if (what === "photo") toast("Photo sent");
+        else if (what === "both") toast("Sent with the photo");
+        return;
+      } catch(err){ if (err && err.name === "AbortError") return; }   // user closed the sheet
+    }
+  }
+  // no share sheet here (desktop browser, or it refused): details go to the clipboard, the photo becomes a download
+  if (what !== "photo") await copyText(text, what === "both" ? "Card copied; photo saved to your downloads" : "Card copied — paste it into a message");
+  if (file) savePhoto(file, what === "photo" ? "Photo saved to your downloads" : null);
+}
+function savePhoto(file, msg){
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file); a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    if (msg) toast(msg);
+  } catch(err){ toast("Couldn't save the photo"); }
+}
+$("shareBothBtn").addEventListener("click", () => { const e = shareTarget; closeShare(); if (e) sendCard(e, "both"); });
+$("shareTextBtn").addEventListener("click", () => { const e = shareTarget; closeShare(); if (e) sendCard(e, "text"); });
+$("sharePhotoBtn").addEventListener("click", () => { const e = shareTarget; closeShare(); if (e) sendCard(e, "photo"); });
+$("shareCancelBtn").addEventListener("click", closeShare);
 function fillVersion(){
   const line = "Gnome Vault v" + APP_VERSION;
   document.querySelectorAll(".foot").forEach(el => { el.textContent = line; });
@@ -654,7 +702,8 @@ function show(screen){
   if (screen === "lockScreen") prepUnlockField();
 }
 function closeOverlays(){
-  ["editOverlay","changeOverlay","restoreOverlay","photoOverlay","menuBox"].forEach(id => $(id).classList.add("hidden"));
+  shareTarget = null;
+  ["editOverlay","changeOverlay","restoreOverlay","shareOverlay","photoOverlay","menuBox"].forEach(id => $(id).classList.add("hidden"));
 }
 function lock(message, isInfo){
   sessionToken++;
