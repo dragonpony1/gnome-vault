@@ -72,7 +72,22 @@ window.build=async()=>{
   // --- weapon mount: cut the baked sword out of the mesh (Meshy binds it to the upper arm anyway) and record where a
   // weapon should sit: the fist's position and the blade axis, in the right hand bone's own frame ---
   let mount=null; const Q=new URLSearchParams(location.search); let reskinned=0;
-  if(!Q.has('noreskin')){ scene.updateMatrixWorld(true); skinned.skeleton.update(); const g=skinned.geometry, pos=g.attributes.position, si=g.attributes.skinIndex, sw=g.attributes.skinWeight; const bl=skinned.skeleton.bones; const v=new THREE.Vector3();
+  // reskin=auto: Meshy's weights for this model are scrambled (only ten of the bones carry any, the left arm's skin sits on the
+  // right-arm bones), so every vertex is bound afresh to the nearest bone segments of the bind pose: up to three bones, by
+  // inverse square distance, only those within 1.8× the nearest. Crude next to a heat-map skin, fine for a toon figure.
+  if(Q.get('reskin')==='auto'){ scene.updateMatrixWorld(true); skinned.skeleton.update();   /* the scene sits in its bind pose here; skeleton.pose() would put the bones in the file's own units */ const g=skinned.geometry, pos=g.attributes.position, si=g.attributes.skinIndex, sw=g.attributes.skinWeight, bl=skinned.skeleton.bones; const v=new THREE.Vector3(), q=new THREE.Vector3(), l3=new THREE.Line3();
+    const segs=[]; bl.forEach((b,bi)=>{ const kids=b.children.filter(c=>c.isBone); const a=b.getWorldPosition(new THREE.Vector3()); if(kids.length){ for(const c of kids) segs.push({i:bi,a,b:c.getWorldPosition(new THREE.Vector3())}); } else { const p=(b.parent&&b.parent.isBone)?b.parent.getWorldPosition(new THREE.Vector3()):a.clone().add(new THREE.Vector3(0,-.1,0)); segs.push({i:bi,a,b:a.clone().add(a.clone().sub(p).multiplyScalar(.6))}); } });
+    const nb=bl.length, dist=new Float64Array(nb); const hist=new Array(nb).fill(0);
+    // core first: this rig has arm bones sitting inside the torso, so anything within the trunk's radius of the spine line binds
+    // to the spine bones only, anything above the neck near the axis to the head bones; limbs take the nearest of the rest
+    const nm=bl.map(b=>b.name), byName=n=>bl.findIndex(b=>b.name===n); const CORE=['Hips','Spine','Spine02','neck','Spine01'].map(byName).filter(k=>k>=0), HEAD=['neck','Head1','Head','head_end','headfront'].map(byName).filter(k=>k>=0);
+    const hipP=bl[byName('Hips')].getWorldPosition(new THREE.Vector3()), neckP=bl[byName('neck')>=0?byName('neck'):byName('Head')].getWorldPosition(new THREE.Vector3()); const axis=new THREE.Line3(hipP.clone().add(new THREE.Vector3(0,-.06,0)),neckP.clone().add(new THREE.Vector3(0,.02,0))); const TR=+(Q.get('trunk')||.21);
+    for(let i=0;i<pos.count;i++){ skinned.boneTransform(i,v); v.applyMatrix4(skinned.matrixWorld); dist.fill(1e9); for(const sg of segs){ l3.set(sg.a,sg.b); l3.closestPointToPoint(v,true,q); const dd=v.distanceTo(q); if(dd<dist[sg.i]) dist[sg.i]=dd; }
+      axis.closestPointToPoint(v,true,q); const r=v.distanceTo(q), onAxis=axis.closestPointToPointParameter(v,false); let pool=null; if(onAxis>=0&&onAxis<=1&&r<TR) pool=CORE; else if(v.y>neckP.y-.02&&r<.32) pool=HEAD;
+      const order=(pool||[...dist.keys()]).slice().sort((x,y)=>dist[x]-dist[y]).slice(0,3); const dmin=dist[order[0]]; const pick=order.filter(k=>dist[k]<=dmin*1.8+.01); const ws=pick.map(k=>1/Math.pow(dist[k]+.02,2)); const tot=ws.reduce((x,y)=>x+y,0);
+      const ix=[0,0,0,0], w=[0,0,0,0]; pick.forEach((k,n)=>{ ix[n]=k; w[n]=ws[n]/tot; }); si.setXYZW(i,ix[0],ix[1],ix[2],ix[3]); sw.setXYZW(i,w[0],w[1],w[2],w[3]); hist[pick[0]]++; reskinned++; }
+    si.needsUpdate=true; sw.needsUpdate=true; window.__dbg=window.__dbg||{}; window.__dbg.reskinHist=Object.fromEntries(bl.map((b,k)=>[b.name,hist[k]]).filter(([n,c])=>c)); }
+  else if(!Q.has('noreskin')){ scene.updateMatrixWorld(true); skinned.skeleton.update(); const g=skinned.geometry, pos=g.attributes.position, si=g.attributes.skinIndex, sw=g.attributes.skinWeight; const bl=skinned.skeleton.bones; const v=new THREE.Vector3();
     const segs=[]; for(const b of bl){ if(b.parent&&b.parent.isBone){ const pi=bl.indexOf(b.parent); if(pi>=0) segs.push({i:pi,a:b.parent.getWorldPosition(new THREE.Vector3()),b:b.getWorldPosition(new THREE.Vector3())}); } }
     const jp=bl.map(b=>b.getWorldPosition(new THREE.Vector3())); const l3=new THREE.Line3(), q=new THREE.Vector3();
     for(let i=0;i<pos.count;i++){ skinned.boneTransform(i,v); v.applyMatrix4(skinned.matrixWorld); const ix=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; let d=0; for(let k=1;k<4;k++) if(w[k]>w[d]) d=k; const jd=v.distanceTo(jp[ix[d]]); if(jd<.3) continue;

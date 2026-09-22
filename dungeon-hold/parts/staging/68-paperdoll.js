@@ -113,7 +113,7 @@ function dollFrame(dt){ const fig=el&&el.querySelector('.dl-figure'); if(!fig||!
   const W=renderer.domElement.width, Hh=renderer.domElement.height, rw=Math.min(w,W), rh=Math.min(h,Hh), bg=scene.background; scene.background=null;
   renderer.setScissorTest(true); renderer.setViewport(0,0,rw,rh); renderer.setScissor(0,0,rw,rh); renderer.setClearColor(0x0d0b10,1); renderer.clear(); renderer.render(scene,PC); renderer.setScissorTest(false); renderer.setViewport(0,0,W,Hh); renderer.setScissor(0,0,W,Hh); scene.background=bg;
   const g=cv.getContext('2d'); g.drawImage(renderer.domElement,0,Hh-rh,rw,rh,0,0,w,h); }
-{ const baseFrame=frame; frame=function(now){ if(!D.open) return baseFrame(now); requestAnimationFrame(frame); const dt=Math.min(.05,(now-lastT)/1000); lastT=now; update(dt); dollFrame(dt); }; }
+{ const baseFrame=frame; frame=function(now){ if(!D.open) return baseFrame(now); requestAnimationFrame(frame); const dt=Math.min(.05,(now-lastT)/1000); lastT=now; if(!window.__freeze) update(dt); dollFrame(dt); }; }
 addEventListener('keydown',e=>{ if(e.code==='Tab'||e.code==='KeyC'){ if(S.phase==='start'||S.phase==='dead'||S.phase==='won') return; if(e.code==='Tab') e.preventDefault(); if(typeof Tavern!=='undefined'&&Tavern&&Tavern.isOpen()) return; toggle(); e.stopImmediatePropagation(); return; }
   if(D.open){ if(e.code==='Escape'||e.code==='KeyI'||e.code==='KeyB'){ e.preventDefault(); close(); } e.stopImmediatePropagation(); } },true);
 ensure();

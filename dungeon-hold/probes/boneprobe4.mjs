@@ -1,0 +1,13 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8898);
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await (await browser.newContext({viewport:{width:800,height:560}})).newPage();
+await page.goto("http://127.0.0.1:8898/?silent"); await page.waitForFunction(()=>window.__dd&&window.__heroes&&window.__dd.heroModel()&&/v2/.test(window.__dd.heroModel().label),null,{timeout:120000});
+const r=await page.evaluate(async()=>{ window.__heroes.select("witch"); await new Promise(r=>setTimeout(r,3000)); const d=window.__dd; d.start(); d.setHero(0,6,0); d.step(1/60,30); window.__freeze=true;
+  const skins=[]; d.scene.traverse(o=>{ if(o.isSkinnedMesh) skins.push(o); }); const skin=skins.find(s=>s.name==='char1')||skins[0]; const sk=skin.skeleton; const names=sk.bones.map(b=>b.name);
+  const geo=skin.geometry, si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, pos=geo.attributes.position; const hist=new Array(sk.bones.length).fill(0); let bestV=-1,bestW=0; const fi=names.indexOf('LeftForeArm');
+  for(let i=0;i<si.count;i++){ const ix=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], wt=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; for(let k=0;k<4;k++){ if(wt[k]>.01) hist[ix[k]]++; if(ix[k]===fi&&wt[k]>bestW){ bestW=wt[k]; bestV=i; } } }
+  const skinned=(i)=>{ sk.update(); const ix=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], wt=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; const base=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(skin.bindMatrix); const out=new THREE.Vector3(); const m=new THREE.Matrix4(); for(let k=0;k<4;k++){ if(!wt[k]) continue; m.fromArray(sk.boneMatrices,ix[k]*16); out.addScaledVector(base.clone().applyMatrix4(m),wt[k]); } return out.applyMatrix4(skin.bindMatrixInverse).applyMatrix4(skin.matrixWorld).toArray().map(x=>+x.toFixed(2)); };
+  const B=sk.bones[names.indexOf('LeftArm')], H=sk.bones[names.indexOf('LeftHand')]; skin.updateWorldMatrix(true,true); const v0=skinned(bestV), h0=H.getWorldPosition(new THREE.Vector3()).toArray().map(x=>+x.toFixed(2));
+  B.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2)); B.updateWorldMatrix(true,true); const v1=skinned(bestV), h1=H.getWorldPosition(new THREE.Vector3()).toArray().map(x=>+x.toFixed(2));
+  return {names,hist,fi,bestV,bestW:+bestW.toFixed(2),v0,v1,h0,h1,skinCount:skins.length,skinNames:skins.map(s=>s.name),bindMode:skin.bindMode,skinMat:skin.matrixWorld.elements.slice(12,15).map(x=>+x.toFixed(2)),wrapPos:[d.hero.x,d.hero.y,d.hero.z]}; });
+console.log(JSON.stringify(r)); await browser.close(); server.close();

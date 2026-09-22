@@ -72,8 +72,7 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
 
 - `70-hero2.js` holds `HEROES` (Gnome Warden with a sword, Fae Battle Witch with a whip and reach 3.6); the start screen
   picks one (saved as `ddHero`); a pick swaps the model live. The start screen also has a testing line: unlock all maps,
-  auto-mana (orbs fly to you from anywhere), +1000 gold, ↻ fresh reload (the same page under a new query, past any
-  cached copy; saves kept) and wipe saves (two clicks: forgets every `dd*` key, then reloads fresh).
+  auto-mana (orbs fly to you from anywhere), +1000 gold, ↻ fresh reload (a plain reload; the page's URL is left alone since a host may sign it; saves kept) and wipe saves (two clicks: forgets every `dd*` key, then reloads fresh).
 - `80-weapons.js` mounts sword models on a `weaponMount_<cm>` node and whip models on a `whipMount_<cm>` node; a whip
   model is cut into a handle and five chained lash segments (`rigWhip`). The lash is a small rope simulation
   (`whipAnim`): five points hang from the handle under gravity, keep their lengths, trail the fist on a swing and snap round
@@ -82,6 +81,18 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   vertices are welded by position, the vine is seeded by its green texture colour and grown through connected triangles that
   sit away from the bones, and a `whipMount_100` is added under LeftHand with its axis along the forearm (the vine's own
   direction pointed through her leg — that was "she whips her leg").
+- Meshy's rig for the witch is scrambled: her file weights only ten of the 22 bones (the left arm's skin on the right-arm
+  bones, legs on the wrong bones — that was the "high kick"), and the right-arm bones sit inside her torso. The merge
+  (`merge.html?reskin=auto`) binds every vertex afresh to the nearest bone segments of the bind pose (core first: anything
+  within the trunk's radius binds to the spine bones, above the neck to the head bones, limbs to the nearest limb bone; up to
+  three bones by inverse square distance). Idle, walk, run, death and jump then play cleanly; her Meshy attack clip's tracks
+  don't fit the rig at all (they explode the mesh), so it is never played. `probes/skinhist.mjs <glb…>` prints a file's
+  weights per joint — run it on any new Meshy export before trusting the rig. A clean re-rig from Meshy (whip removed
+  first) is still the better source.
+- `72-witchswing.js`: the witch's Meshy "whip attack" clip is unusable, so her swing is made by hand — the left arm
+  winds up over her shoulder and snaps forward (bones aimed in world space and blended into the idle or walk pose); the kick
+  clip stays in the file but never plays for her, and the hit lands at the snap (`hitFrac` .5). Heroes opt in by id in
+  `PROC` with the arm to use.
 - Model files carry their content stamp in the name (`assets/witch.<sha1[0:8]>.glb.txt`, written by `assemble.mjs` for the
   folder build next to the plain copy) so a re-exported model is a new file and no browser or CDN cache can hand out the
   old one; `fetchBytes` falls back to the plain path if the stamped file is missing.
@@ -100,6 +111,11 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   wave to 15%, worth ×3, drops with a low bell under a rising shimmer and a violet column, glows violet on the floor and in
   the hand; 3 pieces +15% hero damage and +20% familiar damage; 5 pieces VOID RIFT (every hit deals 40% of the blow to all
   within 3 units and slows them 2 s). `window.__void` and `void-test.mjs` cover it.
+
+- `97-pause.js`: Escape in the hall (or the mouse leaving pointer lock) opens PAUSED — RESUME, or RETURN TO TITLE SCREEN
+  (a reload; gold, gear, skills and map progress are saved as they happen, the run is forfeited). Escape while placing
+  still cancels the placement; the tavern and the sheet keep their own Escape. `window.__freeze=true` stops the live
+  loop's update so a test can step the hall itself and still see it drawn.
 
 ## Open items
 

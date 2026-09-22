@@ -931,7 +931,7 @@ function update(dt){ if(S.phase==='start'){ updateFx(dt); updateCamera(dt); retu
     heroUpdate(dt); updateDefs(dt); updateEnemies(dt); updateProj(dt); updateOrbs(dt); updateLoot(dt); updateWave(dt); updateGhost(); updateHoverSector(); Meta.update(dt); }
   updateFx(dt); updateCamera(dt); updateHUD(); Meta.hud(); }
 let lastT=performance.now();
-function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.05,(now-lastT)/1000); lastT=now; update(dt); if(!Meta.isOpen()){ renderer.render(scene,camera); drawOverlay(); } }   // the tavern is opaque: no GPU work behind it
+function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.05,(now-lastT)/1000); lastT=now; if(!window.__freeze) update(dt); if(!Meta.isOpen()){ renderer.render(scene,camera); drawOverlay(); } }   /* __freeze: tests step the hall themselves and still see it drawn */   // the tavern is opaque: no GPU work behind it
 requestAnimationFrame(frame);
 
 // ================= TEST HOOK =================

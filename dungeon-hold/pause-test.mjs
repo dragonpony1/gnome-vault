@@ -1,0 +1,14 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8899);
+const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const ctx=await browser.newContext({viewport:{width:1100,height:700}}); const page=await ctx.newPage(); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error") errors.push(m.text().slice(0,200)); });
+await page.goto("http://127.0.0.1:8899/?silent"); await page.waitForFunction(()=>window.__dd&&window.__pause&&window.__doll&&window.__dd.heroModel(),null,{timeout:90000});
+const r1=await page.evaluate(async()=>{ const d=window.__dd; const esc=()=>window.dispatchEvent(new KeyboardEvent("keydown",{code:"Escape",bubbles:true,cancelable:true})); const onStart=(esc(),window.__pause.isOpen()); d.start(); d.step(1/60,3); const e=d.spawn("goblin","N"); const z0=e.z; esc(); const open=window.__pause.isOpen(), blocks=d.Meta.isOpen(); d.step(1/60,30); const moved=Math.abs(e.z-z0); const vis=!document.getElementById("pause").classList.contains("hide"); esc(); const closed=!window.__pause.isOpen(); d.step(1/60,30); const movedAfter=Math.abs(e.z-z0);
+  window.__pause.open(); document.querySelector('#pause [data-act="resume"]').click(); const resumed=!window.__pause.isOpen(); window.__doll.open(); esc(); const pausedOverSheet=window.__pause.isOpen(); const sheetClosed=!window.__doll.isOpen(); return {onStart,open,blocks,moved,vis,closed,movedAfter,resumed,pausedOverSheet,sheetClosed}; });
+check("Escape on the title does nothing; in the hall it pauses (menu shown, the hall frozen), Escape again resumes and the goblin walks; RESUME closes it; over the sheet Escape closes the sheet, not a pause",!r1.onStart&&r1.open&&r1.blocks&&r1.moved<1e-6&&r1.vis&&r1.closed&&r1.movedAfter>.1&&r1.resumed&&!r1.pausedOverSheet&&r1.sheetClosed,JSON.stringify(r1));
+const [nav]=await Promise.all([page.waitForNavigation({timeout:60000}),page.evaluate(()=>{ window.__pause.open(); document.querySelector('#pause [data-act="title"]').click(); })]);
+await page.waitForFunction(()=>window.__dd&&window.__dd.S.phase==="start"&&!document.getElementById("start").classList.contains("hide"),null,{timeout:90000});
+check("RETURN TO TITLE reloads to the title screen",true,"phase start");
+const realErrors=errors.filter(e=>!/Failed to load resource|favicon/i.test(e));
+check("no page errors",realErrors.length===0,realErrors.slice(0,3).join(" | "));
+await browser.close(); server.close(); console.log(results.filter(Boolean).length+"/"+results.length+" passed");

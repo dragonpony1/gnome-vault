@@ -18,8 +18,9 @@ const TEST={autoMana:false}; try{ TEST.autoMana=localStorage.getItem('ddAutoMana
 function testLine(){ let el=$('testline'); if(!el){ el=document.createElement('p'); el.id='testline'; el.className='mapline'; el.style.fontSize='12px'; el.style.letterSpacing='1px'; el.style.color='#bfae90'; el.style.gap='8px'; $('heroline').insertAdjacentElement('afterend',el); }
   el.innerHTML='🧪 testing: <button data-t="maps">'+(cleared()>=MAPS.length?'all maps unlocked ✓':'unlock all maps')+'</button><button data-t="mana">auto-mana: '+(TEST.autoMana?'ON':'off')+'</button><button data-t="gold">+1000 gold</button><button data-t="reload" title="reload the page past any cached copy (saves kept)">↻ fresh reload</button><button data-t="wipe" title="forget gear, gold, skills, hero and map progress, then reload fresh">wipe saves</button>';
   el.querySelectorAll('button').forEach(b=>{ b.style.width='auto'; b.style.height='30px'; b.style.fontSize='12px'; b.style.padding='0 10px'; b.onclick=()=>{ const t=b.dataset.t; if(t==='maps'){ try{ localStorage.setItem('ddMapsCleared',String(MAPS.length)); }catch(e){} mapLine(); } else if(t==='mana'){ TEST.autoMana=!TEST.autoMana; window.__autoMana=TEST.autoMana; try{ localStorage.setItem('ddAutoMana',TEST.autoMana?'on':'off'); }catch(e){} } else if(t==='gold'){ Meta.addGold(1000,'refund'); } else if(t==='reload'){ freshReload(); return; } else if(t==='wipe'){ if(TEST.wipeArm&&Date.now()-TEST.wipeArm<5000){ wipeSaves(); freshReload(); return; } TEST.wipeArm=Date.now(); b.textContent='wipe saves — click again to confirm'; return; } testLine(); }; }); }
-// a reload that no cache can answer: the same page under a fresh query; the wipe forgets every dd* key first
-function freshReload(){ try{ const u=new URL(location.href); u.searchParams.set('fresh',String(Date.now())); location.replace(u.href); }catch(e){ location.reload(); } }
+// a plain reload (the browser re-checks the page with the host; model files carry their own content stamps, so they are
+// never stale); the page's own URL is left alone — a host may sign it. The wipe forgets every dd* key first
+function freshReload(){ location.reload(); }
 function wipeSaves(){ try{ Object.keys(localStorage).filter(k=>/^dd/.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(e){} }
 window.__fresh={reload:freshReload,wipe:wipeSaves};
 testLine();
