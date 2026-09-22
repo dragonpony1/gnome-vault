@@ -5,7 +5,7 @@ const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftsh
 await page.goto("http://127.0.0.1:8851/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel("goblin"),null,{timeout:60000});
 // names on the HUD
 const n0=await page.evaluate(()=>({slots:[...document.querySelectorAll("#hotbar .slot .n")].map(e=>e.textContent),hp:document.querySelector(".bar.hp b").textContent,res:document.querySelector(".res .du").textContent,sub:document.querySelector("#start h2").textContent}));
-check("six towers on the hotbar with the new names",n0.slots.join("|")==="Ballista|Acorn Cannon|Turnip Trebuchet|Mushroom Ring|Bramble Hedge|Frost Totem",n0.slots.join("|"));
+check("seven towers on the hotbar with the new names",n0.slots.join("|")==="Ballista|Acorn Cannon|Turnip Trebuchet|Mushroom Ring|Bramble Hedge|Rune Totem|Frost Spire",n0.slots.join("|"));
 check("Warden, roots",n0.hp==="WARDEN"&&/roots/.test(n0.res)&&/WARDEN/.test(n0.sub),JSON.stringify([n0.hp,n0.res,n0.sub]));
 // acorn cannon: three acorns per shot, goblin in the cone takes damage
 const r1=await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.addMana(9000); d.setHero(6,-2,Math.PI); d.step(1/60,3); const t=d.place("acorn",16,15,Math.PI); t.cd=0; const e=d.spawn("goblin","N"); e.hp=e.max=9999; const hp0=e.hp; let maxAcorns=0, fired=0; for(let i=0;i<150;i++){ e.x=t.x; e.z=t.z-6; const b=d.projs.filter(p=>p.kind==="acorn").length; d.step(1/60,1); const a=d.projs.filter(p=>p.kind==="acorn").length; if(a>b) fired++; maxAcorns=Math.max(maxAcorns,a); } const dmg=hp0-e.hp; d.kill(e); return {maxAcorns,fired,dmg,name:d.DEFS.acorn.name}; });

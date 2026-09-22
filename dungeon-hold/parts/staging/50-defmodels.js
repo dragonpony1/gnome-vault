@@ -3,7 +3,7 @@
 // own model use the highest one below them. The game keeps driving the same userData handles it uses on the procedural
 // models: yoke (turns to aim / spins), hp / ball (projectile shown while loaded — dummies here), hub (spinner).
 const DEFGLB={};                                                     // kind -> [{wrap,scale,turn,tpl}] by mark index
-const DEF_H={harpoon:1.6,acorn:1.5,ball:2.2,slice:.6,spike:1.1,totem:2.8};              // target heights in world units (about the procedural sizes)
+const DEF_H={harpoon:1.6,acorn:1.5,ball:2.2,slice:.6,spike:1.1,totem:2.8,frost:2.4};              // target heights in world units (about the procedural sizes)
 const DEF_W={slice:5.0};                                                    // flat things fit by footprint width instead (the ring's toadstools stand at radius 2.3)
 const DEF_TURN=/yoke|turret|swivel|head|top|arm|bow|hub|blade|rotor/i; // a node named like this is the part that turns
 function regDefGLB(kind,gltf,markIdx){ const root=gltf.scene||gltf.scenes[0]; let targetH=DEF_H[kind]||2; if(DEF_W[kind]){ root.updateMatrixWorld(true); const sz=new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()); targetH=DEF_W[kind]*sz.y/Math.max(sz.x,sz.z,1e-6); } const fit=fitModel(root,targetH); toonify(root,fit.scale); let turn=null; root.traverse(o=>{ if(!turn&&o!==root&&DEF_TURN.test(o.name||'')) turn=o.name; }); (DEFGLB[kind]=DEFGLB[kind]||[])[markIdx||0]={wrap:fit.wrap,scale:fit.scale,turn}; }
@@ -31,7 +31,8 @@ for(let i=1;i<=4;i++) fetchDefGLB('harpoon',ASSET('ballista-'+i+'.glb'),i-1);   
 fetchDefGLB('spike',ASSET('hedge.glb'),0);   // the bramble hedge (Meshy), all marks
 for(let i=1;i<=4;i++) fetchDefGLB('acorn',ASSET('cannon-'+i+'.glb'),i-1);   // the acorn cannon (Meshy) Mark I..IV; Mark V keeps the tier-4 look
 for(let i=1;i<=4;i++) fetchDefGLB('slice',ASSET('mushroom-'+i+'.glb'),i-1);   // the mushroom ring (Meshy) Mark I..IV; Mark V keeps the tier-4 look
-for(let i=1;i<=4;i++) fetchDefGLB('totem',ASSET('totem-'+i+'.glb'),i-1);   // the frost totem (Meshy) Mark I..IV; Mark V keeps the tier-4 look
+for(let i=1;i<=4;i++) fetchDefGLB('totem',ASSET('totem-'+i+'.glb'),i-1);   // the rune totem (Meshy) Mark I..IV; Mark V keeps the tier-4 look
+// the frost spire has no Meshy art yet: drop frost-1..4.glb into assets/ and add its fetch line here
 // the acorn the cannon fires: Meshy's acorn, toon-shaded, ~0.34 tall; the procedural one until it lands
 { let tpl=null; const proc=acornMesh; fetchBytes(ASSET('acorn.glb')).then(buf=>new THREE.GLTFLoader().parse(buf,'',gltf=>{ try{ const root=gltf.scene||gltf.scenes[0]; const fit=fitModel(root,.64); toonify(root,fit.scale); const w=fit.wrap; w.children[0].position.y-=.32; tpl=w; }catch(e){ console.warn('acorn model',e); } },e=>console.warn('acorn model',e))).catch(e=>console.warn('acorn model',e));
   acornMesh=function(){ if(!tpl) return proc(); const g=tpl.clone(); g.rotation.set(rnd()*6,rnd()*6,0); return g; }; }
