@@ -1,6 +1,6 @@
 // ===== 10-meta.js — Meta core: persistent state (ddMeta), bag, gold, xp/levels/points, skills, shop, run accounting =====
 // Same scope as game.js (inside its IIFE). The tavern UI (20-tavern.js) and the familiar (30-familiar.js) build on this.
-const BAG_CAP=24, XP={goblin:2,archer:4,orc:8,ogre:40};
+const BAG_CAP=24, XP={goblin:2,archer:4,orc:8,ogre:40,drake:12};
 const SKILLS=[
   {id:'blade',   name:'Blade',    per:.08, keys:['dmg'],        what:'Hero damage',              fmt:v=>'+'+Math.round(v*100)+'% hero damage'},
   {id:'vigor',   name:'Vigor',    per:.08, keys:['hp'],         what:'Hero max health',          fmt:v=>'+'+Math.round(v*100)+'% max health'},

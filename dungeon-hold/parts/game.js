@@ -117,17 +117,17 @@ const heroSolid=t=>t===T.WALL||t===T.PILLAR||t===T.CRYSTAL||t===T.PROP;
 const defAt=new Array(GW*GH).fill(null);
 
 // flow fields: 'free' ignores defenses, 'def' respects them
-let flowFree=null, flowDef=null;
-function bfs(respect){
+let flowFree=null, flowDef=null, flowFly=null;
+function bfs(respect,fly){
   const nxt=new Int16Array(GW*GH).fill(-1), dist=new Int16Array(GW*GH).fill(-1);
   dist[GOAL]=0; const q=[GOAL]; let qi=0;
   while(qi<q.length){ const i=q[qi++]; const x=i%GW, z=(i/GW)|0;
-    for(let k=0;k<4;k++){ const nx=x+[1,-1,0,0][k], nz=z+[0,0,1,-1][k]; if(!inb(nx,nz)) continue; const j=idx(nx,nz); if(Math.abs(hgt[j]-hgt[i])>.8) continue; /* no path over a ledge: stairs only */
+    for(let k=0;k<4;k++){ const nx=x+[1,-1,0,0][k], nz=z+[0,0,1,-1][k]; if(!inb(nx,nz)) continue; const j=idx(nx,nz); if(!fly&&Math.abs(hgt[j]-hgt[i])>.8) continue; /* no path over a ledge: stairs only (flyers ignore it) */
       if(dist[j]>=0||!walk(grid[j])) continue; if(respect&&defAt[j]&&defAt[j].kind!=='slice') continue;
       dist[j]=dist[i]+1; nxt[j]=i; q.push(j); } }
   return {nxt,dist};
 }
-function reflow(){ flowFree=bfs(false); flowDef=bfs(true); }
+function reflow(){ flowFree=bfs(false); flowDef=bfs(true); flowFly=bfs(false,true); }
 reflow();
 function los(ax,az,bx,bz){ const d=Math.hypot(bx-ax,bz-az); const n=Math.ceil(d/0.7)||1; for(let i=1;i<n;i++){ const t=i/n; const g=gat(wc(ax+(bx-ax)*t),wcz(az+(bz-az)*t)); if(g===T.WALL||g===T.PILLAR) return false; } return true; }
 
@@ -347,8 +347,10 @@ function makeGoblin(kind){
   if(kind==='goblin'){ skin=mat(0x62b03c); cloth=mat(0x5a3a22); }
   else if(kind==='orc'){ skin=mat(0x4f8a35); cloth=mat(0x3a2a1a); sc=1.55; h=2.1; r=.65; }
   else if(kind==='archer'){ skin=mat(0xc8843a); cloth=mat(0x3a2a1a); sc=1.1; h=1.55; r=.42; }
+  else if(kind==='drake'){ skin=mat(0xc0301c); cloth=mat(0x6a1a12); sc=1.25; h=1.6; r=.7; }
   else { skin=mat(0x9a8a5c); cloth=mat(0x4a2e1a); sc=2.4; h=3.3; r=1.05; }
   const bulky=kind==='orc'||kind==='ogre';
+  if(kind==='drake') for(const sd of [-1,1]){ const w=M(G.box(.95,.05,.55),mat(0x8a1a12),sd*.7,1.05,-.1); w.rotation.z=sd*.3; g.add(w); }
   const legL=limb(-.14,.42,.36,bulky?.11:.08,skin), legR=limb(.14,.42,.36,bulky?.11:.08,skin); g.add(legL,legR);
   g.add(M(G.cyl(bulky?.3:.2,bulky?.36:.24,.44,8),skin,0,.66,0)); g.add(M(G.box(bulky?.62:.44,.22,bulky?.5:.34),cloth,0,.44,0));
   if(bulky){ const belly=M(G.sph(.33,10,8),skin,0,.62,.08); belly.scale.set(1,.85,.9); g.add(belly); }
@@ -421,7 +423,7 @@ function harpoonMesh(){ const g=new THREE.Group(); const s=M(G.cyl(.035,.035,1.3
 function acornMesh(){ const g=new THREE.Group(); g.add(M(G.sph(.28,8,6),mat(0x9a6a3a),0,0,0)); const cap=M(G.cyl(.3,.34,.2,8),mat(0x5a3a1e),0,.17,0); g.add(cap); g.add(M(G.cyl(.03,.03,.14,4),mat(0x5a3a1e),0,.34,0)); outline(g); return g; }
 function turnipMesh(){ const g=new THREE.Group(); const body=M(G.sph(.3,10,8),mat(0xece2f2)); body.scale.y=.85; g.add(body); const top=M(G.sph(.24,10,8),mat(0x9a5ab8),0,.14,0); top.scale.y=.6; g.add(top); const leaf=mat(0x4f8f3a); [[.08,.3,0,.4],[-.06,.34,.05,-.3],[0,.32,-.08,1.2]].forEach(([x,y,z,r])=>{ const l=M(G.box(.06,.24,.02),leaf,x,y,z); l.rotation.z=r; g.add(l); }); outline(g); return g; }
 function ballMesh(){ const g=new THREE.Group(); const m=M(G.sph(.42,12,10),mat(0x1a1620)); [[.1,.34,.22],[-.12,.34,.22],[0,.4,.1]].forEach(([x,y,z])=>{ const h=M(G.sph(.06,6,5),basic(0x000000),x,y,z); h.userData.noOL=true; m.add(h); }); outline(m); g.add(m); g.userData.m=m; return g; }
-function arrowMesh(){ const g=new THREE.Group(); const s=M(G.cyl(.02,.02,.9,4),mat(0x6b4a2a)); s.rotation.x=PI/2; g.add(s); const t=M(G.cone(.04,.14,4),mat(0xc4ced9),0,0,.5); t.rotation.x=PI/2; g.add(t); return g; }
+function arrowMesh(){ const g=new THREE.Group(); const r=M(new THREE.DodecahedronGeometry(.2,0),mat(0x6e6a70)); r.rotation.set(rnd()*3,rnd()*3,0); g.add(r); g.userData.spin=1; return g; }   // the bandit's rock
 function orbMesh(){ const g=new THREE.Group(); const o=new THREE.Mesh(new THREE.OctahedronGeometry(.16,0),basic(0x7af4ff)); o.userData.noOL=true; g.add(o); g.add(glow(0x4ae6ff,1.2,.7)); g.userData.o=o; return g; }
 
 // ================= GAME STATE =================
@@ -436,7 +438,7 @@ const DEFKEYS=['harpoon','acorn','ball','slice','spike']; const MAXLVL=5, MARK=[
 // a defense's sector of fire at its current mark
 function arcOf(d){ const cfg=DEFS[d.kind]; if(cfg.arcs) return cfg.arcs[Math.min(cfg.arcs.length-1,(d.lvl||1)-1)]; return cfg.arc||360; }
 function mobSpd(e){ return e.spd*(e.slowT>0?DEFS.slice.slow:1); }   // spored mobs crawl
-const MOBS={goblin:{hp:10,spd:3.4,dmg:3,cd:1.0,mana:1,detour:3}, orc:{hp:45,spd:2.1,dmg:8,cd:1.4,mana:3,detour:1}, archer:{hp:18,spd:2.8,dmg:3,cd:1.6,mana:2,ranged:11,detour:4}, ogre:{hp:200,spd:1.7,dmg:20,cd:2.2,mana:8,detour:0}};
+const MOBS={goblin:{hp:10,spd:3.4,dmg:3,cd:1.0,mana:1,detour:3}, orc:{hp:45,spd:2.1,dmg:8,cd:1.4,mana:3,detour:1}, archer:{hp:22,spd:2.8,dmg:4,cd:1.6,mana:2,ranged:11,detour:4}, drake:{hp:70,spd:2.6,dmg:12,cd:1.8,mana:5,detour:0,fly:2.6}, ogre:{hp:200,spd:1.7,dmg:20,cd:2.2,mana:8,detour:0}};
 const DU_CAP=40, SENS=0.0042;
 const S={mana:260,du:0,crystal:100,wave:0,phase:'start',t:0,waveT:0,kills:0};
 function effWave(w){ return MAP.wbase+(w===undefined?S.wave:w); }   // map 2 wave 1 is the eighth wave of the campaign: mobs, loot and pay scale with this
@@ -459,9 +461,9 @@ const joy={x:0,y:0,id:null,ox:0,oy:0}; let lookId=null, lookX=0, lookY=0;
 function angDiff(a,b){ let d=(b-a)%TAU; if(d>PI) d-=TAU; if(d<-PI) d+=TAU; return d; }
 function angLerp(a,b,t){ return a+angDiff(a,b)*t; }
 function easeOutBack(t){ const c=1.7; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2); }
-function solidAt(x,z,y,forHero){ const cx=wc(x),cz=wcz(z); const t=gat(cx,cz); if(forHero?heroSolid(t):!walk(t)) return true; if(baseFloor(x,z)>y+.62) return true; /* a ledge taller than a step: no climbing it (a jumping hero clears what it can) */ const d=inb(cx,cz)?defAt[idx(cx,cz)]:null; if(d){ if(d.kind==='slice') return false; return forHero?y<d.top-.25:true; } return false; }
+function solidAt(x,z,y,forHero){ const cx=wc(x),cz=wcz(z); const t=gat(cx,cz); if(forHero?heroSolid(t):!walk(t)) return true; if(baseFloor(x,z)>y+.62) return true; /* a ledge taller than a step: no climbing it (a jumping hero clears what it can) */ const d=inb(cx,cz)?defAt[idx(cx,cz)]:null; if(d){ if(d.kind==='slice'||y>d.top+.3) return false; return forHero?y<d.top-.25:true; } return false; }
 const ARC=[[1,0],[-1,0],[0,1],[0,-1],[.71,.71],[-.71,.71],[.71,-.71],[-.71,-.71]];
-function moveCircle(e,dx,dz,r,forHero){ const y=e.y||0; let nx=e.x+dx, ok=true; for(const a of ARC){ if(solidAt(nx+a[0]*r,e.z+a[1]*r,y,forHero)){ ok=false; break; } } if(ok) e.x=nx;
+function moveCircle(e,dx,dz,r,forHero){ const y=e.fly?1e6:(e.y||0); let nx=e.x+dx, ok=true; for(const a of ARC){ if(solidAt(nx+a[0]*r,e.z+a[1]*r,y,forHero)){ ok=false; break; } } if(ok) e.x=nx;
   let nz=e.z+dz; ok=true; for(const a of ARC){ if(solidAt(e.x+a[0]*r,nz+a[1]*r,y,forHero)){ ok=false; break; } } if(ok) e.z=nz; }
 function wallAt(x,z){ const t=gat(wc(x),wcz(z)); return t===T.WALL||t===T.PILLAR||t===T.CRYSTAL||t===T.PROP; }
 // floor height at a point: raised floors, and stairs as two flat steps per cell (climbing them bobs a little, like stairs do)
@@ -577,13 +579,14 @@ else fetchBytes(ASSET('gnome.glb')).then(buf=>loadHeroGLB(buf,'Gnome Warden (Mes
 function cloneSkinned(source){ const sl=new Map(), cl=new Map(); const clone=source.clone(); (function walk(a,b){ sl.set(b,a); cl.set(a,b); for(let i=0;i<a.children.length;i++) walk(a.children[i],b.children[i]); })(source,clone);
   clone.traverse(n=>{ if(!n.isSkinnedMesh) return; const src=sl.get(n); n.skeleton=src.skeleton.clone(); n.bindMatrix.copy(src.bindMatrix); n.skeleton.bones=src.skeleton.bones.map(b=>cl.get(b)); n.bind(n.skeleton,n.bindMatrix); }); return clone; }
 // per kind: model height to fit to, hit box, and the walk/run speeds (in body heights per second) the clips were made for
-const MOBDIM={goblin:{fit:1.55,h:1.4,r:.42,nat:{walk:1.0,run:2.4}}, orc:{fit:2.45,h:2.1,r:.65,nat:{walk:1.0,run:2.2}}, ogre:{fit:3.5,h:3.3,r:1.05,nat:{walk:.9,run:2.0}}};
+const MOBDIM={goblin:{fit:1.55,h:1.4,r:.42,nat:{walk:1.0,run:2.4}}, orc:{fit:2.45,h:2.1,r:.65,nat:{walk:1.0,run:2.2}}, ogre:{fit:3.5,h:3.3,r:1.05,nat:{walk:.9,run:2.0}}, archer:{fit:1.85,h:1.7,r:.42,nat:{walk:1.0,run:2.2}}, drake:{fit:2.4,h:1.6,r:.7,nat:{walk:1,run:1}}};
 SFX.roar=()=>{ noise(.5,.12,300); beep(60,1.0,'sawtooth',.1,-25); };
 const MOBGLB={};   // kind -> {wrap,map,scale}
 function loadMobGLB(kind,b64){ try{ const u=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); new THREE.GLTFLoader().parse(u.buffer,'',gltf=>{ try{ const root=gltf.scene||gltf.scenes[0]; const fit=fitModel(root,MOBDIM[kind].fit); toonify(root,fit.scale); MOBGLB[kind]={wrap:fit.wrap,map:mapClips(gltf.animations||[]),scale:fit.scale}; }catch(e){ console.warn('mob model '+kind,e); } },e=>console.warn('mob model '+kind,e)); }catch(e){ console.warn('mob model '+kind,e); } }
 function makeMobGLB(kind){ const T=MOBGLB[kind], dim=MOBDIM[kind]; const g=cloneSkinned(T.wrap); const mixer=new THREE.AnimationMixer(g); const actions={};
   for(const k in T.map){ const a=mixer.clipAction(T.map[k]); if(k==='attack'||k==='death'||k==='shout'){ a.setLoop(THREE.LoopOnce,1); a.clampWhenFinished=true; } actions[k]=a; }
-  g.add(blob(dim.r*1.1)); return {g,glb:true,mixer,actions,cur:null,h:dim.h,r:dim.r,legs:[],arms:[],head:null}; }
+  g.add(blob(dim.r*1.1)); const parts={}; for(const k of ['wingL','wingR','tail']){ const o=g.getObjectByName(k); if(o) parts[k]=o; }   // a procedurally rigged model (the drake) carries hinged parts by name
+  return {g,glb:true,mixer,actions,cur:null,h:dim.h,r:dim.r,legs:[],arms:[],head:null,parts}; }
 function makeMob(kind){ return MOBGLB[kind]?makeMobGLB(kind):makeGoblin(kind); }
 function mobPlay(m,name,o){ const a=m.actions[name]; if(!a) return; o=o||{}; if(m.cur===a&&!o.restart) return; const prev=m.cur; m.cur=a; a.reset(); a.timeScale=o.speed||1; a.setEffectiveWeight(1); if(prev&&prev!==a){ if(o.fade) a.crossFadeFrom(prev,o.fade,false); else prev.stop(); } a.play(); }
 const SHOUT_SPEED=.6;   // the war cry plays slowed so it reads as a roar, not a twitch
@@ -599,7 +602,7 @@ function mobAnim(e,dt){ const m=e.mdl, A=m.actions; let st; if(e.dead) st='death
   m.mixer.update(dt); }
 function fetchMobGLB(kind,url){ fetchBytes(url).then(buf=>new THREE.GLTFLoader().parse(buf,'',gltf=>{ try{ const root=gltf.scene||gltf.scenes[0]; const fit=fitModel(root,MOBDIM[kind].fit); toonify(root,fit.scale); MOBGLB[kind]={wrap:fit.wrap,map:mapClips(gltf.animations||[]),scale:fit.scale}; }catch(e){ console.warn('mob model '+kind,e); } },e=>console.warn('mob model '+kind,e))).catch(e=>console.warn('mob model '+kind+' ('+url+')',e)); }
 if(typeof GOBLIN_GLB_B64!=='undefined') loadMobGLB('goblin',GOBLIN_GLB_B64); else fetchMobGLB('goblin',ASSET('goblin.glb'));
-fetchMobGLB('orc',ASSET('orc.glb')); fetchMobGLB('ogre',ASSET('ogre.glb'));   // mobs with a model in assets/ use it; in the single-file build these never resolve and the block figures stay
+fetchMobGLB('orc',ASSET('orc.glb')); fetchMobGLB('ogre',ASSET('ogre.glb')); fetchMobGLB('archer',ASSET('bandit.glb'));   // mobs with a model in assets/ use it; in the single-file build these never resolve and the block figures stay
 
 // ================= CAMERA =================
 function updateCamera(dt){
@@ -615,11 +618,11 @@ function updateCamera(dt){
 
 // ================= ENEMIES =================
 function spawnEnemy(kind,lane){ const L=LANES[lane]||LANES.N; const m=makeMob(kind); const cfg=MOBS[kind]; const w=Math.max(0,effWave()-1); const hpm=(1+.22*w)*(1+.08*gearScore()/100); /* waves get harder by wave, not by what you wear — good gear should feel good */ const dmm=1+.08*w;
-  const e={kind,x:cw(L.cx)+R(-.6,.6),y:0,z:cwz(L.cz)+R(-.6,.6),hp:Math.round(cfg.hp*hpm),max:Math.round(cfg.hp*hpm),spd:cfg.spd*R(.9,1.1)*(1+.02*w),dmg:Math.round(cfg.dmg*dmm),cd:cfg.cd,atk:R(0,.5),r:m.r,h:m.h,mdl:m,sc:m.g.scale.x,ph:rnd()*6,yaw:L.face,dead:0,mana:cfg.mana,ranged:cfg.ranged||0,pop:0,squash:0,swing:-1,walking:false,sx:0,sz:0,shoutT:0};
+  const e={kind,x:cw(L.cx)+R(-.6,.6),y:0,z:cwz(L.cz)+R(-.6,.6),hp:Math.round(cfg.hp*hpm),max:Math.round(cfg.hp*hpm),spd:cfg.spd*R(.9,1.1)*(1+.02*w),dmg:Math.round(cfg.dmg*dmm),cd:cfg.cd,atk:R(0,.5),r:m.r,h:m.h,mdl:m,sc:m.g.scale.x,ph:rnd()*6,yaw:L.face,dead:0,mana:cfg.mana,ranged:cfg.ranged||0,pop:0,squash:0,swing:-1,walking:false,sx:0,sz:0,shoutT:0,fly:cfg.fly||0}; if(e.fly) e.y=e.fly;
   e.roar=(m.glb&&m.actions.shout)?0:-1;   // a mini-boss roars when it first comes into view (and again, enraged, at half health) — see ogreRoar
   m.g.position.set(e.x,0,e.z); m.g.rotation.y=e.yaw; scene.add(m.g); enemies.push(e); const p=portals.find(p=>p.k===lane); if(p) p.pulse=1; return e; }
 function hurt(e,dmg,kx,kz){ if(e.dead) return; e.hp-=dmg; e.squash=1; floatText(e.x,e.y+e.h+.4,e.z,String(dmg),'#ffd060'); if(kx||kz) moveCircle(e,kx*.5,kz*.5,e.r*.8,false); if(e.hp<=0) kill(e); }
-function kill(e){ e.dead=.001; S.kills++; spawnOrbs(e.x,e.z,e.mana); rollDrop(e); Meta.onKill(e); if(e.kind==='ogre'||e.kind==='orc') SFX.bigDie(); else SFX.die(); }
+function kill(e){ e.dead=.001; S.kills++; spawnOrbs(e.x,e.z,e.mana); rollDrop(e); Meta.onKill(e); if(e.kind==='ogre'||e.kind==='orc'||e.kind==='drake') SFX.bigDie(); else SFX.die(); }
 function attack(e,tg){ e.swing=0; e.pending=tg; }
 function landHit(e,tg){
   if(tg.kind==='hero'){ if(hero.dead<=0) hurtHero(e.dmg); }
@@ -631,11 +634,13 @@ function updateEnemies(dt){
   for(let i=0;i<alive.length;i++) for(let j=i+1;j<alive.length;j++){ const a=alive[i], b=alive[j]; const dx=b.x-a.x, dz=b.z-a.z, d=Math.hypot(dx,dz), min=(a.r+b.r)*.9; if(d<min&&d>.001){ const p=(min-d)/min*3; a.sx-=dx/d*p; a.sz-=dz/d*p; b.sx+=dx/d*p; b.sz+=dz/d*p; } }
   for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; const g=e.mdl.g;
     if(e.dead){ e.dead+=dt;
+      if(e.fly){ e.y=Math.max(baseFloor(e.x,e.z),e.y-9*dt); g.position.y=e.y; g.rotation.z+=dt*2.5; }   // a dead flyer drops
       if(e.mdl.glb){ mobAnim(e,dt); const t=e.dead-.9; if(t>0){ const s=Math.max(0,1-t/.35)*e.sc; g.scale.setScalar(Math.max(s,.001)); g.position.y=e.y-(1-s)*.4; } if(e.dead>1.25){ scene.remove(g); enemies.splice(i,1); } continue; }
       const s=Math.max(0,1-e.dead/.3)*e.sc; g.scale.set(s*1.3,s*.6,s*1.3); if(e.dead>.3){ scene.remove(g); enemies.splice(i,1); } continue; }
     e.pop=Math.min(1,e.pop+dt*3); e.atk-=dt; e.slowT=Math.max(0,(e.slowT||0)-dt); if(e.swing>=0){ e.swing+=dt; if(e.pending&&e.swing>=.2){ const tg=e.pending; e.pending=null; landHit(e,tg); } if(e.swing>.4) e.swing=-1; }
     let target=null; const hd=Math.hypot(hero.x-e.x,hero.z-e.z);
     if(hero.dead<=0&&hd<e.r+1.1&&hero.y-e.y<1.4) target={kind:'hero',x:hero.x,z:hero.z,reach:e.r+1.3};
+    else if(e.fly){ const ci=idx(wc(e.x),wcz(e.z)); const n=flowFly.nxt[ci]; const cr={kind:'crystal',x:0,z:0,reach:2.9+e.r}; target=(ci===GOAL||n===GOAL)?cr:(n>=0?{kind:'move',x:cw(n%GW),z:cwz((n/GW)|0)}:null); }   // straight over stairs, ledges and defenses
     else { const ci=idx(wc(e.x),wcz(e.z)); let n=flowDef.nxt[ci]; const cr={kind:'crystal',x:0,z:0,reach:2.9+e.r};
       // defenses in the way get smashed, not politely walked around: if going round costs more than this mob's patience
       // (in grid squares — ogres have none, goblins a little), follow the straight path and break whatever blocks it
@@ -649,9 +654,10 @@ function updateEnemies(dt){
     if(target){ const dx=target.x-e.x, dz=target.z-e.z, d=Math.hypot(dx,dz)||.001; const ty=Math.atan2(dx,dz);
       if(target.kind==='move'||d>target.reach){ const sp=mobSpd(e); moveCircle(e,(dx/d*sp+e.sx)*dt,(dz/d*sp+e.sz)*dt,e.r*.8,false); e.ph+=dt*9; e.yaw=angLerp(e.yaw,ty,1-Math.exp(-10*dt)); e.walking=true; }
       else { e.yaw=angLerp(e.yaw,ty,1-Math.exp(-10*dt)); if(e.atk<=0){ e.atk=e.cd; attack(e,target); } } }
-    e.y=baseFloor(e.x,e.z); e.squash=Math.max(0,e.squash-dt*7);
+    if(e.fly){ const ty=baseFloor(e.x,e.z)+e.fly+Math.sin(S.t*2.2+e.ph)*.25; e.y=lerp(e.y,ty,1-Math.exp(-3*dt)); } else e.y=baseFloor(e.x,e.z); e.squash=Math.max(0,e.squash-dt*7);
     const sc=e.sc*(e.pop<1?easeOutBack(e.pop):1), sq=e.squash; g.scale.set(sc*(1+sq*.25),sc*(1-sq*.35),sc*(1+sq*.25));
     g.position.set(e.x,e.y,e.z); g.rotation.y=e.yaw; const w=e.walking?1:0; const m=e.mdl;
+    if(e.fly){ g.rotation.z=Math.sin(S.t*2.2+e.ph)*.07; g.rotation.x=e.walking?-.12:0; const P=m.parts; if(P){ const f=Math.sin(S.t*7+e.ph)*.55; if(P.wingL) P.wingL.rotation.z=f; if(P.wingR) P.wingR.rotation.z=-f; if(P.tail) P.tail.rotation.y=Math.sin(S.t*2.6+e.ph)*.25; } }   // wingbeats, a tail sway, a lean into the flight
     if(m.glb){ mobAnim(e,dt); continue; }
     m.legs[0].rotation.x=Math.sin(e.ph)*.8*w; m.legs[1].rotation.x=-Math.sin(e.ph)*.8*w; m.arms[0].rotation.x=-Math.sin(e.ph)*.6*w;
     m.arms[1].rotation.x=e.swing>=0?(e.swing<.15?lerp(-.3,-2.4,e.swing/.15):lerp(-2.4,.6,(e.swing-.15)/.25)):Math.sin(e.ph)*.6*w;
@@ -677,7 +683,7 @@ function fire(d,e){ const cfg=DEFS[d.kind]; const fx=Math.sin(d.yaw), fz=Math.co
   else { // trebuchet: lob a turnip so it lands where the target is heading
     const m=turnipMesh(); scene.add(m); const x0=d.x+fx*.6, z0=d.z+fz*.6, y0=d.base+2.4; const T=clamp(Math.hypot(e.x-x0,e.z-z0)/11,.5,1.6); const lead=(e.walking?mobSpd(e)*T*.8:0); const tx=e.x+Math.sin(e.yaw)*lead, tz=e.z+Math.cos(e.yaw)*lead; /* lead a walking target by most of the flight time */ const fl=baseFloor(tx,tz)+.35; const vy=((fl-y0)+.5*18*T*T)/T;
     projs.push({kind:'turnip',x:x0,y:y0,z:z0,vx:(tx-x0)/T,vy,vz:(tz-z0)/T,life:T+1,dmg:stat(d,'dmg'),splash:cfg.splash*heroMult('aoe')*(1+heroStat('tarea')/100),mesh:m}); SFX.ball(); } }
-function turnipSplat(p){ const fl=baseFloor(p.x,p.z); for(const e of enemies){ if(e.dead) continue; const dx=e.x-p.x, dz=e.z-p.z, dd=Math.hypot(dx,dz); if(dd<p.splash+e.r*.5){ const l=Math.max(dd,.01); hurt(e,Math.max(1,Math.round(p.dmg*(1-.5*dd/p.splash)*10)/10),dx/l*.7,dz/l*.7); } }
+function turnipSplat(p){ const fl=baseFloor(p.x,p.z); for(const e of enemies){ if(e.dead||e.fly) continue; const dx=e.x-p.x, dz=e.z-p.z, dd=Math.hypot(dx,dz); if(dd<p.splash+e.r*.5){ const l=Math.max(dd,.01); hurt(e,Math.max(1,Math.round(p.dmg*(1-.5*dd/p.splash)*10)/10),dx/l*.7,dz/l*.7); } }
   SFX.thud(); const fx=glow(0xd9e59a,2.2,.7); fx.position.set(p.x,fl+.3,p.z); scene.add(fx); projs.push({kind:'splat',t:0,mesh:fx}); }
 function stat(d,k){ const cfg=DEFS[d.kind], l=d.lvl||1; if(k==='dmg') return Math.max(1,Math.round(cfg.dmg*(1+.5*(l-1))*(1+heroStat('tow')/100)*heroMult('tow')*10)/10); if(k==='cd') return cfg.cd*Math.pow(.8,l-1)/heroMult('tcd')/(1+heroStat('trate')/100); if(k==='range') return ((cfg.range||0)+(cfg.rangeUp!==undefined?cfg.rangeUp:2)*(l-1))*(cfg.arc===360?heroMult('aoe'):1)*(1+heroStat('tarea')/100); return cfg[k]; }
 function upCost(d){ return 100*(d.lvl||1); }
@@ -691,7 +697,7 @@ function updateDefs(dt){ const trampled=[];
       if(best){ const ty=Math.atan2(best.x-d.x,best.z-d.z); d.yaw=angLerp(d.yaw,ty,1-Math.exp(-7*dt)); if(d.cd<=0&&Math.abs(angDiff(d.yaw,ty))<.25){ d.cd=stat(d,'cd'); fire(d,best); } } else d.yaw=angLerp(d.yaw,d.rot,1-Math.exp(-2*dt));
       d.yaw=d.rot+clamp(angDiff(d.rot,d.yaw),-half,half);
       const y=d.mdl.userData.yoke; y.rotation.y=d.yaw-d.rot; if(d.kind==='ball'){ if(d.mdl.userData.arm) d.mdl.userData.arm.rotation.x=-.9+d.recoil*2.0; d.mdl.userData.ball.visible=d.cd<cfg.cd*.5; } else { y.position.z=-d.recoil*.22; d.mdl.userData.hp.visible=d.cd<cfg.cd*.45; } }
-    else if(d.kind==='slice'){ const rr=stat(d,'range'); const near=[]; for(const e of enemies){ if(!e.dead&&Math.hypot(e.x-d.x,e.z-d.z)<rr+e.r*.5) near.push(e); }
+    else if(d.kind==='slice'){ const rr=stat(d,'range'); const near=[]; for(const e of enemies){ if(!e.dead&&!e.fly&&Math.hypot(e.x-d.x,e.z-d.z)<rr+e.r*.5) near.push(e); }
       d.spin=lerp(d.spin,near.length?1.8:.5,1-Math.exp(-3*dt)); const hub=d.mdl.userData.hub; if(hub){ hub.rotation.y+=d.spin*dt; const lift=near.length?1.7:1.1; for(const pf of hub.children){ const k=((S.t*.45+pf.userData.ph)%1.1)/1.1; pf.position.y=.25+k*lift; pf.material.opacity=(.22+Math.min(near.length,4)*.06)*(1-k); } }
       for(const e of near) e.slowT=.5;
       if(near.length&&d.cd<=0){ d.cd=stat(d,'cd'); for(const e of near) hurt(e,stat(d,'dmg'),0,0); SFX.spore(); d.hp-=near.length*.35; if(d.hp<=0) trampled.push(d); } }
@@ -731,7 +737,7 @@ const SLOTS=['weapon','armor','charm','amulet','familiar'], SICON={weapon:'⚔',
 const BASES={weapon:['Shortsword','Broadsword','Cleaver','Warhammer','Halberd','Gnome Blade'],armor:['Jerkin','Chainmail','Breastplate','Plate Harness','Tower Plate','Warden Mail'],charm:['Charm','Talisman','Idol','Sigil','Lantern','Relic'],amulet:['Pendant','Amulet','Locket','Torc','Medallion','Heartstone'],familiar:['Wisp','Cave Bat','Moss Sprite','Fire Imp','Crystal Owl','Storm Drake']};
 const PREFIX=[['Rusty','Plain','Worn','Sturdy','Old'],['Fine','Hardened','Keen','Polished'],['Gleaming','Runed','Tempered','Silvered'],['Ancient','Stormforged','Dragonbone','Moonlit'],['Mythic','Eternal','Goblinbane','Crystalheart']];
 const SUFFIX=['of the Hall','of Goblin Slaying','of Embers','of the Deep','of Fury','of the Crystal','of the Tower','of Stone'];
-const DROP={goblin:.05,archer:.10,orc:.22,ogre:1};
+const DROP={goblin:.05,archer:.10,orc:.22,ogre:1,drake:.3};
 const STATL={dmg:v=>'+'+v+' dmg',spd:v=>'+'+v+'% swing',hp:v=>'+'+v+' hp',def:v=>'+'+v+'% armor',regen:v=>'+'+v+' hp/s',tow:v=>'+'+v+'% defenses',mana:v=>'+'+v+'% mana',move:v=>'+'+v+'% speed',fdmg:v=>v+' pet dmg',frate:v=>'+'+v+'% pet rate',trate:v=>'+'+v+'% defense speed',tarea:v=>'+'+v+'% defense range',fproj:v=>'+'+v+' pet projectile'+(v===1?'':'s')};
 const STATW={dmg:3,spd:1,hp:.6,def:1.5,regen:4,tow:1.2,mana:.5,move:1.5,fdmg:2.5,frate:.8,trate:1.2,tarea:1.2,fproj:12};
 function heroStat(k){ let v=0; for(const s of SLOTS){ const it=gear[s]; if(it&&it.stats[k]) v+=it.stats[k]; } return v; }
@@ -791,8 +797,9 @@ function waveComp(w){ const all=Object.keys(LANES); const lanes=w<2?all.slice(0,
   const orcs=w>=2?w-1:0; for(let i=0;i<orcs;i++) q.push({t:3+i*2.2,kind:'orc',lane:lanes[(i+1)%lanes.length]});
   const arch=w>=3?Math.floor(w/2):0; for(let i=0;i<arch;i++) q.push({t:4+i*1.8,kind:'archer',lane:lanes[i%lanes.length]});
   const ogres=w>=4&&(w-4)%3===0?(w>=10?2:1):0; for(let i=0;i<ogres;i++) q.push({t:t+2+i*4,kind:'ogre',lane:i?all[all.length-1]:all[0]});
+  const drakes=w>=6?Math.min(6,Math.floor((w-4)/2)):0; for(let i=0;i<drakes;i++) q.push({t:6+i*3,kind:'drake',lane:lanes[(i+2)%lanes.length]});   // from the eighth-ish wave the sky joins in
   q.sort((a,b)=>a.t-b.t);
-  const parts=['Goblins ×'+n]; if(orcs) parts.push('Orcs ×'+orcs); if(arch) parts.push('Hobgoblin Archers ×'+arch); if(ogres) parts.push(ogres>1?'TWO OGRES':'AN OGRE');
+  const parts=['Goblins ×'+n]; if(orcs) parts.push('Orcs ×'+orcs); if(arch) parts.push('Bandits ×'+arch); if(drakes) parts.push('Drakes ×'+drakes); if(ogres) parts.push(ogres>1?'TWO OGRES':'AN OGRE');
   const gates=lanes.map(l=>LANES[l].name||l).join(' + ')+' gate'+(lanes.length>1?'s':'');
   return {q,desc:parts.join(' · ')+'  —  '+gates}; }
 function startWave(){ if(S.phase!=='build') return; S.wave++; S.phase='wave'; S.waveT=0; const c=waveComp(effWave()); spawnQ=c.q; banner('WAVE '+S.wave+' OF '+MAP.waves,c.desc); SFX.horn(); setMusic('wave'); cancelPlace(); }
@@ -901,6 +908,6 @@ window.__dd={S,hero,cam,enemies,defs,projs,orbs,loot,grid,DEFS,MOBS,gear:()=>gea
   setHero:(x,z,yaw)=>{ hero.x=x; hero.z=z; if(yaw!==undefined) hero.yaw=yaw; }, setCam:(yaw,pitch,dist)=>{ cam.yaw=yaw; cam.pitch=pitch; cam.dist=dist; cam.d=dist; },
   status:()=>({phase:S.phase,wave:S.wave,mana:S.mana,du:S.du,crystal:S.crystal,heroHp:Math.round(hero.hp),enemies:enemies.filter(e=>!e.dead).length,defs:defs.length,projs:projs.length,orbs:orbs.length,queue:spawnQ.length,kills:S.kills,loot:loot.length,t:+S.t.toFixed(1)}),
   addMana:n=>{ S.mana+=n; }, mute:()=>setSound(false), reflow, flow:()=>flowDef,
-  map:()=>({index:MAPI,id:MAP.id,name:MAP.name,waves:MAP.waves,wbase:MAP.wbase,total:MAPS.length,cleared:MAPS_CLEARED,gw:GW,gh:GH,wallH:WALLH,windows:world.userData.windows|0,style:MAP.style||null}), maps:()=>MAPS.map(m=>({id:m.id,name:m.name,waves:m.waves})), effWave, winMap, lanes:()=>LANES, pathLen:(cx,cz)=>flowFree.dist[idx(cx,cz)], cellAt:(cx,cz)=>gat(cx,cz), cw, cwz, floorH, baseFloor, hgtAt:(cx,cz)=>hgt[idx(cx,cz)] };
+  map:()=>({index:MAPI,id:MAP.id,name:MAP.name,waves:MAP.waves,wbase:MAP.wbase,total:MAPS.length,cleared:MAPS_CLEARED,gw:GW,gh:GH,wallH:WALLH,windows:world.userData.windows|0,style:MAP.style||null}), maps:()=>MAPS.map(m=>({id:m.id,name:m.name,waves:m.waves})), effWave, winMap, lanes:()=>LANES, pathLen:(cx,cz)=>flowFree.dist[idx(cx,cz)], pathLenFly:(cx,cz)=>flowFly.dist[idx(cx,cz)], cellAt:(cx,cz)=>gat(cx,cz), cw, cwz, floorH, baseFloor, hgtAt:(cx,cz)=>hgt[idx(cx,cz)] };
 })();
 

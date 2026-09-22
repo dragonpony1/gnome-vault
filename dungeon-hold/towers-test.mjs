@@ -25,7 +25,7 @@ const r4=await page.evaluate(()=>{ const d=window.__dd; for(const x of d.defs.sl
 check("hedge regrows after 4 quiet seconds",r4.after1<=r4.before+.01&&r4.after2>r4.before+10&&r4.after2<=r4.max,JSON.stringify(r4));
 // archers renamed
 const r5=await page.evaluate(()=>{ const d=window.__dd; d.S.wave=2; d.startWave(); const txt=document.getElementById("banner").textContent; d.S.phase="build"; d.S.wave=0; for(const e of d.enemies) d.kill(e); return txt; });
-check("wave banner names Hobgoblin Archers",/Hobgoblin Archers/.test(r5)&&!/Dark Elf/.test(r5),r5);
+check("wave banner names Bandits",/Bandits/.test(r5)&&!/Dark Elf|Hobgoblin/.test(r5),r5);
 // crystal model in place
 const r6=await page.evaluate(async()=>{ for(let i=0;i<100&&!(window.__crystal&&window.__crystal.state().model);i++) await new Promise(r=>setTimeout(r,100)); return window.__crystal?window.__crystal.state():null; });
 check("castle crystal model replaces the procedural crystal",r6&&r6.model&&!r6.oldVisible&&r6.cgY>4,JSON.stringify(r6));

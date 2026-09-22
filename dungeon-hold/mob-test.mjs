@@ -13,7 +13,7 @@ check("goblin is a GLB mob and moves",r1.glb&&r1.moved>1&&r1.inScene,JSON.string
 check("goblin plays its run clip while moving",r1.state&&/run|walk/i.test(r1.state.cur)&&r1.state.time>0,JSON.stringify(r1.state));
 // --- orc stays procedural (no model yet) ---
 const r2=await page.evaluate(()=>{ const d=window.__dd; const e=d.spawn("archer","N"); d.step(1/60,3); const o={glb:!!e.mdl.glb,legs:e.mdl.legs.length,orc:!!d.mobModel("orc")}; d.kill(e); const oe=d.spawn("orc","N"); d.step(1/60,20); o.orcGlb=!!oe.mdl.glb; o.orcState=d.mobState(oe); d.kill(oe); return o; });
-check("archer still uses the procedural model",!r2.glb&&r2.legs===2,JSON.stringify(r2));
+check("archer slot wears the bandit model (Meshy rig)",r2.glb===true,JSON.stringify(r2));
 const r2b=await page.evaluate(()=>{ const d=window.__dd; if(!d.mobModel("ogre")) return null; const og=d.spawn("ogre","N"); const x0=og.x, z0=og.z; d.step(1/60,20); const st=d.mobState(og); const moved1=Math.hypot(og.x-x0,og.z-z0); d.step(1/60,120); const moved2=Math.hypot(og.x-x0,og.z-z0); const st2=d.mobState(og); d.kill(og); return {shout:st&&st.cur,moved1,moved2,after:st2&&st2.cur,shoutT0:og.shoutT}; });
 check("ogre spawns quiet and lumbers in (the roar waits for first sight of the hero)",!!r2b&&(!/shout/i.test(r2b.shout)&&r2b.moved2>1&&/walk|run/i.test(r2b.after)&&!(r2b.shoutT0>0)),JSON.stringify(r2b));
 check("orc uses its model when it is served, walking",r2.orc&&(r2.orcGlb&&r2.orcState&&/walk|run/i.test(r2.orcState.cur)),JSON.stringify(r2));
