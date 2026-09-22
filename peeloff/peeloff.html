@@ -1,0 +1,3263 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Peel-Off — board runner</title>
+
+<style>
+/* ============ tokens ============ */
+:root{
+  --ground:#EDF1EF;
+  --surface:#FAFCFB;
+  --surface-2:#E3E9E6;
+  --line:#C9D3CF;
+  --line-soft:#DCE4E1;
+  --ink:#151A18;
+  --ink-2:#3E4844;
+  --muted:#6C7773;
+  --accent:#0D6B5B;
+  --accent-soft:#D4E5E0;
+  --accent-ink:#FFFFFF;
+  --late:#B4451F;
+  --late-soft:#F2DED5;
+  --np:#3A5CA8;
+  --np-soft:#DBE2F1;
+  --shadow:0 1px 2px rgba(21,26,24,.06), 0 6px 18px -10px rgba(21,26,24,.18);
+  --radius:5px;
+
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Bahnschrift SemiCondensed","Avenir Next Condensed","HelveticaNeue-CondensedBold","Arial Narrow",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#101513;
+    --surface:#19201D;
+    --surface-2:#232C29;
+    --line:#333E3A;
+    --line-soft:#28312E;
+    --ink:#E7EDEA;
+    --ink-2:#B9C4C0;
+    --muted:#8A968F;
+    --accent:#3DB29B;
+    --accent-soft:#1D3833;
+    --accent-ink:#08130F;
+    --late:#E2743F;
+    --late-soft:#3A241A;
+    --np:#7FA0E4;
+    --np-soft:#1E2740;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#EDF1EF; --surface:#FAFCFB; --surface-2:#E3E9E6; --line:#C9D3CF; --line-soft:#DCE4E1;
+  --ink:#151A18; --ink-2:#3E4844; --muted:#6C7773;
+  --accent:#0D6B5B; --accent-soft:#D4E5E0; --accent-ink:#FFFFFF;
+  --late:#B4451F; --late-soft:#F2DED5; --np:#3A5CA8; --np-soft:#DBE2F1;
+  --shadow:0 1px 2px rgba(21,26,24,.06), 0 6px 18px -10px rgba(21,26,24,.18);
+}
+:root[data-theme="dark"]{
+  --ground:#101513; --surface:#19201D; --surface-2:#232C29; --line:#333E3A; --line-soft:#28312E;
+  --ink:#E7EDEA; --ink-2:#B9C4C0; --muted:#8A968F;
+  --accent:#3DB29B; --accent-soft:#1D3833; --accent-ink:#08130F;
+  --late:#E2743F; --late-soft:#3A241A; --np:#7FA0E4; --np-soft:#1E2740;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+h1,h2,h3{margin:0;font-family:var(--cond);font-weight:700;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+.app{max-width:1120px;margin:0 auto;padding:18px 16px 72px;display:flex;flex-direction:column;gap:18px}
+.stack{display:flex;flex-direction:column;gap:18px}
+[hidden]{display:none!important}
+
+/* ============ view tabs ============ */
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.tabs button{background:transparent;border:0;padding:7px 14px;cursor:pointer;font-family:var(--cond);
+  font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tabs button:not([aria-selected="true"]):hover{background:var(--surface-2);color:var(--ink)}
+
+/* ============ crew view ============ */
+.tonight{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.tonightHead{padding:15px 16px 13px;border-bottom:1px solid var(--line-soft)}
+.tonightHead h2{font-size:22px;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.tonightHead .stamp{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
+.tonightHead .stamp b{color:var(--ink-2);font-weight:600}
+
+.mine{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:11px 16px;
+  border-bottom:1px solid var(--line-soft);background:var(--surface-2)}
+.mine span.lbl{font-family:var(--cond);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+
+.crewList{display:flex;flex-direction:column;gap:1px;background:var(--line-soft)}
+.crewRow{background:var(--surface);display:grid;grid-template-columns:56px 1fr auto;gap:12px;
+  align-items:center;padding:13px 16px}
+.crewRow.isMine{background:var(--accent-soft)}
+.crewRow .Ltag{font-size:20px;text-align:center}
+.crewRow .who{min-width:0}
+.crewRow .room{font-family:var(--cond);font-size:21px;font-weight:700;line-height:1.1;letter-spacing:.01em}
+.crewRow .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.crewRow .out{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;text-align:right;
+  color:var(--ink-2);white-space:nowrap}
+.crewRow .out small{display:block;font-family:var(--cond);font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:1px}
+.crewRow.blank .room{color:var(--muted);font-weight:400;font-size:16px;font-family:var(--sans)}
+
+/* ============ what you're actually doing ============ */
+.crewItem{background:var(--surface)}
+.crewItem.isMine{background:var(--accent-soft)}
+.crewItem .crewRow{background:transparent}
+.caseToggle{width:100%;background:transparent;border:0;padding:0 16px 11px 84px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;justify-content:space-between;
+  font-family:var(--cond);font-size:12px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);text-align:left}
+.caseToggle:hover{color:var(--ink-2)}
+.caseToggle em{font-style:normal;font-size:15px;line-height:1}
+.caseBody{padding:0 16px 13px 84px}
+.caseRow{display:grid;grid-template-columns:62px 1fr;gap:10px;padding:5px 0;
+  border-top:1px solid var(--line-soft);font-size:13.5px;align-items:baseline}
+.caseRow:first-child{border-top:0}
+.caseRow .ct{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:12.5px}
+.caseRow.pushed .ct{color:var(--late)}
+.caseRow .cp{color:var(--ink);min-width:0}
+.caseRow .cr{display:inline-block;font-family:var(--cond);font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-2);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-right:6px;
+  vertical-align:1px}
+.caseRow .cs{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.caseDrive{font-family:var(--cond);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--accent);padding:7px 0 6px;display:flex;align-items:center;gap:8px}
+.caseDrive::before,.caseDrive::after{content:"";flex:1;height:1px;background:var(--line)}
+.caseFoot{margin:9px 0 0;font-size:12px;color:var(--muted);line-height:1.45}
+@media (max-width:430px){
+  .caseToggle{padding-left:16px}
+  .caseBody{padding-left:16px}
+}
+
+.runnerNote{padding:12px 16px;border-top:1px solid var(--line-soft);background:var(--accent-soft);
+  font-size:14px;color:var(--ink-2)}
+.runnerNote b{font-family:var(--cond);letter-spacing:.06em;text-transform:uppercase;font-size:12px;
+  color:var(--accent);display:block;margin-bottom:3px}
+.tonightFoot{padding:11px 16px;border-top:1px solid var(--line-soft);display:flex;gap:9px;
+  flex-wrap:wrap;align-items:center;justify-content:space-between}
+.tonightFoot .hint{font-size:12px;color:var(--muted)}
+.footBtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.shareNote{margin:0;padding:0 16px 12px;font-size:12.5px;color:var(--muted)}
+.shareNote.ok{color:var(--accent)}
+
+/* ============ this week's calendar ============ */
+.calWrap{border-top:1px solid var(--line-soft)}
+.calToggle{width:100%;background:transparent;border:0;padding:12px 16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;
+  font-family:var(--cond);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.calToggle:hover{background:var(--surface-2)}
+.calToggle em{font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;
+  font-style:normal;color:var(--muted);white-space:nowrap}
+.calBody{padding:0 16px 14px}
+.calBody img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--ground)}
+.calNote{margin:7px 0 0;font-size:12px;color:var(--muted)}
+
+/* ============ top bar ============ */
+.topbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.mark{width:38px;height:38px;flex:none;border-radius:var(--radius);background:var(--accent);color:var(--accent-ink);
+  font-family:var(--cond);font-weight:700;font-size:22px;display:grid;place-items:center;letter-spacing:.02em}
+.brand h1{font-size:26px;letter-spacing:.035em;text-transform:uppercase;line-height:1}
+.brand .sub{margin:3px 0 0;font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;
+  font-family:var(--cond)}
+/* the build stamp — quiet, but always there, so "did my paste take?" is one glance */
+.brand .ver{margin:2px 0 0;font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.75}
+.topactions{display:flex;flex-wrap:wrap;gap:7px}
+
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:7px 12px;
+  cursor:pointer;font-family:var(--cond);font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink-2);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
+.btn:hover{background:var(--surface-2);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:5px 8px}
+.btn.ghost:hover{background:var(--surface-2);color:var(--ink)}
+.btn.tiny{padding:3px 8px;font-size:12px}
+.btn[disabled]{opacity:.45;cursor:default}
+
+/* ============ notice ============ */
+.notice{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  background:var(--accent-soft);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:var(--radius);padding:9px 13px;font-size:13.5px;color:var(--ink-2)}
+.notice[hidden]{display:none}
+
+/* ============ peel-off card ============ */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.phead{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between;
+  padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.phead h2{font-size:16px;letter-spacing:.11em;text-transform:uppercase}
+.phead .hint{font-size:12.5px;color:var(--muted)}
+
+.peelgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line-soft)}
+.slot{background:var(--surface);padding:13px 14px 12px;display:flex;flex-direction:column;gap:7px;min-height:118px}
+.slot.empty{background:var(--surface)}
+.slotTop{display:flex;align-items:center;gap:9px}
+.Ltag{font-family:var(--cond);font-weight:700;font-size:19px;letter-spacing:.02em;line-height:1;
+  background:var(--ink);color:var(--ground);border-radius:3px;padding:5px 8px 4px;flex:none}
+.slot[data-l="1"] .Ltag{background:var(--late);color:#fff}
+.slot[data-l="5"] .Ltag,.slot.last .Ltag{background:var(--accent);color:var(--accent-ink)}
+.slotWhen{font-family:var(--cond);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.slotRoom{font-family:var(--cond);font-size:23px;font-weight:700;line-height:1.05;letter-spacing:.01em}
+.slotFinish{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;color:var(--ink-2)}
+.slotFinish b{font-weight:600}
+.slotMeta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:auto}
+.slotNone{color:var(--muted);font-size:13.5px;font-style:italic;margin-top:6px}
+
+.chip{font-family:var(--cond);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.np{background:var(--np-soft);border-color:transparent;color:var(--np)}
+.chip.h{background:var(--surface-2);border-color:transparent;color:var(--ink-2)}
+.chip.moved{background:var(--late-soft);border-color:transparent;color:var(--late)}
+.chip.close{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.chip.pinned{background:var(--ink);border-color:transparent;color:var(--ground)}
+
+.overflow{padding:11px 16px;border-top:1px solid var(--line-soft);font-size:13.5px;color:var(--ink-2);
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--late-soft)}
+.overflow[hidden]{display:none}
+.overflow strong{font-family:var(--cond);letter-spacing:.06em;text-transform:uppercase;font-size:12.5px;color:var(--late)}
+
+/* ============ board ============ */
+.boardscroll{overflow-x:auto;padding:4px 0 14px}
+.boardinner{min-width:640px;padding:0 16px}
+.lane{display:grid;grid-template-columns:92px 1fr 62px 40px;align-items:center;gap:10px;height:38px}
+.lane.ruler{height:26px}
+.laneName{font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:.02em;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.laneName .site{display:block;font-size:10.5px;font-weight:400;letter-spacing:.08em;color:var(--muted);
+  text-transform:uppercase;line-height:1.3}
+.track{position:relative;height:26px;border-radius:3px;background:var(--surface);
+  border:1px solid var(--line-soft);overflow:hidden}
+.gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--line-soft)}
+.nowline{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--late);opacity:.75;z-index:3}
+.blk{position:absolute;top:3px;bottom:3px;border-radius:2px;background:var(--accent);opacity:.9;
+  display:flex;align-items:center;padding:0 5px;overflow:hidden;z-index:2}
+.blk span{font-family:var(--cond);font-size:11px;color:var(--accent-ink);white-space:nowrap;
+  text-transform:uppercase;letter-spacing:.03em}
+.lane[data-site="NP"] .blk{background:var(--np)}
+.lane[data-site="NP"] .blk span{color:#fff}
+.blk.pushed{background:var(--late)}
+.blk.pushed span{color:#fff}
+.laneFinish{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;text-align:right;
+  color:var(--ink-2);white-space:nowrap}
+.laneL{font-family:var(--cond);font-weight:700;font-size:15px;text-align:center;border-radius:3px;
+  padding:3px 0;background:var(--surface-2);color:var(--ink-2)}
+.laneL.a1{background:var(--late);color:#fff}
+.laneL.aLast{background:var(--accent);color:var(--accent-ink)}
+.laneL.br{background:var(--ink);color:var(--ground);font-size:13px}
+.laneL.none{background:transparent;color:var(--muted);font-weight:400;font-size:12px}
+.chip.flip{background:var(--ink);border-color:transparent;color:var(--ground)}
+.chip.learned{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
+
+/* ============ log your end time ============ */
+.logRow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:10px 16px;
+  border-top:1px solid var(--line-soft);background:var(--surface-2)}
+.logRow .lbl{font-family:var(--cond);font-size:12px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted)}
+.logRow input[type="time"]{background:var(--ground);border:1px solid var(--line);border-radius:3px;
+  padding:5px 7px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px}
+.logRow .done{font-size:12.5px;color:var(--accent)}
+.pastRuns{margin-top:7px;font-size:12px;color:var(--muted);font-family:var(--mono);
+  font-variant-numeric:tabular-nums}
+.tick{position:absolute;font-family:var(--mono);font-size:10.5px;color:var(--muted);transform:translateX(-50%);
+  white-space:nowrap}
+.rulerTrack{position:relative;height:14px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:0 16px 4px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:22px;height:8px;border-radius:2px;vertical-align:middle;margin-right:5px}
+
+/* ============ case editor ============ */
+.roomcard{border-top:1px solid var(--line-soft);padding:11px 16px 13px}
+.roomcard:first-child{border-top:0}
+.rtop{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rname{font-family:var(--cond);font-weight:700;font-size:17px;background:transparent;border:0;
+  border-bottom:1px dashed var(--line);padding:2px 2px 1px;width:118px;letter-spacing:.02em}
+.rname:focus{outline:none;border-bottom-color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.seg button{background:var(--surface);border:0;padding:4px 10px;cursor:pointer;font-family:var(--cond);
+  font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.rtop .spacer{flex:1}
+.flipSel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:4px 6px;font-family:var(--cond);font-size:12.5px;letter-spacing:.04em;color:var(--muted);
+  max-width:150px}
+.flipSel:focus{outline:none;border-color:var(--accent)}
+
+.caselist{display:flex;flex-direction:column;gap:5px;margin-top:9px}
+.caserow{display:grid;grid-template-columns:74px 62px 1fr 30px;gap:6px;align-items:center}
+.caserow input{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:5px 7px;
+  min-width:0;width:100%}
+.caserow input.t,.caserow input.m{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px}
+.caserow input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+/* a guessed length: dashed, with the guess in the placeholder, so it's obviously up for grabs */
+.caserow input.m.guess{border-style:dashed}
+.caserow input.m.guess::placeholder{color:var(--late)}
+/* the runner's own end time for a room — beats every estimate */
+.endAt{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:4px 7px;width:96px;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px}
+.endAt::placeholder{color:var(--muted);font-family:var(--cond);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.endAt:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.endAt.set{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.chip.call{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
+.colhead{display:grid;grid-template-columns:74px 62px 1fr 30px;gap:6px;margin-top:8px;
+  font-family:var(--cond);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.xbtn{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:17px;line-height:1;
+  padding:2px;border-radius:3px}
+.xbtn:hover{color:var(--late);background:var(--late-soft)}
+.rowActions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+
+/* ============ empty ============ */
+.empty{padding:34px 20px;text-align:center;color:var(--muted)}
+.empty h3{font-size:19px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:7px}
+.empty p{margin:0 auto 16px;max-width:46ch;font-size:14px}
+
+/* ============ overlay ============ */
+.ov{position:fixed;inset:0;background:rgba(10,16,14,.55);display:none;z-index:50;
+  padding:16px;overflow-y:auto}
+.ov.open{display:flex;align-items:flex-start;justify-content:center}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.5);width:100%;max-width:620px;margin:auto;overflow:hidden}
+.sheetHead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.sheetHead h2{font-size:16px;letter-spacing:.1em;text-transform:uppercase}
+.sheetBody{padding:16px;display:flex;flex-direction:column;gap:13px}
+.sheetBody p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.sheetFoot{padding:13px 16px;border-top:1px solid var(--line-soft);display:flex;gap:8px;
+  justify-content:flex-end;flex-wrap:wrap}
+textarea{width:100%;min-height:170px;background:var(--ground);border:1px solid var(--line);
+  border-radius:3px;padding:10px;font-family:var(--mono);font-size:12.5px;line-height:1.6;resize:vertical}
+textarea:focus{outline:none;border-color:var(--accent)}
+.steps{margin:0;padding-left:20px;font-size:13.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:6px}
+.field{display:flex;align-items:center;gap:11px;justify-content:space-between;flex-wrap:wrap}
+.field label{font-family:var(--cond);font-size:13.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.field .sub{display:block;font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;color:var(--muted)}
+.field input[type="number"]{width:78px;background:var(--ground);border:1px solid var(--line);border-radius:3px;
+  padding:6px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.shot{max-width:100%;border-radius:var(--radius);border:1px solid var(--line);display:block}
+.parseNote{font-size:13px;padding:9px 11px;border-radius:3px;background:var(--accent-soft);color:var(--ink-2)}
+.parseNote.bad{background:var(--late-soft);color:var(--late)}
+.pinrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* ============ photo strip ============ */
+.photoWrap{padding:12px 16px 16px;border-top:1px solid var(--line-soft)}
+.photoWrap[hidden]{display:none}
+
+@media (max-width:640px){
+  .app{padding:14px 11px 64px}
+  .brand h1{font-size:22px}
+  .caserow,.colhead{grid-template-columns:66px 54px 1fr 28px}
+  .topactions .btn{padding:6px 9px;font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@media print{
+  body{background:#fff;color:#000}
+  .topactions,.boardscroll,.editor,.notice,.legend,.photoWrap,.overflow .btn{display:none!important}
+  .panel{box-shadow:none;border-color:#999}
+  .app{padding:0;max-width:none}
+}
+</style>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 116 113" width="24" height="23">
+        <rect x="0" y="0"  width="116" height="13" fill="#E0743F"/>
+        <rect x="0" y="25" width="93"  height="13" fill="currentColor"/>
+        <rect x="0" y="50" width="71"  height="13" fill="currentColor"/>
+        <rect x="0" y="75" width="49"  height="13" fill="currentColor"/>
+        <rect x="0" y="100" width="28" height="13" fill="currentColor"/>
+      </svg></span>
+      <div>
+        <h1>Peel-Off</h1>
+        <p class="sub" id="brandSub">Tomorrow's board, ranked</p>
+        <p class="ver" id="brandVer"></p>
+      </div>
+    </div>
+    <!-- The board tab stays hidden until this phone has actually run the board once.
+         Eight of the nine never need it, and on their phone it shows their own empty
+         board rather than tonight's, which reads as broken. -->
+    <nav class="tabs" id="tabs" role="tablist" aria-label="What do you want to do">
+      <button role="tab" data-view="crew" aria-selected="true">Tonight</button>
+      <button role="tab" data-view="board" aria-selected="false" id="tabBoard" hidden>Run the board</button>
+    </nav>
+    <div class="topactions" id="crewActions">
+      <button class="btn" id="btnRefresh">Refresh</button>
+    </div>
+    <div class="topactions" id="boardActions" hidden>
+      <button class="btn" id="btnPhoto">Photo</button>
+      <button class="btn" id="btnCal">Calendar</button>
+      <button class="btn" id="btnPaste">Paste schedule</button>
+      <button class="btn" id="btnSettings">Settings</button>
+      <button class="btn" id="btnCopy">Copy</button>
+      <button class="btn primary" id="btnPublish">Publish</button>
+    </div>
+  </header>
+
+  <!-- ===== what the other eight open ===== -->
+  <section id="crewView">
+    <div class="tonight">
+      <div class="tonightHead">
+        <h2 id="tonightTitle">Tonight's peel-off</h2>
+        <p class="stamp" id="tonightStamp">Checking for tonight's board&hellip;</p>
+      </div>
+      <div class="mine" id="mineRow" hidden>
+        <span class="lbl">I'm</span>
+        <span id="mineChips"></span>
+      </div>
+      <div class="crewList" id="crewList"></div>
+      <div class="logRow" id="logRow" hidden>
+        <span class="lbl" id="logLbl">What time did you actually get out?</span>
+        <input type="time" id="logTime" aria-label="The time your room finished" />
+        <button class="btn tiny primary" id="btnLog">Log it</button>
+        <span class="done" id="logDone" hidden></span>
+      </div>
+      <div class="runnerNote" id="runnerNote" hidden></div>
+      <div class="overflow" id="crewOverflow" hidden></div>
+      <div class="calWrap" id="calWrap" hidden>
+        <button class="calToggle" id="calToggle" aria-expanded="false">
+          <span id="calLabel">Today's calendar</span><em id="calHint">tap to look</em>
+        </button>
+        <div class="calBody" id="calBody" hidden>
+          <div id="calImg"></div>
+          <p class="calNote" id="calNote">Pinch to zoom.</p>
+        </div>
+      </div>
+      <div class="calWrap" id="schedWrap" hidden>
+        <button class="calToggle" id="schedToggle" aria-expanded="false">
+          <span id="schedLabel">The OR schedule</span><em id="schedHint">tap to look</em>
+        </button>
+        <div class="calBody" id="schedBody" hidden>
+          <div id="schedImg"></div>
+          <p class="calNote" id="schedNote">Pinch to zoom.</p>
+        </div>
+      </div>
+      <div class="tonightFoot">
+        <span class="hint" id="crewHint">L1 stays latest &middot; L5 goes home first &middot; projected, not gospel</span>
+        <span class="footBtns">
+          <button class="btn tiny" id="btnShare">Send this to someone</button>
+          <button class="btn tiny ghost" id="btnCrewToBoard">Running the board tonight?</button>
+        </span>
+      </div>
+      <p class="shareNote" id="shareNote" hidden></p>
+    </div>
+  </section>
+
+  <div id="boardView" class="stack" hidden>
+
+  <div class="notice" id="flipNotice" hidden>
+    <span id="flipNoticeText"></span>
+    <span style="display:flex;gap:6px">
+      <button class="btn tiny" id="btnFlipYes">Pair them</button>
+      <button class="btn tiny ghost" id="btnFlipNo">No</button>
+    </span>
+  </div>
+
+  <div class="notice" id="sampleNotice" hidden>
+    <span><strong>This is a sample day</strong> so you can see how it works. Clear it when you're ready to put a real board in.</span>
+    <button class="btn tiny" id="btnClearSample">Clear it</button>
+  </div>
+
+  <section class="panel" id="peelPanel">
+    <div class="phead">
+      <h2>Peel-off order</h2>
+      <span class="hint">
+        L1 stays latest &middot; <b>~</b> means the last case's length is a guess
+        <button class="btn tiny ghost" id="btnL5" style="margin-left:8px"></button>
+      </span>
+    </div>
+    <div class="peelgrid" id="peelgrid"></div>
+    <div class="overflow" id="overflowBar" hidden></div>
+  </section>
+
+  <section class="panel" id="boardPanel">
+    <div class="phead">
+      <h2>The board</h2>
+      <span class="hint" id="boardHint">Lane length is how late the room runs</span>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>Hospital</span>
+      <span><i style="background:var(--np)"></i>North Pointe</span>
+      <span><i style="background:var(--late)"></i>Pushed past its scheduled start</span>
+    </div>
+    <div class="boardscroll">
+      <div class="boardinner" id="boardinner"></div>
+    </div>
+    <div class="photoWrap" id="photoWrap" hidden></div>
+  </section>
+
+  <section class="panel editor" id="editorPanel">
+    <div class="phead">
+      <h2>Cases</h2>
+      <span class="hint">Re-ranks as you type. A grey number in Min is the length the start times imply; <b>?</b> means a guess &mdash; type over it if you know better. Know when a room will really finish? Put the time in its <b>ends at</b> box and that's its finish.</span>
+    </div>
+    <div id="rooms"></div>
+    <div class="roomcard" style="border-top:1px solid var(--line-soft)">
+      <div class="rowActions">
+        <button class="btn" id="btnAddRoom">+ Add a room</button>
+        <button class="btn ghost" id="btnSample">Load the sample day</button>
+        <button class="btn ghost" id="btnWipe">Clear everything</button>
+      </div>
+    </div>
+  </section>
+  </div><!-- /boardView -->
+</div>
+
+<!-- ===== paste sheet ===== -->
+<div class="ov" id="ovPaste">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pasteTitle">
+    <div class="sheetHead">
+      <h2 id="pasteTitle">Paste the schedule</h2>
+      <button class="btn ghost" data-close="ovPaste" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheetBody">
+      <p id="pasteBlurb">If the schedule came as an email or a PDF, just select the case rows and paste them below.</p>
+      <div id="pasteManual">
+        <p>If you only have a photo, use these three steps:</p>
+        <ol class="steps">
+          <li>Tap <strong>Copy the reading instructions</strong> below.</li>
+          <li>Open a new Claude chat, attach your schedule photo, paste the instructions, send.</li>
+          <li>Copy what Claude gives back and paste it here.</li>
+        </ol>
+        <div><button class="btn" id="btnCopyPrompt">Copy the reading instructions</button></div>
+      </div>
+      <textarea id="pasteBox" placeholder="H | OR 3 | 0730 | 95 | ORIF ankle&#10;H | OR 3 | 0945 | 120 | Rotator cuff&#10;NP | NP 1 | 0715 | 40 | Knee scope&#10;&#10;Loose typing works too:&#10;OR6 8:00 380 Whipple"></textarea>
+      <div class="parseNote" id="parseNote" hidden></div>
+    </div>
+    <div class="sheetFoot">
+      <button class="btn ghost" data-close="ovPaste">Cancel</button>
+      <button class="btn" id="btnParseAdd">Add to what's there</button>
+      <button class="btn primary" id="btnParseReplace">Replace the board</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== photo sheet ===== -->
+<div class="ov" id="ovPhoto">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
+    <div class="sheetHead">
+      <h2 id="photoTitle">Schedule photo</h2>
+      <button class="btn ghost" data-close="ovPhoto" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheetBody">
+      <p id="photoBlurb">Take a picture of the board or pick one from your camera roll. It gets pinned under the board so you can read off it while you type.</p>
+      <!-- no capture attribute: it forces the camera and hides the photo library -->
+      <input type="file" id="fileInput" accept="image/*" multiple />
+      <div id="shotList"></div>
+      <div class="parseNote" id="readNote" hidden></div>
+    </div>
+    <div class="sheetFoot">
+      <button class="btn ghost" id="btnDropPhoto" hidden>Remove all</button>
+      <button class="btn primary" id="btnReadPhoto" hidden>Read it for me</button>
+      <button class="btn" data-close="ovPhoto">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== calendar sheet ===== -->
+<div class="ov" id="ovCal">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="calTitle">
+    <div class="sheetHead">
+      <h2 id="calTitle">Today's calendar</h2>
+      <button class="btn ghost" data-close="ovCal" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheetBody">
+      <p>Photograph the calendar that says who's L1 through L5 &mdash; or pick one you've already
+         got on your phone &mdash; and it shows up on everyone's Tonight page so nobody has to
+         dig through their email.</p>
+      <p>Post a fresh one each day. The app stamps it with the time and warns everyone if what
+         they're looking at isn't from today &mdash; an old calendar is worse than none, because
+         people will read the wrong row.</p>
+      <!-- no capture attribute: it forces the camera and hides the photo library -->
+      <input type="file" id="calInput" accept="image/*" />
+      <img class="shot" id="calPreview" alt="" hidden />
+      <div class="parseNote" id="calMsg" hidden></div>
+    </div>
+    <div class="sheetFoot">
+      <button class="btn ghost" id="btnCalRemove">Take it down</button>
+      <button class="btn primary" id="btnCalPost">Post it for everyone</button>
+      <button class="btn" data-close="ovCal">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== publish sheet ===== -->
+<div class="ov" id="ovPub">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pubTitle" style="max-width:520px">
+    <div class="sheetHead">
+      <h2 id="pubTitle">Send it to the crew</h2>
+      <button class="btn ghost" data-close="ovPub" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheetBody">
+      <p><strong>This replaces tonight's list on everyone's phone</strong>, not just yours.
+         Here's exactly what they'll see:</p>
+      <div class="parseNote" id="pubPreview" style="font-family:var(--mono);white-space:pre-wrap;font-size:12.5px;line-height:1.7"></div>
+      <div>
+        <label style="display:block;font-family:var(--cond);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px">Who's on the list today (optional &mdash; off the daily calendar)</label>
+        <div id="pubNames" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:7px"></div>
+        <p style="margin:7px 0 0;font-size:12px;color:var(--muted)">Type these once and everyone can pick their own name instead of remembering an L number.</p>
+      </div>
+      <div>
+        <label for="pubNote" style="display:block;font-family:var(--cond);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:5px">Anything they should know (optional)</label>
+        <input id="pubNote" maxlength="240" placeholder="Dr. Reed is running behind — OR 2 may go past 1p"
+               style="width:100%;background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:8px 10px" />
+      </div>
+      <div class="parseNote" id="pubNoteMsg" hidden></div>
+    </div>
+    <div class="sheetFoot">
+      <button class="btn ghost" data-close="ovPub">Not yet</button>
+      <button class="btn primary" id="btnPubConfirm">Send it</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== passcode sheet ===== -->
+<div class="ov" id="ovCode">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="codeTitle" style="max-width:420px">
+    <div class="sheetHead">
+      <h2 id="codeTitle">Crew passcode</h2>
+      <button class="btn ghost" data-close="ovCode" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheetBody">
+      <p>Type the code once and this phone will remember it.</p>
+      <input type="password" id="codeInput" autocomplete="current-password"
+             style="width:100%;background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:9px 11px;font-family:var(--mono);font-size:15px" />
+      <div class="parseNote bad" id="codeNote" hidden></div>
+    </div>
+    <div class="sheetFoot">
+      <button class="btn ghost" data-close="ovCode">Cancel</button>
+      <button class="btn primary" id="btnSaveCode">Save and read</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== settings sheet ===== -->
+<div class="ov" id="ovSet">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheetHead">
+      <h2 id="setTitle">Settings</h2>
+      <button class="btn ghost" data-close="ovSet" aria-label="Close">&times;</button>
+    </div>
+    <div class="sheetBody">
+      <div class="field">
+        <label for="setCrnas">How many CRNAs<span class="sub">How many L slots to fill</span></label>
+        <input type="number" id="setCrnas" min="1" max="12" step="1" />
+      </div>
+      <div class="field">
+        <label for="setBR">A flip pair's second room shows<span class="sub">One CRNA covers both either way &mdash; this is just what the label says</span></label>
+        <span class="seg" id="setBR">
+          <button data-br="1">BR</button>
+          <button data-br="0">the same L</button>
+        </span>
+      </div>
+      <div class="field">
+        <label for="setTravel">Travel minutes<span class="sub">Hospital to North Pointe &mdash; used when one CRNA follows a surgeon over</span></label>
+        <input type="number" id="setTravel" min="0" max="180" step="5" />
+      </div>
+      <div class="field">
+        <label for="setTurn">Turnover minutes<span class="sub">Wheels out to wheels in, between cases</span></label>
+        <input type="number" id="setTurn" min="0" max="120" step="5" />
+      </div>
+      <div class="field">
+        <label for="setPad">Pad every case by<span class="sub">Percent. Bump it up if the scheduled times always run short</span></label>
+        <input type="number" id="setPad" min="0" max="100" step="5" />
+      </div>
+      <div class="field" style="align-items:flex-start">
+        <label for="setRoomsH" style="flex:1 1 100%">Your rooms<span class="sub">The reader can only use rooms on these lists, so misread labels get corrected instead of guessed</span></label>
+        <div style="flex:1 1 100%;display:flex;flex-direction:column;gap:7px">
+          <label style="display:flex;align-items:center;gap:9px;font-family:var(--cond);font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Hosp
+            <input id="setRoomsH" placeholder="OR 1, OR 2, OR 3, OR 4, Endo"
+              style="flex:1;min-width:0;background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:7px 9px;font-family:var(--sans);font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink)" /></label>
+          <label style="display:flex;align-items:center;gap:9px;font-family:var(--cond);font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">N.Pte
+            <input id="setRoomsNP" placeholder="NP 1, NP 2, NP 3, NP Endo"
+              style="flex:1;min-width:0;background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:7px 9px;font-family:var(--sans);font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink)" /></label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="setStartT">Default first start<span class="sub">Used when a room's first case has no time on it</span></label>
+        <input type="time" id="setStartT" style="background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:6px 8px;font-family:var(--mono)" />
+      </div>
+      <div class="field">
+        <label>Not running the board?<span class="sub">Hides this whole side on this phone &mdash; you'd get it back from the link at the bottom of Tonight</span></label>
+        <button class="btn tiny ghost" id="btnNotRunner">Hide the runner's side</button>
+      </div>
+    </div>
+    <div class="sheetFoot">
+      <button class="btn primary" data-close="ovSet">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   state
+   ============================================================ */
+var KEY = "peeloff.v1";
+var uid = 0;
+function nid(){ uid++; return "i" + uid + "_" + Math.random().toString(36).slice(2,7); }
+
+/* Stamped by build-peeloff-worker.js on every build — DON'T edit this line by hand.
+   It's the only way to tell, from a phone, whether the code in Cloudflare is the code
+   that was meant to be there. */
+var APP_VERSION = "v3 · Sep 22";
+
+var S = {
+  /* Four, because L5 is normally the early out — usually whoever ran the board
+     yesterday. One tap on the peel-off panel puts L5 back when it's needed. */
+  crnas: 4,
+  /* A flip pair is one assignment. Show the partner room as the same L, or as BR
+     to reflect that the board runner is the one actually helping flip it. */
+  flipShowsBR: true,
+  /* leaving one building to being scrubbed in at the other */
+  travelMins: 30,
+  turnover: 25,
+  padPct: 0,
+  defaultStart: 450,      /* 7:30 */
+  /* true once this phone has opened the runner's side deliberately. Not security —
+     it keeps eight people out of a screen that would only confuse them, and out of
+     reach of a Publish button that overwrites everyone's list. */
+  isRunner: false,
+  rooms: [],              /* {id,label,site,pin,endAt,cases:[{id,start,mins,proc}]} — endAt: the runner's own end time, or null */
+  prev: null,             /* roomId -> L from the last assignment */
+  isSample: false,
+  /* A day is two sheets — the hospital and North Pointe. One slot meant the second
+     photo silently replaced the first, and with it half the board. */
+  photos: [],             /* [{id, url, read}] */
+  photo: null,            /* kept only to migrate a phone that saved the old single */
+  view: "crew",           /* which tab this device opens on */
+  myL: null,              /* fallback when the runner didn't type names */
+  myName: null,           /* picked once per phone; the daily calendar decides the L */
+  names: {},              /* L number -> name, off the daily calendar */
+  learned: null,          /* procedure key -> {n, median} from logged end times */
+  recent: [],             /* the last few logged runs, for the runner to eyeball */
+  /* 4 ORs plus a procedure room at the hospital, 3 plus one at North Pointe.
+     Sent to the reader so it corrects a misread label instead of inventing a room. */
+  roomsH: "OR 1, OR 2, OR 3, OR 4, Endo",
+  roomsNP: "NP 1, NP 2, NP 3, NP Endo"
+};
+
+/* ============================================================
+   time helpers
+   ============================================================ */
+function fmt(m){
+  if (m === null || m === undefined || isNaN(m)) return "—";
+  m = Math.round(m);
+  var day = Math.floor(m / 1440), t = ((m % 1440) + 1440) % 1440;
+  var h = Math.floor(t / 60), mi = t % 60;
+  var ap = h < 12 ? "a" : "p";
+  var h12 = h % 12; if (h12 === 0) h12 = 12;
+  return h12 + ":" + (mi < 10 ? "0" : "") + mi + ap + (day > 0 ? "+" + day : "");
+}
+function fmt24(m){
+  if (m === null || m === undefined || isNaN(m)) return "";
+  var t = ((Math.round(m) % 1440) + 1440) % 1440;
+  var h = Math.floor(t / 60), mi = t % 60;
+  return (h < 10 ? "0" : "") + h + (mi < 10 ? "0" : "") + mi;
+}
+
+/* Whether a bare "1:30" should be read as the afternoon.
+   Real schedules write afternoons in 24-hour time (13:00, 14:30) and mornings bare
+   (6:00, 7:30), so parseSchedule turns this off for any sheet that uses 24-hour times.
+   The range stops at 5 on purpose: 6:00 on an OR sheet is always the morning. */
+var pmShift = true;
+
+function parseTime(tok){
+  if (tok === null || tok === undefined) return null;
+  var t = String(tok).trim().toLowerCase().replace(/\./g, "").replace(/\s+/g, "");
+  if (!t) return null;
+  var m, h, mi, ap;
+
+  m = t.match(/^(\d{1,2}):(\d{2})(am|pm|a|p)?$/);
+  if (m){
+    h = +m[1]; mi = +m[2]; ap = m[3];
+    if (h > 23 || mi > 59) return null;
+    if (ap){ if (ap.charAt(0) === "p" && h < 12) h += 12; if (ap.charAt(0) === "a" && h === 12) h = 0; }
+    else if (pmShift && h >= 1 && h <= 5) h += 12;
+    return h * 60 + mi;
+  }
+  m = t.match(/^(\d{4})(am|pm|a|p)?$/);
+  if (m){
+    h = +m[1].slice(0, 2); mi = +m[1].slice(2); ap = m[2];
+    if (h > 23 || mi > 59) return null;
+    if (ap){ if (ap.charAt(0) === "p" && h < 12) h += 12; if (ap.charAt(0) === "a" && h === 12) h = 0; }
+    return h * 60 + mi;
+  }
+  /* 3 digits only counts as a time in the morning window, so "120" stays a duration */
+  m = t.match(/^(\d{3})(am|pm|a|p)?$/);
+  if (m){
+    h = +m[1].slice(0, 1); mi = +m[1].slice(1); ap = m[2];
+    if (mi > 59) return null;
+    if (ap){ if (ap.charAt(0) === "p" && h < 12) h += 12; if (ap.charAt(0) === "a" && h === 12) h = 0; return h * 60 + mi; }
+    if (h >= 6 && h <= 9) return h * 60 + mi;
+    return null;
+  }
+  m = t.match(/^(\d{1,2})(am|pm|a|p)$/);
+  if (m){
+    h = +m[1]; ap = m[2];
+    if (h > 23) return null;
+    if (ap.charAt(0) === "p" && h < 12) h += 12;
+    if (ap.charAt(0) === "a" && h === 12) h = 0;
+    return h * 60;
+  }
+  return null;
+}
+
+function parseDur(tok){
+  if (tok === null || tok === undefined) return null;
+  var t = String(tok).trim().toLowerCase().replace(/\s+/g, "");
+  if (!t) return null;
+  var m = t.match(/^(\d+(?:\.\d+)?)h(?:r?s?)?(?:(\d{1,2})m?(?:in)?s?)?$/);
+  if (m) return Math.round(parseFloat(m[1]) * 60 + (m[2] ? +m[2] : 0));
+  m = t.match(/^(\d+):(\d{2})h$/);
+  if (m) return +m[1] * 60 + +m[2];
+  m = t.match(/^(\d+)m(?:in)?s?$/);
+  if (m) return +m[1];
+  /* 0 is meaningful: it's how the reader says "the sheet had no length for this case".
+     It has to be consumed here or it lands in the procedure text. */
+  if (t === "0") return 0;
+  m = t.match(/^(\d{1,3})$/);
+  if (m){ var n = +m[1]; if (n >= 5 && n <= 900) return n; }
+  return null;
+}
+
+/* ============================================================
+   projection — this is the whole engine
+   ============================================================ */
+function median(a){
+  if (!a.length) return null;
+  var b = a.slice().sort(function(x, y){ return x - y; });
+  var m = Math.floor(b.length / 2);
+  return (b.length % 2) ? b[m] : Math.round((b[m - 1] + b[m]) / 2);
+}
+
+/* Laterality doesn't change how long a case takes, so a left and a right rotator cuff
+   are the same thing for learning purposes. */
+function normProc(s){
+  return String(s || "").toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\b(l|r|lt|rt|left|right|bilat|bilateral|b)\b/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+function learnKeys(c){
+  var p = normProc(c.proc);
+  if (!p) return [];
+  var s = String(c.surgeon || "").toLowerCase().trim();
+  return s ? [s + "|" + p, "|" + p] : ["|" + p];
+}
+/* what past days actually showed for this case, most specific match first */
+function learned(c){
+  if (!S.learned) return null;
+  var ks = learnKeys(c), i, hit;
+  for (i = 0; i < ks.length; i++){
+    hit = S.learned[ks[i]];
+    if (hit && hit.n >= 2) return hit;
+  }
+  return null;
+}
+
+/* Printed OR schedules give a start time per case and no length whatsoever.
+   For every case but the last, the length the scheduler intended IS the gap to the
+   next case's start. The last case has no successor — and it is the one that decides
+   when the room finishes — so it gets the room's own typical slot, marked a guess. */
+function durations(room){
+  var cs = room.cases, n = cs.length, i, d;
+  var dur = new Array(n), src = new Array(n), gaps = [];
+
+  for (i = 0; i < n; i++){
+    var given = (cs[i].mins || 0) > 0;
+    dur[i] = given ? cs[i].mins : null;
+    src[i] = given ? "given" : null;
+  }
+  for (i = 0; i < n - 1; i++){
+    if (typeof cs[i].start === "number" && typeof cs[i + 1].start === "number"){
+      d = cs[i + 1].start - cs[i].start;
+      if (d > 0){
+        gaps.push(d);
+        if (dur[i] === null){ dur[i] = d; src[i] = "gap"; }
+      }
+    }
+  }
+  var typical = median(gaps);
+  if (typical === null){
+    var known = [];
+    for (i = 0; i < n; i++) if (dur[i]) known.push(dur[i]);
+    typical = median(known) || 60;
+  }
+  /* Anything still unknown is the last case — the one that decides when the room
+     finishes. If past days recorded how long this case actually ran, that beats a
+     median of the room's other slots by a mile. */
+  var obs = new Array(n);
+  for (i = 0; i < n; i++){
+    if (dur[i] !== null) continue;
+    var seen = learned(cs[i]);
+    if (seen){ dur[i] = seen.median; src[i] = "learned"; obs[i] = seen; }
+    else     { dur[i] = typical;     src[i] = "guess"; }
+  }
+  return { dur:dur, src:src, typical:typical, obs:obs };
+}
+
+function project(room, depth){
+  var d = durations(room);
+  var out = [], i, c, sched, s, e, dur, floor;
+  var prevEnd = null, prevWasGap = false;
+  /* if somebody has to drive here from another site first, nothing starts before then */
+  var arrive = arrivalFloor(room, depth || 0);
+  for (i = 0; i < room.cases.length; i++){
+    c = room.cases[i];
+    sched = (typeof c.start === "number") ? c.start : null;
+    /* A gap-derived length already contains whatever turnover the scheduler allowed,
+       so adding turnover on top of it would slide every room later and later. */
+    floor = (prevEnd === null) ? null : prevEnd + (prevWasGap ? 0 : S.turnover);
+    /* the drive is a floor like any other — keep the printed time as `sched` so the
+       first case still reads as pushed, which is the whole point of showing it */
+    if (i === 0 && arrive !== null && (floor === null || arrive > floor)) floor = arrive;
+    if (sched === null) s = (floor === null) ? S.defaultStart : floor;
+    else                s = (floor === null) ? sched : Math.max(sched, floor);
+    dur = Math.max(1, Math.round(d.dur[i] * (1 + S.padPct / 100)));
+    e = s + dur;
+    out.push({ ref:c, start:s, end:e, dur:dur, sched:sched, src:d.src[i], obs:d.obs[i] || null,
+               pushed:(sched !== null && s > sched + 1) });
+    prevEnd = e;
+    prevWasGap = (d.src[i] === "gap");
+  }
+  /* The runner's own call beats every estimate. "This room ends about 3:30" pins the
+     last case's end there and the finish stops being a guess. Never earlier than the
+     last case's own start, so a slip of the thumb can't end a room before it begins. */
+  if (out.length && typeof room.endAt === "number"){
+    var lb = out[out.length - 1];
+    lb.end = Math.max(lb.start + 5, room.endAt);
+    lb.dur = lb.end - lb.start;
+    lb.src = "runner";
+  }
+  return out;
+}
+/* depth-limited so a bad follow chain can't recurse forever */
+function finishOfRaw(room, depth){
+  var p = project(room, depth);
+  return p.length ? p[p.length - 1].end : null;
+}
+function finishOf(room){ return finishOfRaw(room, 0); }
+/* true when the room's finish rests on a guessed last-case length. A finish built on
+   times people actually recorded isn't a guess, and drops the ~ to show it. */
+function finishIsGuess(room){
+  var p = project(room);
+  return p.length ? p[p.length - 1].src === "guess" : false;
+}
+/* true when the runner typed this room's end time himself */
+function finishByRunner(room){
+  var p = project(room);
+  return p.length ? p[p.length - 1].src === "runner" : false;
+}
+/* For a pair, only the room that finishes last decides: if the runner set that one, the
+   unit's finish is his call and nothing about it is a guess any more. */
+function unitCall(u){
+  var late = u.rooms[0], i;
+  for (i = 1; i < u.rooms.length; i++) if (finishOf(u.rooms[i]) > finishOf(late)) late = u.rooms[i];
+  var by = finishByRunner(late);
+  return { byRunner: by, approx: by ? false : u.rooms.some(function(x){ return finishIsGuess(x); }) };
+}
+function finishLearned(room){
+  var p = project(room);
+  if (!p.length) return null;
+  return p[p.length - 1].src === "learned" ? p[p.length - 1].obs : null;
+}
+/* A case counts as real if it has a start time OR a length — a schedule read off a
+   printout has starts and no lengths, and requiring a length dropped every room. */
+function liveRooms(){
+  return S.rooms.filter(function(r){
+    return r.cases.some(function(c){
+      return (c.mins || 0) > 0 || typeof c.start === "number";
+    });
+  });
+}
+
+/* A flipping room is one surgeon alternating between two rooms — ortho, most days.
+   One CRNA covers the pair, so the two rooms are ONE assignment. Treating them as two
+   would spend two people on them and leave a real room uncovered. */
+function partnerOf(room){
+  if (!room || !room.flip) return null;
+  var p = roomById(room.flip);
+  if (!p || p.flip !== room.id) return null;          /* only a mutual pairing counts */
+  if (!p.cases.some(function(c){ return (c.mins||0) > 0 || typeof c.start === "number"; })) return null;
+  return p;
+}
+
+/* A follow is the other way one CRNA covers two rooms: they start at one site, then
+   drive to the other and pick the surgeon up there. Unlike a flip it's sequential —
+   nothing can begin in the second room until they've arrived — so the second room
+   inherits a floor of (first room's finish + travel). */
+function followedBy(room){
+  if (!room) return null;
+  var f = null;
+  S.rooms.forEach(function(r){ if (r.follows === room.id) f = r; });
+  if (!f) return null;
+  if (!f.cases.some(function(c){ return (c.mins||0) > 0 || typeof c.start === "number"; })) return null;
+  return f;
+}
+function followsFrom(room){
+  if (!room || !room.follows) return null;
+  return roomById(room.follows);
+}
+/* how early this room can possibly start, given somebody has to get here first */
+function arrivalFloor(room, depth){
+  var from = followsFrom(room);
+  if (!from || (depth || 0) > 4) return null;
+  var f = finishOfRaw(from, (depth || 0) + 1);
+  return (f === null) ? null : f + S.travelMins;
+}
+
+function setFollow(room, fromId){
+  room.follows = null;
+  if (!fromId) return;
+  var src = roomById(fromId);
+  if (!src || src.id === room.id) return;
+  if (src.follows === room.id) src.follows = null;   /* no loops */
+  room.follows = src.id;
+}
+
+/* the things that need covering: single rooms, and flip pairs as one unit each */
+function units(){
+  var live = liveRooms(), seen = {}, out = [];
+  live.forEach(function(r){
+    if (seen[r.id]) return;
+    var p = partnerOf(r);
+    /* a follow chains the same way: one person, two rooms, out when the later ends */
+    var fol = followedBy(r) || (followsFrom(r) && liveRooms().indexOf(followsFrom(r)) >= 0 ? followsFrom(r) : null);
+    if (p && !seen[p.id]){
+      seen[r.id] = true; seen[p.id] = true;
+      /* the earlier-starting room reads as the primary one */
+      var first = (finishOf(r) === null || finishOf(p) === null) ? r
+                : (project(r)[0].start <= project(p)[0].start ? r : p);
+      var second = (first === r) ? p : r;
+      out.push({ id:first.id, rooms:[first, second], flip:true,
+                 finish: Math.max(finishOf(r), finishOf(p)), pin:(first.pin || second.pin || null) });
+    } else if (fol && !seen[fol.id]){
+      seen[r.id] = true; seen[fol.id] = true;
+      var src = r.follows ? fol : r;          /* the room they start in */
+      var dst = r.follows ? r : fol;          /* the one they drive to */
+      out.push({ id:src.id, rooms:[src, dst], flip:false, follow:true,
+                 finish: Math.max(finishOf(src), finishOf(dst)),
+                 pin:(src.pin || dst.pin || null) });
+    } else {
+      seen[r.id] = true;
+      out.push({ id:r.id, rooms:[r], flip:false, finish:finishOf(r), pin:r.pin || null });
+    }
+  });
+  return out;
+}
+
+function assign(){
+  var us = units();
+  var ranked = us.slice().sort(function(a, b){
+    if (b.finish !== a.finish) return b.finish - a.finish;
+    return String(a.rooms[0].label).localeCompare(String(b.rooms[0].label), undefined, { numeric:true });
+  });
+
+  var byL = {}, taken = {}, i, u, L;
+
+  /* a pinned unit claims its slot first */
+  for (i = 0; i < ranked.length; i++){
+    u = ranked[i]; L = u.pin;
+    if (L && L >= 1 && L <= S.crnas && !byL[L]){ byL[L] = u; taken[u.id] = true; }
+  }
+  L = 1;
+  for (i = 0; i < ranked.length; i++){
+    u = ranked[i];
+    if (taken[u.id]) continue;
+    while (L <= S.crnas && byL[L]) L++;
+    if (L > S.crnas) break;
+    byL[L] = u; taken[u.id] = true; L++;
+  }
+
+  /* room id -> which L covers it, whether it's the second room of a pair, and whether
+     that pair is a flip (BR helps) or a follow (same person, later, other building) */
+  var roomL = {};
+  Object.keys(byL).forEach(function(k){
+    byL[k].rooms.forEach(function(r, ix){
+      roomL[r.id] = { L:+k, second:(ix === 1), follow:!!byL[k].follow };
+    });
+  });
+
+  var uncovered = ranked.filter(function(x){ return !taken[x.id]; });
+  return { byL:byL, roomL:roomL, uncovered:uncovered, ranked:ranked };
+}
+
+function roomById(id){
+  for (var i = 0; i < S.rooms.length; i++) if (S.rooms[i].id === id) return S.rooms[i];
+  return null;
+}
+
+/* Pairing is mutual and exclusive: a room flips with exactly one other, and setting a
+   new partner releases whoever either of them was paired with before. */
+function setFlip(room, partnerId){
+  var old = room.flip ? roomById(room.flip) : null;
+  if (old) old.flip = null;
+  room.flip = null;
+  if (!partnerId) return;
+  var p = roomById(partnerId);
+  if (!p || p.id === room.id) return;
+  var pOld = p.flip ? roomById(p.flip) : null;
+  if (pOld) pOld.flip = null;
+  room.flip = p.id;
+  p.flip = room.id;
+}
+
+/* ============================================================
+   render
+   ============================================================ */
+var $ = function(id){ return document.getElementById(id); };
+
+function render(){
+  var a = assign();
+  renderPeel(a);
+  renderBoard(a);
+  renderEditor();
+  $("sampleNotice").hidden = !S.isSample;
+  renderFlipHint();
+  $("photoWrap").hidden = !S.photos.length;
+  if (S.photos.length){
+    var pw = $("photoWrap");
+    if (pw.getAttribute("data-n") !== String(S.photos.length)){
+      pw.innerHTML = S.photos.map(function(p, i){
+        return '<img class="shot" style="margin-top:' + (i ? "10px" : "0") +
+               '" src="' + p.url + '" alt="Schedule sheet ' + (i + 1) + '" />';
+      }).join("");
+      pw.setAttribute("data-n", String(S.photos.length));
+    }
+  }
+  $("btnL5").textContent = (S.crnas >= 5) ? "L5 is in — take it out" : "+ add L5 today";
+  var n = liveRooms().length;
+  $("brandSub").textContent = (S.view === "crew")
+    ? "Who stays, who goes home"
+    : (n ? n + (n === 1 ? " room" : " rooms") + " · " + S.crnas + " CRNA" + (S.crnas === 1 ? "" : "s")
+         : "Tomorrow's board, ranked");
+  $("brandVer").textContent = APP_VERSION;
+  save();
+}
+
+function renderPeel(a){
+  var g = $("peelgrid");
+  g.innerHTML = "";
+  if (!liveRooms().length){
+    g.innerHTML =
+      '<div class="empty" style="grid-column:1/-1">' +
+        '<h3>Nothing on the board yet</h3>' +
+        "<p>Paste tomorrow's schedule in, snap a picture of it to read off of, or type the rooms in by hand. " +
+        "The order comes out on its own.</p>" +
+        '<button class="btn primary" id="emptyPaste">Paste the schedule</button> ' +
+        '<button class="btn" id="emptySample">See a sample day</button>' +
+      "</div>";
+    $("emptyPaste").onclick = function(){ open_("ovPaste"); };
+    $("emptySample").onclick = loadSample;
+    $("overflowBar").hidden = true;
+    return;
+  }
+
+  var L, slot, u, prevL;
+
+  for (L = 1; L <= S.crnas; L++){
+    slot = document.createElement("div");
+    slot.className = "slot" + (L === S.crnas ? " last" : "");
+    slot.setAttribute("data-l", String(L));
+    u = a.byL[L] || null;
+
+    if (!u){
+      slot.innerHTML =
+        '<div class="slotTop"><span class="Ltag">L' + L + "</span>" +
+        '<span class="slotWhen">' + whenLabel(L) + "</span></div>" +
+        '<div class="slotNone">' + (L === 5
+          ? "Not used today &mdash; L5 is the early out."
+          : "No room needs covering this late.") + "</div>";
+      g.appendChild(slot);
+      continue;
+    }
+
+    prevL = S.prev ? S.prev[u.id] : null;
+    var call = unitCall(u), approx = call.approx;
+    var sites = u.rooms.map(function(x){ return x.site; });
+    var oneSite = sites[0] === sites[sites.length - 1];
+
+    var meta = "";
+    if (oneSite){
+      meta += '<span class="chip ' + (sites[0] === "NP" ? "np" : "h") + '">' +
+              (sites[0] === "NP" ? "North Pointe" : "Hospital") + "</span>";
+    } else {
+      meta += '<span class="chip h">Hospital</span><span class="chip np">North Pointe</span>';
+    }
+    if (u.flip){
+      meta += '<span class="chip flip">' + (S.flipShowsBR
+        ? "BR in " + esc(u.rooms[1].label) : "Flip room") + "</span>";
+    }
+    if (u.follow){
+      meta += '<span class="chip flip">Travels to ' + esc(u.rooms[1].label) + "</span>";
+    }
+    var lrn = null;
+    u.rooms.forEach(function(x){ lrn = lrn || finishLearned(x); });
+    if (lrn) meta += '<span class="chip learned">From ' + lrn.n + " logged day" + (lrn.n === 1 ? "" : "s") + "</span>";
+    if (call.byRunner) meta += '<span class="chip call">Your call</span>';
+    if (u.pin) meta += '<span class="chip pinned">Pinned</span>';
+    if (prevL && prevL !== L) meta += '<span class="chip moved">was L' + prevL + "</span>";
+    if (closeCall(a, L)) meta += '<span class="chip close">Close call</span>';
+
+    slot.innerHTML =
+      '<div class="slotTop"><span class="Ltag">L' + L + "</span>" +
+      '<span class="slotWhen">' + whenLabel(L) + "</span></div>" +
+      '<div class="slotRoom">' + esc(unitLabel(u)) + "</div>" +
+      '<div class="slotFinish">out around <b>' + (approx ? "~" : "") + fmt(u.finish) + "</b></div>" +
+      '<div class="slotMeta">' + meta + "</div>";
+    g.appendChild(slot);
+  }
+
+  var bar = $("overflowBar");
+  if (a.uncovered.length){
+    bar.hidden = false;
+    bar.innerHTML = "<strong>No one left for</strong> " +
+      a.uncovered.map(function(u){
+        var approx = unitCall(u).approx;
+        return esc(unitLabel(u)) + " (out " + (approx ? "~" : "") + fmt(u.finish) + ")";
+      }).join(", ") +
+      " &mdash; more to cover than people on the list.";
+  } else {
+    bar.hidden = true;
+  }
+}
+
+function whenLabel(L){
+  if (L === 1) return "Last one out";
+  if (L === S.crnas) return "First one home";
+  return "Goes " + ordinal(S.crnas - L + 1);
+}
+function ordinal(n){
+  var s = ["th","st","nd","rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function unitLabel(u){
+  if (u.flip)   return u.rooms[0].label + " + " + u.rooms[1].label;
+  if (u.follow) return u.rooms[0].label + " → " + u.rooms[1].label;
+  return u.rooms[0].label;
+}
+function closeCall(a, L){
+  var here = a.byL[L], next = a.byL[L + 1];
+  if (!here || !next) return false;
+  return Math.abs(here.finish - next.finish) <= 20;
+}
+
+function renderBoard(a){
+  var inner = $("boardinner");
+  inner.innerHTML = "";
+  var rooms = liveRooms();
+  if (!rooms.length){ $("boardPanel").hidden = true; return; }
+  $("boardPanel").hidden = false;
+
+  /* time domain */
+  var lo = Infinity, hi = -Infinity;
+  rooms.forEach(function(r){
+    project(r).forEach(function(b){ if (b.start < lo) lo = b.start; if (b.end > hi) hi = b.end; });
+  });
+  lo = Math.floor(lo / 60) * 60;
+  hi = Math.ceil(hi / 60) * 60;
+  if (hi - lo < 120) hi = lo + 120;
+  var span = hi - lo;
+  var pct = function(m){ return ((m - lo) / span) * 100; };
+
+  /* ruler */
+  var ruler = document.createElement("div");
+  ruler.className = "lane ruler";
+  var rt = '<div class="rulerTrack">';
+  for (var t = lo; t <= hi; t += 60){
+    rt += '<span class="tick" style="left:' + pct(t).toFixed(3) + '%">' + fmt(t).replace(":00", "") + "</span>";
+  }
+  rt += "</div>";
+  ruler.innerHTML = '<div></div>' + rt + "<div></div><div></div>";
+  inner.appendChild(ruler);
+
+  var now = nowMinutes();
+
+  /* lanes run in peel-off order, and a flip pair's two rooms sit next to each other */
+  var lanes = [];
+  a.ranked.forEach(function(u){ u.rooms.forEach(function(r){ lanes.push(r); }); });
+
+  lanes.forEach(function(r){
+    var lane = document.createElement("div");
+    lane.className = "lane";
+    lane.setAttribute("data-site", r.site);
+
+    var blocks = project(r);
+    var track = '<div class="track">';
+    for (var g = lo; g <= hi; g += 60){
+      track += '<span class="gridline" style="left:' + pct(g).toFixed(3) + '%"></span>';
+    }
+    if (now >= lo && now <= hi){
+      track += '<span class="nowline" style="left:' + pct(now).toFixed(3) + '%"></span>';
+    }
+    blocks.forEach(function(b){
+      var l = pct(b.start), w = Math.max(0.6, pct(b.end) - l);
+      track += '<span class="blk' + (b.pushed ? " pushed" : "") + '" style="left:' + l.toFixed(3) +
+        "%;width:" + w.toFixed(3) + '%" title="' + esc(b.ref.proc || "case") + " — " +
+        fmt(b.start) + " to " + fmt(b.end) + (b.pushed ? " (pushed from " + fmt(b.sched) + ")" : "") + '">' +
+        "<span>" + esc(shortProc(b.ref.proc, b.dur)) + "</span></span>";
+    });
+    track += "</div>";
+
+    var at = a.roomL[r.id] || null;
+    var L = at ? at.L : null;
+    /* BR only stands in on a flip — on a follow it's the same person, just later */
+    var isBR = !!(at && at.second && !at.follow && S.flipShowsBR);
+    var tag = !L ? "—" : (isBR ? "BR" : "L" + L);
+    var lclass = "laneL " + (!L ? "none"
+               : isBR ? "br"
+               : (L === 1 ? "a1" : (L === S.crnas ? "aLast" : "")));
+    var pairNote = (at && at.follow) ? " &middot; follows"
+                 : (at && (at.second || partnerOf(r))) ? " &middot; flip"
+                 : (followedBy(r) ? " &middot; follows" : "");
+
+    lane.innerHTML =
+      '<div class="laneName">' + esc(r.label) +
+        '<span class="site">' + (r.site === "NP" ? "North Pointe" : "Hospital") +
+        pairNote + "</span></div>" +
+      track +
+      '<div class="laneFinish">' + (finishIsGuess(r) ? "~" : "") + fmt(finishOf(r)) + "</div>" +
+      '<div class="' + lclass + '">' + tag + "</div>";
+    inner.appendChild(lane);
+  });
+}
+
+function shortProc(p, dur){
+  var d = dur + "m";
+  if (!p) return d;
+  return p.length > 22 ? p.slice(0, 21) + "…" : p;
+}
+function nowMinutes(){
+  var d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/* What this room's last case has actually run on past days. Three real numbers beat
+   any average I could compute from three real numbers — the runner can see which to
+   discount. This is the part that pays off long before the automatic guess does. */
+function pastRunsLine(room){
+  if (!S.recent || !S.recent.length) return "";
+  var p = project(room);
+  if (!p.length) return "";
+  var lastCase = p[p.length - 1].ref;
+  var key = normProc(lastCase.proc);
+  if (!key) return "";
+  var surg = String(lastCase.surgeon || "").toLowerCase().trim();
+  var hits = S.recent.filter(function(o){
+    if (normProc(o.proc) !== key) return false;
+    return !surg || String(o.surgeon || "").toLowerCase().trim() === surg;
+  }).slice(0, 4);
+  if (!hits.length) return "";
+  return '<div class="pastRuns">' + esc(lastCase.proc) + " has actually run: " +
+         hits.map(function(o){ return o.mins + "m"; }).join(", ") + "</div>";
+}
+
+function finishLine(r){
+  return "out " + (finishIsGuess(r) ? "~" : "") + fmt(finishOf(r)) + (finishByRunner(r) ? " &middot; your call" : "");
+}
+
+function renderEditor(){
+  var host = $("rooms");
+  host.innerHTML = "";
+  S.rooms.forEach(function(r){
+    var card = document.createElement("div");
+    card.className = "roomcard";
+
+    var pins = '<div class="pinrow"><span class="chip" style="border:0;color:var(--muted)">Force an L:</span>';
+    for (var L = 1; L <= S.crnas; L++){
+      pins += '<button class="btn tiny" data-pin="' + L + '" aria-pressed="' + (r.pin === L) + '" style="' +
+        (r.pin === L ? "background:var(--ink);color:var(--ground);border-color:var(--ink)" : "") + '">L' + L + "</button>";
+    }
+    pins += '<button class="btn tiny ghost" data-pin="0">Auto</button></div>';
+
+    /* show what the app assumed for any case with no length on the sheet, so the
+       runner can see the guess and type over it if he knows better */
+    var proj = project(r), rows = "";
+    r.cases.forEach(function(c, ix){
+      var p = proj[ix] || {};
+      var ph = (p.src === "gap") ? String(p.dur)
+             : (p.src === "learned") ? String(p.dur)
+             : (p.src === "guess" ? "?" + p.dur : "min");
+      rows +=
+        '<div class="caserow" data-case="' + c.id + '">' +
+          '<input class="t" data-f="start" value="' + esc(c.start === null ? "" : fmt24(c.start)) + '" placeholder="0730" inputmode="numeric" aria-label="Start time" />' +
+          '<input class="m' + (p.src === "guess" ? " guess" : "") + '" data-f="mins" value="' + (c.mins || "") + '" placeholder="' + ph + '" inputmode="numeric" aria-label="Minutes' + (p.src === "guess" ? " — a guess, type over it if you know" : "") + '" />' +
+          '<input data-f="proc" value="' + esc(c.proc || "") + '" placeholder="procedure" aria-label="Procedure" />' +
+          '<button class="xbtn" data-del="' + c.id + '" aria-label="Delete this case">&times;</button>' +
+        "</div>";
+    });
+
+    /* One picker for both ways two rooms share a person: flipping (same site, at once)
+       and following (other site, one after the other). */
+    var flipOpts = '<option value=""' + (!r.flip && !r.follows ? " selected" : "") + ">room on its own</option>";
+    var sameSite = "", other = "";
+    S.rooms.forEach(function(o){
+      if (o.id === r.id) return;
+      if (o.site === r.site){
+        sameSite += '<option value="flip:' + o.id + '"' + (r.flip === o.id ? " selected" : "") +
+                    ">flips with " + esc(o.label) + "</option>";
+      } else {
+        other += '<option value="fol:' + o.id + '"' + (r.follows === o.id ? " selected" : "") +
+                 ">follows over from " + esc(o.label) + "</option>";
+      }
+    });
+    if (sameSite) flipOpts += '<optgroup label="Both rooms at once">' + sameSite + "</optgroup>";
+    if (other)    flipOpts += '<optgroup label="One room then the other">' + other + "</optgroup>";
+
+    card.innerHTML =
+      '<div class="rtop">' +
+        '<input class="rname" value="' + esc(r.label) + '" data-f="label" aria-label="Room name" />' +
+        '<span class="seg"><button data-site="H" aria-pressed="' + (r.site === "H") + '">Hosp</button>' +
+        '<button data-site="NP" aria-pressed="' + (r.site === "NP") + '">N. Pointe</button></span>' +
+        '<select class="flipSel" data-flip="1" aria-label="Flip partner">' + flipOpts + "</select>" +
+        '<span class="spacer"></span>' +
+        (function(){
+          var su = [];
+          r.cases.forEach(function(c){
+            var s = String(c.surgeon || "").trim();
+            if (s && su.indexOf(s) < 0) su.push(s);
+          });
+          return su.length ? '<span class="chip">' + esc(su.slice(0, 2).join(", ")) + "</span>" : "";
+        })() +
+        '<span class="slotFinish">' + finishLine(r) + "</span>" +
+        '<input class="endAt' + (typeof r.endAt === "number" ? " set" : "") + '" data-f="endAt" value="' +
+          (typeof r.endAt === "number" ? fmt24(r.endAt) : "") + '" placeholder="ends at?" inputmode="numeric" ' +
+          'aria-label="When you think this room will really end" title="Know when this room will really finish? Type it — 1530 — and that becomes its finish" />' +
+        '<button class="xbtn" data-delroom="1" aria-label="Delete this room">&times;</button>' +
+      "</div>" +
+      '<div class="colhead"><span>Start</span><span>Min</span><span>Procedure</span><span></span></div>' +
+      '<div class="caselist">' + rows + "</div>" +
+      pastRunsLine(r) +
+      '<div class="rowActions"><button class="btn tiny" data-addcase="1">+ Case</button>' +
+      '<button class="btn tiny" data-addon="1">+ Add-on at the end</button></div>' +
+      '<div class="rowActions">' + pins + "</div>";
+
+    /* wiring */
+    card.querySelector('[data-f="label"]').addEventListener("input", function(e){
+      r.label = e.target.value; softRender();
+    });
+    /* the runner's own end time: a full time (1530, 3:30, 330p) takes hold as it's typed,
+       a half-typed one is ignored rather than yanking the room to three in the morning */
+    card.querySelector('[data-f="endAt"]').addEventListener("input", function(e){
+      var v = e.target.value.trim(), t = (v === "") ? null : parseTime(v);
+      if (v !== "" && t === null) return;
+      r.endAt = t;
+      e.target.classList.toggle("set", t !== null);
+      card.querySelector(".slotFinish").innerHTML = finishLine(r);
+      S.isSample = false; softRender();
+    });
+    card.querySelectorAll("[data-site]").forEach(function(b){
+      b.addEventListener("click", function(){ r.site = b.getAttribute("data-site"); render(); });
+    });
+    card.querySelector("[data-flip]").addEventListener("change", function(){
+      var v = String(this.value || "");
+      if (v.indexOf("fol:") === 0){ setFlip(r, null); setFollow(r, v.slice(4)); }
+      else                        { setFollow(r, null); setFlip(r, v.indexOf("flip:") === 0 ? v.slice(5) : null); }
+      snapshot();
+      render();
+    });
+    card.querySelector("[data-delroom]").addEventListener("click", function(){
+      S.rooms = S.rooms.filter(function(x){ return x.id !== r.id; }); S.isSample = false; render();
+    });
+    card.querySelector("[data-addcase]").addEventListener("click", function(){
+      r.cases.push({ id:nid(), start:null, mins:60, proc:"" }); S.isSample = false; render();
+    });
+    card.querySelector("[data-addon]").addEventListener("click", function(){
+      var f = finishOf(r);
+      r.cases.push({ id:nid(), start:(f === null ? null : f + S.turnover), mins:60, proc:"Add-on" });
+      S.isSample = false; snapshot(); render();
+    });
+    card.querySelectorAll("[data-pin]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var v = +b.getAttribute("data-pin");
+        r.pin = (v === 0 || r.pin === v) ? null : v;
+        snapshot(); render();
+      });
+    });
+    card.querySelectorAll("[data-del]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var cid = b.getAttribute("data-del");
+        r.cases = r.cases.filter(function(x){ return x.id !== cid; }); S.isSample = false; render();
+      });
+    });
+    card.querySelectorAll(".caserow").forEach(function(row){
+      var cid = row.getAttribute("data-case");
+      var c = null, i;
+      for (i = 0; i < r.cases.length; i++) if (r.cases[i].id === cid) c = r.cases[i];
+      if (!c) return;
+      row.querySelectorAll("input").forEach(function(inp){
+        inp.addEventListener("input", function(){
+          var f = inp.getAttribute("data-f"), v = inp.value;
+          if (f === "start"){ c.start = v.trim() === "" ? null : parseTime(v); }
+          else if (f === "mins"){ var d = parseDur(v); c.mins = (d === null ? 0 : d); }
+          else { c.proc = v; }
+          S.isSample = false; softRender();
+        });
+      });
+    });
+
+    host.appendChild(card);
+  });
+}
+
+/* One surgeon in two rooms means one CRNA covering both — but which kind depends on
+   where the rooms are. Same site: a flipping room, both going at once. Opposite sites:
+   the surgeon finishes at one building and drives to the other, and the CRNA goes with
+   them. Suggest either rather than doing it silently — most days it's ortho in OR 1 and
+   2, but not always, and a wrong pairing would quietly hand somebody a room they aren't
+   covering. */
+var flipDismissed = {};
+function firstStart(r){
+  var p = project(r);
+  return p.length ? p[0].start : 1e9;
+}
+function flipCandidate(){
+  var live = liveRooms(), by = {}, i;
+  live.forEach(function(r){
+    r.cases.forEach(function(c){
+      var s = String(c.surgeon || "").trim().toLowerCase();
+      if (!s) return;
+      (by[s] = by[s] || []);
+      if (by[s].indexOf(r) < 0) by[s].push(r);
+    });
+  });
+  var keys = Object.keys(by);
+  for (i = 0; i < keys.length; i++){
+    var rs = by[keys[i]];
+    if (rs.length !== 2) continue;
+    if (rs[0].flip || rs[1].flip || rs[0].follows || rs[1].follows) continue;
+    if (followedBy(rs[0]) || followedBy(rs[1])) continue;
+    var pairKey = [rs[0].id, rs[1].id].sort().join(":");
+    if (flipDismissed[pairKey]) continue;
+    if (rs[0].site === rs[1].site) return { rooms:rs, surgeon:keys[i], key:pairKey, kind:"flip" };
+    /* a follow runs in time order: they start where the earlier case is */
+    var ordered = (firstStart(rs[0]) <= firstStart(rs[1])) ? rs : [rs[1], rs[0]];
+    return { rooms:ordered, surgeon:keys[i], key:pairKey, kind:"follow" };
+  }
+  return null;
+}
+function renderFlipHint(){
+  var c = flipCandidate();
+  if (!c){ $("flipNotice").hidden = true; return; }
+  var name = c.surgeon.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
+  $("flipNoticeText").innerHTML = (c.kind === "follow")
+    ? "<strong>" + esc(name) + "</strong> is in " + esc(c.rooms[0].label) + ", then " +
+      esc(c.rooms[1].label) + " at the other building &mdash; is one person following them over?"
+    : "<strong>" + esc(name) + "</strong> has cases in " + esc(c.rooms[0].label) + " and " +
+      esc(c.rooms[1].label) + " &mdash; is that a flipping room? One person would cover both.";
+  $("btnFlipYes").textContent = (c.kind === "follow") ? "Yes, one person" : "Pair them";
+  $("flipNotice").hidden = false;
+  $("btnFlipYes").onclick = function(){
+    if (c.kind === "follow") setFollow(c.rooms[1], c.rooms[0].id);   /* second room follows the first */
+    else                     setFlip(c.rooms[0], c.rooms[1].id);
+    snapshot();
+    render();
+  };
+  $("btnFlipNo").onclick = function(){
+    flipDismissed[c.key] = true;
+    renderFlipHint();
+  };
+}
+
+/* re-run everything except the editor, so typing doesn't lose focus */
+function softRender(){
+  var a = assign();
+  renderPeel(a);
+  renderBoard(a);
+  save();
+}
+
+function esc(s){
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/* ============================================================
+   the parser
+   ============================================================ */
+var SITE_NP = /^(np|n\.?p\.?|north\s*po?in?te?|northpointe|pointe|asc|sc|surgery\s*cent(?:er|re))$/i;
+var SITE_H  = /^(h|hosp\.?|hospital|main|mc|hgh)$/i;
+/* whole-token named rooms only, so a procedure called "Endoscopy" isn't mistaken for a room */
+var NAMED_ROOM = /^(cysto|endo|gi|hybrid|cath|obgyn|ob|csec|c-?section|eye|pain|block|robot(?:ics)?|neuro|cardiac|heart|trauma|minor|proc|special)\s*\d{0,2}$/i;
+
+/* Pipes are positional — empty fields have to survive, or an unnamed surgeon would
+   shift the procedure into the wrong column. Everything else gets emptied out. */
+function splitFields(line){
+  if (line.indexOf("|") >= 0){
+    return { positional:true, fields: line.split("|").map(function(t){ return t.trim(); }) };
+  }
+  var out;
+  if (line.indexOf("\t") >= 0) out = line.split("\t");
+  else if (line.split(",").length >= 3) out = line.split(",");
+  else if (/\S\s{2,}\S/.test(line)) out = line.split(/\s{2,}/);
+  else return null;
+  return { positional:false,
+           fields: out.map(function(t){ return t.trim(); })
+                      .filter(function(t){ return t !== ""; }) };
+}
+
+/* Six pipe-separated fields is ambiguous: it's either the reader's own contract
+   (SITE|ROOM|START|MINUTES|SURGEON|PROCEDURE) or a pasted sheet carrying both an
+   admission and an OR time (SITE|ROOM|ADM|OR|...). Reading the wrong one positionally
+   takes the admission time as the start and puts the whole board an hour early.
+   They're separable: our MINUTES field is a plain number and never parses as a time. */
+function looksLikeSixField(f){
+  if (parseTime(f[3]) !== null) return false;              /* that's an OR time, not minutes */
+  if (f[3] !== "" && parseDur(f[3]) === null) return false; /* nor a length at all */
+  if (f[2] !== "" && parseTime(f[2]) === null) return false;/* field 3 must be the start */
+  return true;
+}
+
+/* The reader's own contract: SITE | ROOM | START | MINUTES | SURGEON | PROCEDURE.
+   Read positionally rather than by guessing at tokens — we generate this format. */
+function sixField(f, ctx){
+  var site = SITE_NP.test(f[0]) ? "NP" : "H";
+  var room = f[1] ? normRoom(f[1]) : ctx.room;
+  if (!room) return null;
+  var start = f[2] ? parseTime(f[2]) : null;
+  var d = f[3] ? parseDur(f[3]) : null;
+  var mins = (d === null) ? 0 : d;
+  var surgeon = f[4].replace(/\s+/g, " ").slice(0, 24);
+  var proc = f[5].replace(/\s+/g, " ");
+  if (start === null && !mins && !proc) return null;
+  ctx.room = room; ctx.site = site;
+  return { site:site, room:room, start:start, mins:mins, surgeon:surgeon, proc:proc };
+}
+
+/* A room label is a short token carrying a digit (OR3, NP 1, 4, A2) or a known
+   named room. Only ever tested on tokens sitting before the line's first time,
+   which is where every schedule puts the room. */
+function looksLikeRoom(tok){
+  if (!tok) return false;
+  var t = tok.trim();
+  if (!t || t.length > 12) return false;
+  if (SITE_NP.test(t) || SITE_H.test(t)) return false;
+  if (NAMED_ROOM.test(t)) return true;
+  if (!/\d/.test(t)) return false;
+  return /^[a-z0-9][a-z0-9.\s#-]{0,10}$/i.test(t);
+}
+/* strict form, for the second-pass rescue when the room came after the time */
+function strictRoom(tok){
+  var t = String(tok).trim();
+  if (NAMED_ROOM.test(t)) return true;
+  return /^(?:or|o\.r\.|room|rm)\s*[-#]?\s*\d{1,3}[a-z]?$/i.test(t);
+}
+function normRoom(tok){
+  var t = tok.trim().replace(/\s+/g, " ").replace(/#/g, "");
+  var m = t.match(/^(?:or|o\.r\.)\s*-?\s*(.+)$/i);
+  if (m) return "OR " + m[1].toUpperCase();
+  m = t.match(/^(?:room|rm|r)\s*-?\s*(\d{1,3}[a-z]?)$/i);
+  if (m) return "OR " + m[1].toUpperCase();
+  if (/^\d{1,3}$/.test(t)) return "OR " + t;
+  var letters = t.replace(/[^a-z]/gi, "");
+  if (letters.length <= 3) return t.toUpperCase();          /* NP 1, SC 2 */
+  if (t === t.toUpperCase()) return t;                      /* ENDO, CYSTO stay as printed */
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); /* cysto -> Cysto */
+}
+
+/* one line -> {site, room, start, mins, proc} | null */
+function parseLine(line, ctx){
+  /* keep the original run-lengths of whitespace: column-aligned paste needs them */
+  var spaced = String(line).replace(/[ ]/g, " ").replace(/[\s]+$/, "").replace(/^[\s]+/, "");
+  spaced = spaced.replace(/[:\-–—]+$/, "");
+  var flat = spaced.replace(/\s+/g, " ").trim();
+  if (!flat) return null;
+  if (/^[-=_*—\s|]+$/.test(flat)) return null;
+  if (/\b(patient|surgeon|anesthes|room)\b/i.test(flat) && /\b(time|start|proc|dur|min|length)\b/i.test(flat)) return null;
+
+  /* glue a room prefix to its number so "OR 3" survives as one token */
+  spaced = spaced.replace(/\b(or|o\.r\.|room|rm)\.?[ ]?[-#]?[ ]?(\d{1,3}[a-z]?)\b/gi, "OR$2");
+
+  var sp = splitFields(spaced);
+  if (sp && sp.positional && sp.fields.length === 6 && looksLikeSixField(sp.fields)){
+    return sixField(sp.fields, ctx);
+  }
+
+  var fields = sp ? sp.fields.filter(function(x){ return x !== ""; }) : null;
+  var tokens = fields ? fields : spaced.replace(/\s+/g, " ").trim().split(" ");
+
+  var site = null, room = null, start = null, end = null, mins = null, rest = [];
+  var times = [];
+  var i, tok, tv, hasTime = false, rangeM, s1, s2;
+
+  for (i = 0; i < tokens.length; i++){
+    tok = tokens[i].trim();
+    if (!tok || tok === "?") continue;
+
+    if (site === null && (SITE_NP.test(tok) || SITE_H.test(tok))){
+      site = SITE_NP.test(tok) ? "NP" : "H";
+      continue;
+    }
+    /* a start-to-end range in one field: 0730-0930, 7:30 to 9:30 */
+    rangeM = tok.match(/^(\d{1,2}:?\d{0,2}\s*(?:am|pm|a|p)?)\s*(?:-|–|to)\s*(\d{1,2}:?\d{0,2}\s*(?:am|pm|a|p)?)$/i);
+    if (rangeM){
+      s1 = parseTime(rangeM[1]); s2 = parseTime(rangeM[2]);
+      if (s1 !== null && s2 !== null){
+        if (start === null){ start = s1; hasTime = true; }
+        if (s2 <= s1) s2 += 1440;
+        end = s2;
+        continue;
+      }
+    }
+    /* Collect every bare time; decide which one is the OR time after the loop.
+       Real sheets carry an admission time in the column next to the OR time, and
+       reading those two as a start-and-end pair made every case exactly one hour
+       long and started the room an hour early. Only an explicit range means end. */
+    if (end === null){
+      tv = parseTime(tok);
+      if (tv !== null){ times.push(tv); hasTime = true; continue; }
+    }
+    /* the room is whatever short digit-bearing token sits before the first time */
+    if (!hasTime && room === null && looksLikeRoom(tok)){ room = normRoom(tok); continue; }
+
+    if (mins === null && hasTime){
+      tv = parseDur(tok);
+      if (tv !== null){ mins = tv; continue; }
+    }
+    if (mins === null && /^(?:\d+(?:\.\d+)?h|\d+m(?:in)?s?)$/i.test(tok)){
+      tv = parseDur(tok);
+      if (tv !== null){ mins = tv; continue; }
+    }
+    rest.push(tok);
+  }
+
+  /* Which collected time is the one the room actually starts on?
+     Admission time sits before OR time and is always the earlier of the two, so with
+     two bare times take the later. One time is unambiguous. */
+  if (start === null && times.length){
+    start = (times.length >= 2) ? Math.max(times[0], times[1]) : times[0];
+  }
+
+  /* a line holding nothing but a room name is a header for the lines beneath it */
+  if (room !== null && start === null && mins === null && !rest.length){
+    ctx.room = room;
+    if (site) ctx.site = site;
+    return null;
+  }
+
+  /* room printed after the time, and no header above to inherit from */
+  if (room === null && !ctx.room){
+    for (i = 0; i < rest.length; i++){
+      if (strictRoom(rest[i])){ room = normRoom(rest[i]); rest.splice(i, 1); break; }
+    }
+  }
+
+  if (mins === null && end !== null && start !== null) mins = end - start;
+  if (room === null) room = ctx.room;
+  if (site === null) site = ctx.site || "H";
+  if (room === null) return null;
+
+  /* A whiteboard gives the room one start time and then just lists the cases in order,
+     so a case with no time of its own is still real as long as it says what it is.
+     Guard against footers and stray text inheriting the room and becoming fake cases. */
+  if (mins === null && start === null){
+    var tail = rest.join(" ");
+    if (!tail || tail.length > 60 || /\b(19|20)\d{2}\b/.test(tail) ||
+        /\b(printed|page|total|report)\b/i.test(tail)) return null;
+  }
+
+  ctx.room = room;
+  ctx.site = site;
+  return {
+    site: site,
+    room: room,
+    start: start,
+    /* 0 means "not stated" — the engine works the length out from the start times.
+       Defaulting to 60 here silently overrode that inference on every real schedule. */
+    mins: (mins === null ? 0 : mins),
+    surgeon: "",
+    proc: rest.join(" ").replace(/\s{2,}/g, " ").trim()
+  };
+}
+
+function runParse(text){
+  var lines = String(text).split(/\r?\n/);
+  var ctx = { room:null, site:null };
+  var got = [], skipped = 0, i, p;
+  for (i = 0; i < lines.length; i++){
+    if (!lines[i].trim()) continue;
+    p = parseLine(lines[i], ctx);
+    if (p){
+      /* We don't call it a procedure room — it's the Endo suite. Sheets and
+         whiteboards both print PROC, so rename it at the one point every route
+         passes through rather than in each one separately. */
+      p.room = String(p.room).replace(/\bPROC(EDURE)?\b/gi, "Endo");
+      got.push(p);
+    }
+    else if (/\d/.test(lines[i])) skipped++;
+  }
+  return { cases:got, skipped:skipped };
+}
+
+/* Two passes. The first reads every time literally to find out whether this sheet
+   writes afternoons in 24-hour time. If it does, a bare "1:00" is genuinely 1am-ish
+   nonsense that shouldn't be shifted; if it doesn't, a bare "1:00" means the afternoon. */
+function parseSchedule(text){
+  var was = pmShift;
+  pmShift = false;
+  var probe = runParse(text);
+  var usesTwentyFour = probe.cases.some(function(c){
+    return typeof c.start === "number" && c.start >= 780;   /* 13:00 or later */
+  });
+  pmShift = !usesTwentyFour;
+  var res = runParse(text);
+  res.twentyFourHour = usesTwentyFour;
+  pmShift = was;
+  return res;
+}
+
+/* Merge a freshly-read sheet into whatever is already on the board.
+   A room that comes back gets its cases replaced — so re-reading the same sheet
+   corrects it rather than doubling it — and rooms the sheet doesn't mention are
+   left completely alone, which is what keeps the hospital board alive when North
+   Pointe is read second. Flip pairings survive as long as both rooms do. */
+function mergeRooms(fresh){
+  fresh.forEach(function(nr){
+    var hit = null;
+    S.rooms.forEach(function(r){
+      if (r.site === nr.site && r.label.toLowerCase() === nr.label.toLowerCase()) hit = r;
+    });
+    if (hit) hit.cases = nr.cases;
+    else S.rooms.push(nr);
+  });
+  /* drop any pairing whose partner is gone */
+  S.rooms.forEach(function(r){
+    if (r.flip && !roomById(r.flip)) r.flip = null;
+    if (r.follows && !roomById(r.follows)) r.follows = null;
+  });
+}
+
+/* A printed sheet shouts (ENDO, OR 3) and the reader sometimes doesn't. Match the
+   label against the room list in Settings so the board reads the way the room list
+   is written — and, more importantly, so ENDO and Endo can't become two rooms. */
+function canonicalRoom(site, label){
+  var list = (site === "NP" ? S.roomsNP : S.roomsH).split(",");
+  var want = String(label).trim().toLowerCase(), i, o;
+  for (i = 0; i < list.length; i++){
+    o = list[i].trim();
+    if (o && o.toLowerCase() === want) return o;
+  }
+  return String(label).trim();
+}
+
+function toRooms(parsed){
+  var map = {}, order = [];
+  parsed.forEach(function(p){
+    var label = canonicalRoom(p.site, p.room);
+    /* key on the lowered name: one sheet can spell the same room two ways */
+    var k = p.site + " " + label.toLowerCase();
+    if (!map[k]){ map[k] = { id:nid(), label:label, site:p.site, pin:null, cases:[] }; order.push(k); }
+    map[k].cases.push({ id:nid(), start:p.start, mins:p.mins,
+                        surgeon:(p.surgeon || ""), proc:p.proc });
+  });
+  return order.map(function(k){
+    var r = map[k];
+    r.cases.sort(function(a, b){
+      if (a.start === null) return 1;
+      if (b.start === null) return -1;
+      return a.start - b.start;
+    });
+    return r;
+  });
+}
+
+/* ============================================================
+   the prompt he pastes into a Claude chat
+   ============================================================ */
+var READ_PROMPT =
+"Read this OR schedule picture. Give me ONE LINE PER CASE and nothing else — no intro, no summary, no notes.\n\n" +
+"Use exactly this format, pipes included:\n\n" +
+"SITE | ROOM | START | MINUTES | PROCEDURE\n\n" +
+"SITE is H for the hospital or NP for North Pointe. If the picture doesn't say, use H.\n\n" +
+"ROOM is the room label as printed — OR 3, NP 1, CYSTO, Endo. If a sheet or whiteboard uses a " +
+"different name for a room than we do (a board that says PROC is our Endo room), use our name. " +
+"On a printed grid the room is " +
+"usually in a narrow column on the far left, written once at the top of a block of rows, with " +
+"blank rows separating rooms; carry it down onto every case in its block. On a whiteboard the " +
+"rooms are headers across the top. If the photo cuts the room column off, put ?\n\n" +
+"START is the OR start time, 24-hour, four digits, no colon: 0730. These sheets often have TWO " +
+"time columns — an admission time then the OR time. Always take the OR time, which is the later " +
+"of the two. Read times exactly as written: afternoons appear as 13:00 and 14:30, so 6:00 is the " +
+"morning. On a whiteboard where only the room has a start time, give it to that room's first " +
+"case and leave START empty for the rest.\n\n" +
+"MINUTES is the scheduled length, and only if the sheet actually has a length column or an end " +
+"time column. Most do not have either. When there is no length printed, put 0 — do not estimate " +
+"it and do not work it out from the next case's start time. 0 is the right answer; the app fills " +
+"it in itself.\n\n" +
+"PROCEDURE is a few words of what the case is.\n\n" +
+"Go room by room and keep the printed top-to-bottom order inside each room. Transcribe only what " +
+"is printed. Skip blank rows and header rows. Leave out patient names and initials, medication " +
+"and condition notes, insurance notes, surgeon names and booking dates — none of that is needed.";
+
+/* ============================================================
+   copy out
+   ============================================================ */
+function assignmentText(){
+  var a = assign(), out = [], L, r;
+  var d = new Date(Date.now() + 86400000);
+  var days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var mons = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  out.push("PEEL-OFF — " + days[d.getDay()] + " " + mons[d.getMonth()] + " " + d.getDate());
+  out.push("");
+  var anyGuess = false, anyFlip = false, anyCall = false;
+  for (L = 1; L <= S.crnas; L++){
+    var u = a.byL[L] || null;
+    var who = S.names[L] ? " " + pad(S.names[L], 11) : "";
+    if (!u){ out.push("L" + L + who + "   —"); continue; }
+    var call = unitCall(u), approx = call.approx, mine = call.byRunner;
+    if (approx) anyGuess = true;
+    if (mine) anyCall = true;
+    if (u.flip) anyFlip = true;
+    var site = u.follow ? "both" : (u.rooms[0].site === "NP" ? "N.Pointe" : "Hospital");
+    out.push("L" + L + who + "   " + pad(unitLabel(u), 16) + " " + site +
+             "   out " + (approx ? "~" : "") + fmt(u.finish) + (mine ? "*" : "") +
+             (u.flip ? (S.flipShowsBR ? "   (flip, BR in " + u.rooms[1].label + ")" : "   (flip)") : "") +
+             (u.follow ? "   (travels over)" : ""));
+  }
+  if (a.uncovered.length){
+    out.push("");
+    out.push("Not covered: " + a.uncovered.map(function(u){
+      var approx = unitCall(u).approx;
+      return unitLabel(u) + " (out " + (approx ? "~" : "") + fmt(u.finish) + ")";
+    }).join(", "));
+  }
+  if (anyFlip && S.flipShowsBR){
+    out.push("");
+    out.push("BR = board runner helping flip that pair.");
+  }
+  out.push("");
+  out.push("Turnover " + S.turnover + " min" + (S.padPct ? ", cases padded " + S.padPct + "%" : "") + ". Projected, not gospel.");
+  if (anyGuess) out.push("~ means the last case's length wasn't on the schedule.");
+  if (anyCall) out.push("* the board runner's own end time.");
+  return out.join("\n");
+}
+function pad(s, n){ s = String(s); while (s.length < n) s += " "; return s; }
+
+function copyText(t, btn, okLabel){
+  var done = function(){
+    /* Remember the real label the FIRST time only. Reading it fresh on every call
+       meant a second tap during the flash captured "Copied" as the label to go back
+       to, and the button kept that name for the rest of the session. */
+    if (!btn.getAttribute("data-label")) btn.setAttribute("data-label", btn.textContent);
+    clearTimeout(btn._revert);
+    btn.textContent = okLabel || "Copied";
+    btn._revert = setTimeout(function(){
+      btn.textContent = btn.getAttribute("data-label");
+    }, 1400);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done, function(){ fallback(t); done(); });
+  } else { fallback(t); done(); }
+}
+function fallback(t){
+  var ta = document.createElement("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* ============================================================
+   handing the app to a coworker
+   ============================================================ */
+/* Everything goes in one block of text rather than the share sheet's separate `url`
+   field. A phone's share sheet is free to drop `text` and keep only `url`, and a link
+   that arrives without the passcode is a locked door — which costs a second text and
+   a phone call to sort out. One block always travels intact. */
+function shareMessage(){
+  var url = location.origin + location.pathname;
+  var code = (typeof getCode === "function") ? getCode() : null;
+  var lines = ["Peel-Off — who's staying late tomorrow, on your phone.", "", url];
+  if (code) lines.push("Code: " + code);
+  lines.push("");
+  lines.push("Open it, then Share → Add to Home Screen so it opens like an app.");
+  return lines.join("\n");
+}
+
+function shareApp(btn){
+  var msg = shareMessage(), note = $("shareNote");
+  var say = function(text, good){
+    note.hidden = false;
+    note.className = "shareNote" + (good ? " ok" : "");
+    note.textContent = text;
+  };
+  /* the real path on a phone: hands it to Messages, WhatsApp, wherever */
+  if (navigator.share){
+    navigator.share({ title: "Peel-Off", text: msg })
+      .then(function(){ note.hidden = true; })
+      .catch(function(e){
+        /* backing out of the share sheet isn't a failure worth reporting */
+        if (e && e.name === "AbortError"){ note.hidden = true; return; }
+        copyText(msg, btn, "Copied");
+        say("Couldn't open the share sheet, so it's on the clipboard instead — paste it into a text.", true);
+      });
+    return;
+  }
+  copyText(msg, btn, "Copied");
+  say("Copied. Paste it into a text message — the link and the code are both in there.", true);
+}
+
+/* ============================================================
+   persistence
+   ============================================================ */
+function save(){
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      crnas:S.crnas, turnover:S.turnover, padPct:S.padPct, defaultStart:S.defaultStart,
+      rooms:S.rooms, prev:S.prev, isSample:S.isSample, photos:S.photos,
+      view:S.view, myL:S.myL, myName:S.myName, names:S.names,
+      roomsH:S.roomsH, roomsNP:S.roomsNP, flipShowsBR:S.flipShowsBR, travelMins:S.travelMins,
+      isRunner:S.isRunner
+    }));
+  } catch(e){}
+}
+function load(){
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (!raw) return false;
+    var o = JSON.parse(raw);
+    if (!o || !Array.isArray(o.rooms)) return false;
+    S.crnas = o.crnas || 4;
+    if (typeof o.flipShowsBR === "boolean") S.flipShowsBR = o.flipShowsBR;
+    S.turnover = (typeof o.turnover === "number") ? o.turnover : 25;
+    S.travelMins = (typeof o.travelMins === "number") ? o.travelMins : 30;
+    S.padPct = o.padPct || 0;
+    S.defaultStart = (typeof o.defaultStart === "number") ? o.defaultStart : 450;
+    S.rooms = o.rooms;
+    S.prev = o.prev || null;
+    S.isSample = !!o.isSample;
+    /* carry over a phone that saved the old single-photo shape */
+    S.photos = Array.isArray(o.photos) ? o.photos
+             : (o.photo ? [{ id:nid(), url:o.photo, read:true }] : []);
+    S.view = (o.view === "board") ? "board" : "crew";
+    /* anyone already using the runner's side keeps it — don't take the tab away from
+       the person who was mid-way through a board when this shipped */
+    S.isRunner = !!o.isRunner || o.view === "board";
+    S.myL = (typeof o.myL === "number") ? o.myL : null;
+    S.myName = (typeof o.myName === "string" && o.myName) ? o.myName : null;
+    S.names = (o.names && typeof o.names === "object") ? o.names : {};
+    if (typeof o.roomsH === "string") S.roomsH = o.roomsH;
+    if (typeof o.roomsNP === "string") S.roomsNP = o.roomsNP;
+
+    /* The procedure room is called Endo, not PROC. Anything saved on a phone before
+       that decision has to be carried over, or Settings would quietly keep the old
+       name and the reader would be handed a room list nobody uses. */
+    var wasProc = /\bPROC\b/i;
+    S.roomsH  = S.roomsH.replace(/\bPROC\b/gi, "Endo");
+    S.roomsNP = S.roomsNP.replace(/\bPROC\b/gi, "Endo");
+    S.rooms.forEach(function(r){
+      if (wasProc.test(String(r.label))) r.label = String(r.label).replace(/\bPROC\b/gi, "Endo");
+    });
+    return true;
+  } catch(e){ return false; }
+}
+function snapshot(){
+  var a = assign(), m = {};
+  Object.keys(a.byL).forEach(function(L){ m[a.byL[L].id] = +L; });
+  S.prev = m;
+}
+
+/* ============================================================
+   the sample day
+   ============================================================ */
+/* Start times only and no lengths, because that's what a real sheet gives — so the
+   first thing anyone sees is the app behaving the way it will on their own board,
+   tildes and all. Rooms and cases are drawn from Matt's own schedules. */
+function loadSample(){
+  S.rooms = toRooms(parseSchedule(
+    "H | OR 1 | 0700 | 0 | Douglas | R endoscopic CTR\n" +
+    "H | OR 1 | 0930 | 0 | Douglas | R shoulder scope rotator cuff repair\n" +
+    "H | OR 1 | 1245 | 0 | Douglas | L shoulder scope rotator cuff repair\n" +
+    "H | OR 2 | 0730 | 0 | Douglas | L TKA\n" +
+    "H | OR 2 | 1115 | 0 | Douglas | R shoulder scope rotator cuff repair\n" +
+    "H | OR 3 | 0700 | 0 | Anselmo | Rt exostosis, hammertoe 4-5\n" +
+    "H | OR 3 | 0930 | 0 | Anselmo | L plantar fasciectomy\n" +
+    "H | OR 3 | 1130 | 0 | Anselmo | L hardware removal\n" +
+    "H | Endo | 0730 | 0 | Cashmore | EGD\n" +
+    "H | Endo | 0800 | 0 | Cashmore | EGD / colon\n" +
+    "H | Endo | 0845 | 0 | Cashmore | EGD\n" +
+    "H | Endo | 0915 | 0 | Cashmore | Colon\n" +
+    "H | Endo | 0945 | 0 | Cashmore | EGD\n" +
+    "H | Endo | 1015 | 0 | Cashmore | Colon\n" +
+    "H | Endo | 1045 | 0 | Cashmore | EGD\n" +
+    "H | Endo | 1115 | 0 | Cashmore | Colon\n" +
+    "H | Endo | 1200 | 0 | Cashmore | Colon\n" +
+    "H | Endo | 1230 | 0 | Cashmore | EGD\n" +
+    "H | Endo | 1300 | 0 | Cashmore | Sig\n" +
+    "H | Endo | 1330 | 0 | Cashmore | Colon\n" +
+    "NP | NP 1 | 0715 | 0 | Strindberg | Knee scope\n" +
+    "NP | NP 1 | 0815 | 0 | Strindberg | Shoulder scope\n" +
+    "NP | NP 1 | 0930 | 0 | Strindberg | Hardware removal\n" +
+    /* Anselmo finishes at the hospital and drives over — one CRNA goes with him */
+    "NP | NP 2 | 1400 | 0 | Anselmo | Bunionectomy\n" +
+    "NP | NP 2 | 1515 | 0 | Anselmo | Hammertoe correction"
+  ).cases);
+  /* ortho runs OR 1 and OR 2 as a flipping pair most days, covered by one CRNA */
+  if (S.rooms.length >= 2) setFlip(S.rooms[0], S.rooms[1].id);
+  /* and the same person carries OR 3 over to NP 2 after lunch */
+  (function(){
+    var or3 = null, np2 = null;
+    S.rooms.forEach(function(r){
+      if (r.site === "H"  && /^OR 3$/i.test(r.label)) or3 = r;
+      if (r.site === "NP" && /^NP 2$/i.test(r.label)) np2 = r;
+    });
+    if (or3 && np2) setFollow(np2, or3.id);
+  })();
+  S.prev = null;
+  S.isSample = true;
+  render();
+}
+
+/* ============================================================
+   overlays
+   ============================================================ */
+function open_(id){ $(id).classList.add("open"); }
+function close_(id){ $(id).classList.remove("open"); }
+document.querySelectorAll("[data-close]").forEach(function(b){
+  b.addEventListener("click", function(){ close_(b.getAttribute("data-close")); });
+});
+document.querySelectorAll(".ov").forEach(function(ov){
+  ov.addEventListener("click", function(e){ if (e.target === ov) ov.classList.remove("open"); });
+});
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape") document.querySelectorAll(".ov.open").forEach(function(o){ o.classList.remove("open"); });
+});
+
+/* ============================================================
+   wiring
+   ============================================================ */
+$("btnPaste").onclick = function(){ $("parseNote").hidden = true; open_("ovPaste"); };
+function syncPhotoSheet(){
+  var host = $("shotList");
+  host.innerHTML = "";
+  S.photos.forEach(function(p, i){
+    var wrap = document.createElement("div");
+    wrap.style.cssText = "margin-top:10px";
+    wrap.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">' +
+        '<span class="chip">Sheet ' + (i + 1) + "</span>" +
+        (p.read ? '<span class="chip learned">read</span>'
+                : '<span class="chip" style="color:var(--late);border-color:var(--late)">not read yet</span>') +
+        '<span style="flex:1"></span>' +
+        '<button class="xbtn" data-drop="' + p.id + '" aria-label="Remove this sheet">&times;</button>' +
+      "</div>" +
+      '<img class="shot" src="' + p.url + '" alt="Schedule sheet ' + (i + 1) + '" />';
+    host.appendChild(wrap);
+  });
+  host.querySelectorAll("[data-drop]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = b.getAttribute("data-drop");
+      S.photos = S.photos.filter(function(x){ return x.id !== id; });
+      $("fileInput").value = "";
+      syncPhotoSheet();
+      render();
+    });
+  });
+
+  var unread = S.photos.filter(function(p){ return !p.read; }).length;
+  $("btnReadPhoto").hidden = !(unread && serverMode());
+  $("btnReadPhoto").textContent = unread > 1 ? ("Read all " + unread) : "Read it for me";
+  $("btnDropPhoto").hidden = !S.photos.length;
+}
+$("btnPhoto").onclick = function(){
+  $("readNote").hidden = true;
+  syncPhotoSheet();
+  open_("ovPhoto");
+};
+$("btnSettings").onclick = function(){
+  $("setCrnas").value = S.crnas;
+  $("setTurn").value = S.turnover;
+  $("setTravel").value = S.travelMins;
+  $("setPad").value = S.padPct;
+  $("setStartT").value = fmt24(S.defaultStart).replace(/^(\d\d)(\d\d)$/, "$1:$2");
+  $("setRoomsH").value = S.roomsH;
+  $("setRoomsNP").value = S.roomsNP;
+  $("setBR").querySelectorAll("[data-br]").forEach(function(b){
+    b.setAttribute("aria-pressed", String((b.getAttribute("data-br") === "1") === !!S.flipShowsBR));
+  });
+  open_("ovSet");
+};
+$("setBR").querySelectorAll("[data-br]").forEach(function(b){
+  b.addEventListener("click", function(){
+    S.flipShowsBR = (b.getAttribute("data-br") === "1");
+    $("setBR").querySelectorAll("[data-br]").forEach(function(o){
+      o.setAttribute("aria-pressed", String(o === b));
+    });
+    render();
+  });
+});
+$("setRoomsH").oninput  = function(){ S.roomsH = this.value; save(); };
+$("setRoomsNP").oninput = function(){ S.roomsNP = this.value; save(); };
+$("btnCopy").onclick = function(){ copyText(assignmentText(), this, "Copied ✓"); };
+$("btnCopyPrompt").onclick = function(){ copyText(READ_PROMPT, this, "Copied ✓"); };
+$("btnAddRoom").onclick = function(){
+  S.rooms.push({ id:nid(), label:"OR " + (S.rooms.length + 1), site:"H", pin:null,
+                 cases:[{ id:nid(), start:S.defaultStart, mins:60, proc:"" }] });
+  S.isSample = false; render();
+};
+/* L5 is normally the early out, so it's off by default and one tap away */
+$("btnL5").onclick = function(){
+  S.crnas = (S.crnas >= 5) ? 4 : 5;
+  snapshot();
+  render();
+};
+$("btnSample").onclick = loadSample;
+$("btnClearSample").onclick = function(){ S.rooms = []; S.prev = null; S.isSample = false; render(); };
+$("btnWipe").onclick = function(){
+  S.rooms = []; S.prev = null; S.isSample = false; S.photo = null; render();
+};
+
+function doParse(replace){
+  var txt = $("pasteBox").value;
+  var res = parseSchedule(txt);
+  var note = $("parseNote");
+  if (!res.cases.length){
+    note.hidden = false;
+    note.className = "parseNote bad";
+    note.textContent = "Couldn't find any cases in that. Each line needs a room and either a start time or a length — like: H | OR 3 | 0730 | 95 | ORIF ankle";
+    return;
+  }
+  snapshot();
+  var fresh = toRooms(res.cases);
+  if (replace){
+    S.rooms = fresh;
+  } else {
+    fresh.forEach(function(nr){
+      var hit = null;
+      S.rooms.forEach(function(r){
+        if (r.site === nr.site && r.label.toLowerCase() === nr.label.toLowerCase()) hit = r;
+      });
+      /* adding, not replacing — so keep both lots and put them back in time order,
+         otherwise a pasted case from earlier in the day lands at the bottom and the
+         gap-to-the-next-start maths reads nonsense */
+      if (hit){
+        hit.cases = hit.cases.concat(nr.cases).sort(function(x, y){
+          if (x.start === null) return 1;
+          if (y.start === null) return -1;
+          return x.start - y.start;
+        });
+      }
+      else S.rooms.push(nr);
+    });
+  }
+  S.isSample = false;
+  note.hidden = false;
+  note.className = "parseNote";
+  note.textContent = "Read " + res.cases.length + " case" + (res.cases.length === 1 ? "" : "s") +
+    " across " + fresh.length + " room" + (fresh.length === 1 ? "" : "s") +
+    (res.skipped ? ". Skipped " + res.skipped + " line" + (res.skipped === 1 ? "" : "s") + " it couldn't read — check the board below." : ". Check the board below.");
+  render();
+  setTimeout(function(){ close_("ovPaste"); }, 900);
+}
+$("btnParseReplace").onclick = function(){ doParse(true); };
+$("btnParseAdd").onclick = function(){ doParse(false); };
+
+$("setCrnas").oninput = function(){ var v = Math.max(1, Math.min(12, +this.value || 5)); S.crnas = v; render(); };
+$("setTurn").oninput  = function(){ S.turnover = Math.max(0, Math.min(120, +this.value || 0)); render(); };
+$("setTravel").oninput = function(){ S.travelMins = Math.max(0, Math.min(180, +this.value || 0)); render(); };
+$("setPad").oninput   = function(){ S.padPct = Math.max(0, Math.min(100, +this.value || 0)); render(); };
+$("setStartT").oninput = function(){
+  var t = parseTime(this.value);
+  if (t !== null){ S.defaultStart = t; render(); }
+};
+
+/* Adds rather than replaces — picking the North Pointe sheet must not discard the
+   hospital one. Multiple files can come in at once, too. */
+$("fileInput").addEventListener("change", function(){
+  var files = Array.prototype.slice.call(this.files || []);
+  if (!files.length) return;
+  var pending = files.length;
+  files.forEach(function(f){
+    var fr = new FileReader();
+    fr.onload = function(){
+      S.photos.push({ id:nid(), url:fr.result, read:false });
+      if (--pending === 0){
+        $("readNote").hidden = true;
+        syncPhotoSheet();
+        render();
+      }
+    };
+    fr.onerror = function(){ if (--pending === 0){ syncPhotoSheet(); render(); } };
+    fr.readAsDataURL(f);
+  });
+});
+$("btnDropPhoto").onclick = function(){
+  S.photos = [];
+  $("fileInput").value = "";
+  $("readNote").hidden = true;
+  syncPhotoSheet();
+  render();
+};
+
+/* ============================================================
+   reading the photo on the server
+   Only wired up when the page is served by the Peel-Off worker,
+   which sets window.PEELOFF_API. Otherwise the manual route shows.
+   ============================================================ */
+var CODE_KEY = "peeloff.code";
+var API = (typeof window.PEELOFF_API === "string") ? window.PEELOFF_API : null;
+
+function serverMode(){ return !!API; }
+
+/* shrink to something worth sending: big enough to read small print,
+   small enough not to push a 6 MB phone photo over the wire */
+function shrinkImage(dataURL, maxEdge, cb, quality){
+  var img = new Image();
+  img.onload = function(){
+    var w = img.naturalWidth, h = img.naturalHeight;
+    var scale = Math.min(1, maxEdge / Math.max(w, h));
+    var cw = Math.round(w * scale), ch = Math.round(h * scale);
+    var cv = document.createElement("canvas");
+    cv.width = cw; cv.height = ch;
+    var cx = cv.getContext("2d");
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, cw, ch);
+    cx.drawImage(img, 0, 0, cw, ch);
+    try { cb(cv.toDataURL("image/jpeg", (typeof quality === "number") ? quality : 0.9)); }
+    catch(e){ cb(dataURL); }
+  };
+  img.onerror = function(){ cb(dataURL); };
+  img.src = dataURL;
+}
+
+function note(el, msg, bad){
+  el.hidden = false;
+  el.className = "parseNote" + (bad ? " bad" : "");
+  el.textContent = msg;
+}
+
+var reading = false;
+
+/* Reads every photo that hasn't been read yet, one after another, merging each
+   into the board. Two sheets a day is the normal case, not the exception. */
+function readPhoto(){
+  if (!API || reading) return;
+  var todo = S.photos.filter(function(p){ return !p.read; });
+  if (!todo.length) return;
+
+  var code = getCode();
+  if (!code){ askCode(null, readPhoto); return; }
+
+  var btn = $("btnReadPhoto"), out = $("readNote");
+  reading = true;
+  btn.disabled = true;
+  var label = btn.textContent;
+
+  var done = 0, cases = 0, failed = null;
+
+  function step(){
+    if (done >= todo.length || failed){ finish(); return; }
+    var p = todo[done];
+    btn.textContent = todo.length > 1 ? ("Reading " + (done + 1) + " of " + todo.length + "…") : "Reading…";
+    note(out, todo.length > 1
+      ? "Reading sheet " + (done + 1) + " of " + todo.length + ". A few seconds each."
+      : "Reading the schedule. This takes a few seconds.", false);
+
+    shrinkImage(p.url, 2400, function(small){
+      fetch(API, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code, image: small,
+                               roomsH: S.roomsH, roomsNP: S.roomsNP })
+      }).then(function(r){
+        return r.json().then(function(j){ return { status:r.status, body:j }; });
+      }).then(function(res){
+        if (res.status === 401){ failed = "code"; finish(); return; }
+        if (res.status !== 200 || typeof res.body.lines !== "string"){
+          failed = res.body.error || "The reader couldn't be reached.";
+          finish(); return;
+        }
+        var parsed = parseSchedule(res.body.lines);
+        if (parsed.cases.length){
+          if (!done && S.isSample) S.rooms = [];   /* the sample gives way to real work */
+          mergeRooms(toRooms(parsed.cases));
+          S.isSample = false;
+          cases += parsed.cases.length;
+        }
+        p.read = true;
+        done++;
+        render();
+        step();
+      }).catch(function(){
+        failed = "Couldn't reach the reader — check the signal.";
+        finish();
+      });
+    });
+  }
+
+  function finish(){
+    reading = false;
+    btn.disabled = false;
+    btn.textContent = label;
+    syncPhotoSheet();
+
+    if (failed === "code"){
+      try { localStorage.removeItem(CODE_KEY); } catch(e){}
+      out.hidden = true;
+      askCode("That code didn't work. Try again.", readPhoto);
+      return;
+    }
+    if (failed){
+      note(out, failed + (cases ? " Kept what it read before that." : " You can still type the board in below."), true);
+      render();
+      return;
+    }
+    if (!cases){
+      note(out, "It read the picture but couldn't make cases out of it. Try a straighter, closer shot with the room numbers in frame — or type it in below.", true);
+      return;
+    }
+    note(out, "Read " + cases + " case" + (cases === 1 ? "" : "s") +
+      " across " + S.rooms.length + " room" + (S.rooms.length === 1 ? "" : "s") +
+      (todo.length > 1 ? " from both sheets" : "") +
+      ". Check it against the pictures before you send the assignment out.", false);
+    render();
+    setTimeout(function(){ close_("ovPhoto"); }, 1400);
+  }
+
+  step();
+}
+
+var codeThen = null;
+function askCode(msg, then){
+  codeThen = then || null;
+  var n = $("codeNote");
+  if (msg){ n.hidden = false; n.textContent = msg; } else { n.hidden = true; }
+  $("codeInput").value = "";
+  open_("ovCode");
+  setTimeout(function(){ try { $("codeInput").focus(); } catch(e){} }, 120);
+}
+$("btnSaveCode").onclick = function(){
+  var v = $("codeInput").value.trim();
+  if (!v){ var n = $("codeNote"); n.hidden = false; n.textContent = "Type the code first."; return; }
+  try { localStorage.setItem(CODE_KEY, v); } catch(e){}
+  close_("ovCode");
+  var f = codeThen; codeThen = null;
+  if (f) f();
+};
+$("codeInput").addEventListener("keydown", function(e){
+  if (e.key === "Enter") $("btnSaveCode").click();
+});
+$("btnReadPhoto").onclick = readPhoto;
+
+/* show the server route or the manual route, never both */
+function applyMode(){
+  var srv = serverMode();
+  $("pasteManual").hidden = srv;
+  $("pasteBlurb").textContent = srv
+    ? "If the schedule came as an email or a PDF, select the case rows and paste them here. For a photo, use the Photo button instead — it reads it for you."
+    : "If the schedule came as an email or a PDF, just select the case rows and paste them below.";
+  $("photoBlurb").textContent = srv
+    ? "Take a picture of the schedule or pick one already on your phone, then tap Read it for me. Give it a straight, close shot with all the columns in frame — including the room numbers down the left. The picture stays pinned under the board so you can check the reading against it."
+    : "Take a picture of the board or pick one from your camera roll. It gets pinned under the board so you can read off it while you type.";
+}
+
+/* ============================================================
+   this week's calendar — the roster that says who is L1..L5.
+   Lives on the server under its own key so a nightly publish never clears it.
+   ============================================================ */
+var calPending = null;   /* a shrunk photo chosen but not posted yet */
+
+$("btnCal").onclick = function(){
+  $("calMsg").hidden = true;
+  $("calPreview").hidden = !calPending;
+  if (calPending) $("calPreview").src = calPending;
+  open_("ovCal");
+  if (!calPending && API) loadCalendarInto($("calPreview"), $("calMsg"));
+};
+
+function loadCalendarInto(imgEl, msgEl){
+  var code = getCode();
+  if (!code){ askCode(null, function(){ loadCalendarInto(imgEl, msgEl); }); return; }
+  fetch(API.replace(/\/read$/, "/calendar"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code })
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if (j.image){ imgEl.src = j.image; imgEl.hidden = false;
+                  note(msgEl, "This is the one everyone can see right now.", false); }
+    else { imgEl.hidden = true; note(msgEl, "Nothing posted yet — pick a photo above.", false); }
+  }).catch(function(){ note(msgEl, "Couldn't check what's posted. Try again in a moment.", true); });
+}
+
+$("calInput").addEventListener("change", function(){
+  var f = this.files && this.files[0];
+  if (!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    /* smaller than a schedule photo: it only has to be legible enough to read
+       a name and an L number, and every crew member downloads it every day */
+    shrinkImage(fr.result, 1500, function(small){
+      calPending = small;
+      $("calPreview").src = small;
+      $("calPreview").hidden = false;
+      note($("calMsg"), "Ready. Tap “Post it for everyone” to put it up.", false);
+    }, 0.72);
+  };
+  fr.readAsDataURL(f);
+});
+
+$("btnCalPost").onclick = function(){
+  var msg = $("calMsg"), btn = this;
+  if (!API){ note(msg, "This copy isn't connected to the crew's board, so there's nowhere to post it.", true); return; }
+  if (!calPending){ note(msg, "Pick a photo of the calendar first.", true); return; }
+  var code = getCode();
+  if (!code){ askCode(null, function(){ open_("ovCal"); }); return; }
+
+  btn.disabled = true; var old = btn.textContent; btn.textContent = "Posting…";
+  fetch(API.replace(/\/read$/, "/calendar"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, image: calPending })
+  }).then(function(r){ return r.json().then(function(j){ return { s:r.status, j:j }; }); })
+    .then(function(res){
+      btn.disabled = false; btn.textContent = old;
+      if (res.s === 401){ try { localStorage.removeItem(CODE_KEY); } catch(e){}
+        close_("ovCal"); askCode("That code didn't work. Try again.", function(){ open_("ovCal"); }); return; }
+      if (res.s !== 200){ note(msg, res.j.error || "Couldn't post it. Try again.", true); return; }
+      calPending = null;
+      note(msg, "Posted. Everyone will see it on their Tonight page.", false);
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = old;
+      note(msg, "Couldn't reach the server — check the signal and try again.", true);
+    });
+};
+
+$("btnCalRemove").onclick = function(){
+  var msg = $("calMsg");
+  if (!API){ note(msg, "Nothing to take down — this copy isn't connected.", true); return; }
+  var code = getCode();
+  if (!code){ askCode(null, function(){ open_("ovCal"); }); return; }
+  fetch(API.replace(/\/read$/, "/calendar"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, remove: true })
+  }).then(function(){
+    calPending = null;
+    $("calPreview").hidden = true;
+    $("calInput").value = "";
+    note(msg, "Taken down. Nobody sees a calendar now.", false);
+  }).catch(function(){ note(msg, "Couldn't reach the server. Try again.", true); });
+};
+
+/* ---- the crew side: the calendar and the schedule, same treatment ----
+   Both are collapsed and unloaded until tapped. They run to a megabyte, and most
+   people open this to find one room number, not to study a photograph. */
+var PICS = {
+  cal:   { wrap:"calWrap",   toggle:"calToggle",   body:"calBody",
+           img:"calImg",   label:"calLabel",   hint:"calHint",   note:"calNote",
+           alt:"The calendar showing who is L1 through L5 today",
+           title:"Today's calendar",  stale:"Calendar — not today's",
+           staleWhy:"The L numbers change daily, so check it against the list above." },
+  sched: { wrap:"schedWrap", toggle:"schedToggle", body:"schedBody",
+           img:"schedImg", label:"schedLabel", hint:"schedHint", note:"schedNote",
+           alt:"A photograph of today's OR schedule",
+           title:"The OR schedule",   stale:"Schedule — not today's",
+           staleWhy:"Posted on an earlier day, so it may not be today's list." }
+};
+var picLoaded = {};
+
+function apiFor(path){ return API.replace(/\/read$/, path); }
+
+function wirePic(kind){
+  var E = PICS[kind];
+  $(E.toggle).onclick = function(){
+    var open = $(E.body).hidden;
+    $(E.body).hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+    $(E.hint).textContent = open ? "tap to hide" : "tap to look";
+    if (open && !picLoaded[kind]) fetchPicImage(kind);
+  };
+}
+wirePic("cal");
+wirePic("sched");
+
+function fetchPicImage(kind){
+  var E = PICS[kind], code = getCode();
+  if (!API || !code) return;
+  $(E.note).textContent = "Loading the picture…";
+  fetch(apiFor("/calendar"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, kind: kind })
+  }).then(function(r){ return r.json(); }).then(function(j){
+    /* a day is often two sheets; an older server only ever sends one */
+    var pics = (j && Array.isArray(j.images) && j.images.length) ? j.images
+             : (j && j.image ? [j.image] : []);
+    if (pics.length){
+      var host = $(E.img);
+      host.innerHTML = "";
+      pics.forEach(function(src, i){
+        if (pics.length > 1){
+          var h = document.createElement("p");
+          h.className = "calNote";
+          h.style.cssText = "margin:10px 0 4px;font-weight:600";
+          h.textContent = "Sheet " + (i + 1) + " of " + pics.length;
+          host.appendChild(h);
+        }
+        var im = document.createElement("img");
+        im.src = src;
+        im.alt = E.alt + (pics.length > 1 ? " (sheet " + (i + 1) + ")" : "");
+        host.appendChild(im);
+      });
+      picLoaded[kind] = true;
+      $(E.note).textContent = pics.length > 1
+        ? "Both sheets. Pinch to zoom."
+        : "Pinch to zoom.";
+    } else {
+      $(E.note).textContent = "That picture has gone.";
+    }
+  }).catch(function(){ $(E.note).textContent = "Couldn't load it — check the signal."; });
+}
+
+/* ask only whether there IS one, and when — the image waits until somebody taps */
+function showCrewPic(kind){
+  var E = PICS[kind];
+  if (!API || !getCode()){ $(E.wrap).hidden = true; return; }
+  fetch(apiFor("/calendar"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: getCode(), kind: kind, meta: true })
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if (!j || !j.has){ $(E.wrap).hidden = true; return; }
+    $(E.wrap).hidden = false;
+    if (sameDay(j.postedAt)){
+      $(E.label).textContent = E.title;
+      $(E.hint).style.color = "";
+      if ($(E.body).hidden) $(E.hint).textContent = "tap to look";
+    } else if (j.postedAt){
+      $(E.label).textContent = E.stale;
+      $(E.hint).style.color = "var(--late)";
+      if ($(E.body).hidden) $(E.hint).textContent = "from " + dayLabel(j.postedAt);
+      $(E.note).textContent = E.staleWhy;
+    } else {
+      $(E.label).textContent = E.title;
+    }
+  }).catch(function(){ $(E.wrap).hidden = true; });
+}
+
+/* midnight-to-midnight comparison, because "posted today" is what actually matters */
+function sameDay(ms){
+  if (!ms) return false;
+  var a = new Date(ms), b = new Date();
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate();
+}
+
+function showCrewCalendar(){
+  showCrewPic("cal");
+  showCrewPic("sched");
+}
+
+/* ============================================================
+   the two views
+   ============================================================ */
+function setView(v){
+  S.view = (v === "board") ? "board" : "crew";
+  $("tabBoard").hidden = !S.isRunner;
+  var t = document.querySelectorAll("#tabs button"), i;
+  for (i = 0; i < t.length; i++){
+    t[i].setAttribute("aria-selected", String(t[i].getAttribute("data-view") === S.view));
+  }
+  $("crewView").hidden     = S.view !== "crew";
+  $("boardView").hidden    = S.view !== "board";
+  $("crewActions").hidden  = S.view !== "crew";
+  $("boardActions").hidden = S.view !== "board";
+  save();
+  render();
+  if (S.view === "crew") fetchBoard();
+  if (!S.learned) loadLearned();
+}
+document.querySelectorAll("#tabs button").forEach(function(b){
+  b.addEventListener("click", function(){ setView(b.getAttribute("data-view")); });
+});
+/* the only door into the runner's side, and going through it marks this phone as a
+   runner's phone so the tab is there from then on */
+$("btnCrewToBoard").onclick = function(){ S.isRunner = true; save(); setView("board"); };
+$("btnNotRunner").onclick = function(){
+  S.isRunner = false; save();
+  close_("ovSet");
+  setView("crew");
+};
+$("btnShare").onclick = function(){ shareApp(this); };
+
+function getCode(){
+  try { return localStorage.getItem(CODE_KEY) || ""; } catch(e){ return ""; }
+}
+
+/* ============================================================
+   crew view — what the other eight see
+   ============================================================ */
+function dayLabel(ms){
+  var d = new Date(ms);
+  var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var mons = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return days[d.getDay()] + " " + mons[d.getMonth()] + " " + d.getDate();
+}
+function clockLabel(ms){
+  var d = new Date(ms), h = d.getHours(), mi = d.getMinutes();
+  var ap = h < 12 ? "a" : "p", h12 = h % 12; if (h12 === 0) h12 = 12;
+  return h12 + ":" + (mi < 10 ? "0" : "") + mi + ap;
+}
+function isoDay(ms){
+  var d = new Date(ms);
+  return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+function dayFromIso(s){
+  var p = String(s || "").split("-");
+  if (p.length !== 3) return null;
+  return new Date(+p[0], +p[1] - 1, +p[2], 12, 0, 0).getTime();
+}
+
+/* The day itself, in the order you live it — one time-ordered list, not one block per
+   room. Somebody flipping OR 1 and OR 2 bounces between them all morning, so listing
+   OR 1's cases and then OR 2's describes the paperwork rather than the day. The room
+   only gets named on each line when there's more than one to keep straight. */
+function caseListHtml(cases, slot){
+  var multi = false, first = cases.length ? cases[0].room : null;
+  cases.forEach(function(c){ if (c.room !== first) multi = true; });
+
+  var html = "", prevRoom = null;
+  cases.forEach(function(c){
+    /* on a follow the rooms don't overlap, so the room change IS the drive */
+    if (slot && slot.follow && prevRoom !== null && c.room !== prevRoom){
+      html += '<div class="caseDrive">drive to ' +
+              (c.site === "NP" ? "North Pointe" : "the hospital") + "</div>";
+    }
+    var who = c.surgeon ? esc(c.surgeon) : "";
+    var rm = multi ? '<span class="cr">' + esc(c.room) + "</span>" : "";
+    html +=
+      '<div class="caseRow' + (c.pushed ? " pushed" : "") + '">' +
+        '<span class="ct">' + fmt(c.start) + "</span>" +
+        '<span class="cp">' + rm + (c.proc ? esc(c.proc) : "&mdash;") +
+          (who ? '<span class="cs">' + who + "</span>" : "") + "</span>" +
+      "</div>";
+    prevRoom = c.room;
+  });
+
+  var last = cases[cases.length - 1];
+  if (last){
+    html += '<p class="caseFoot">Last case starts ' + fmt(last.start) +
+            (multi ? " in " + esc(last.room) : "") +
+            ", so you're looking at " + (last.approx ? "roughly " : "") + fmt(last.end) +
+            (last.set ? " &mdash; that's the runner's own call." : last.approx ? " &mdash; its length wasn't on the schedule." : ".") + "</p>";
+  }
+  return html;
+}
+
+/* Am I this slot? By name when the runner supplied names, by L number otherwise. */
+function isMine(s, named){
+  if (named && s.who && S.myName) return s.who.toLowerCase() === S.myName.toLowerCase();
+  if (named && s.who) return false;
+  return S.myL === s.L;
+}
+
+function renderCrew(pub, stamp){
+  var list = $("crewList");
+  list.innerHTML = "";
+  $("mineRow").hidden = true;
+  $("runnerNote").hidden = true;
+  $("crewOverflow").hidden = true;
+  $("tonightStamp").textContent = stamp || "";
+
+  if (!pub || !pub.slots || !pub.slots.length){
+    $("tonightTitle").textContent = "Nothing posted yet";
+    list.innerHTML = '<div class="empty"><p>Whoever runs the board hasn\'t sent tonight\'s assignment out yet. ' +
+      'Pull down on Refresh in a bit.</p></div>';
+    return;
+  }
+
+  var forMs = dayFromIso(pub.forDate);
+  $("tonightTitle").textContent = forMs ? dayLabel(forMs) : "Tonight's peel-off";
+
+  /* "I'm ___" chips — names when the runner typed them off the daily calendar,
+     otherwise the L numbers. Picking a name sticks for good; an L number doesn't,
+     because the calendar moves people around week to week. */
+  var named = pub.slots.some(function(s){ return !!s.who; });
+  var chips = $("mineChips");
+  chips.innerHTML = "";
+  pub.slots.forEach(function(s){
+    var b = document.createElement("button");
+    b.className = "btn tiny";
+    b.textContent = (named && s.who) ? s.who : ("L" + s.L);
+    if (isMine(s, named)) b.style.cssText = "background:var(--ink);color:var(--ground);border-color:var(--ink)";
+    b.addEventListener("click", function(){
+      if (named && s.who){
+        S.myName = (S.myName && S.myName.toLowerCase() === s.who.toLowerCase()) ? null : s.who;
+        S.myL = null;
+      } else {
+        S.myL = (S.myL === s.L) ? null : s.L;
+        S.myName = null;
+      }
+      save();
+      renderCrew(pub, stamp);
+    });
+    chips.appendChild(b);
+  });
+  var clear = document.createElement("button");
+  clear.className = "btn tiny ghost";
+  clear.textContent = "not me";
+  clear.addEventListener("click", function(){
+    S.myL = null; S.myName = null; save(); renderCrew(pub, stamp);
+  });
+  chips.appendChild(clear);
+  $("mineRow").hidden = false;
+
+  pub.slots.forEach(function(s){
+    var wrap = document.createElement("div");
+    var mine = isMine(s, named);
+    var cases = Array.isArray(s.cases) ? s.cases : [];
+    wrap.className = "crewItem" + (mine ? " isMine" : "");
+
+    var row = document.createElement("div");
+    row.className = "crewRow" + (mine ? " isMine" : "") + (s.room ? "" : " blank");
+    var tagStyle = s.L === 1 ? "background:var(--late);color:#fff"
+                 : (s.L === pub.slots.length ? "background:var(--accent);color:var(--accent-ink)" : "");
+    var sub = [];
+    if (s.who) sub.push(esc(s.who));
+    if (s.room) sub.push(s.follow ? "starts " + (s.site === "NP" ? "North Pointe" : "hospital")
+                                  : (s.site === "NP" ? "North Pointe" : "Hospital"));
+    if (s.flip) sub.push(s.br ? "flip &mdash; BR in " + esc(s.br) : "flip room");
+    if (s.follow) sub.push("then over to " + esc(s.followTo || "the other site") +
+                           (typeof s.followAt === "number" ? " for " + fmt(s.followAt) : ""));
+    if (mine) sub.push("that's you");
+    var blank = s.L === 5 ? "Early out &mdash; not needed today" : "Not needed this late";
+    row.innerHTML =
+      '<span class="Ltag" style="' + tagStyle + '">L' + s.L + "</span>" +
+      '<div class="who"><div class="room">' + (s.room ? esc(s.room) : blank) + "</div>" +
+        '<div class="sub">' + (sub.length ? sub.join(" &middot; ") : "&nbsp;") + "</div></div>" +
+      (s.room ? '<div class="out"><small>' + (s.byRunner ? "runner says" : "out around") + "</small>" + (s.approx ? "~" : "") + fmt(s.finish) + "</div>"
+              : "<div></div>");
+    wrap.appendChild(row);
+
+    /* The list of rooms answers "where do I go". This answers "what am I doing" —
+       which is the question people actually have, and until now the only way to
+       see it was to open the photograph and squint. Your own row opens itself;
+       everyone else's stays shut so the list is still scannable at a glance. */
+    if (cases.length){
+      var open = mine;
+      var toggle = document.createElement("button");
+      toggle.className = "caseToggle";
+      toggle.setAttribute("aria-expanded", String(open));
+      var body = document.createElement("div");
+      body.className = "caseBody";
+      body.hidden = !open;
+      body.innerHTML = caseListHtml(cases, s);
+
+      var label = function(){
+        toggle.innerHTML = "<span>" + (open ? "Hide the cases" : "See the " + cases.length +
+          " case" + (cases.length === 1 ? "" : "s")) + "</span><em>" + (open ? "&minus;" : "+") + "</em>";
+      };
+      label();
+      toggle.onclick = function(){
+        open = !open;
+        body.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        label();
+      };
+      wrap.appendChild(toggle);
+      wrap.appendChild(body);
+    }
+    list.appendChild(wrap);
+  });
+
+  if (pub.note){
+    var rn = $("runnerNote");
+    rn.hidden = false;
+    rn.innerHTML = "<b>From whoever ran the board</b>" + esc(pub.note);
+  }
+  /* Purely optional: only offered on the row you've claimed as yours, never nagged,
+     and it disappears once logged. Every time somebody bothers, the app's guess for
+     that case stops being a guess. */
+  var mineSlot = null;
+  pub.slots.forEach(function(s){ if (s.room && isMine(s, named)) mineSlot = s; });
+  if (mineSlot && API && getCode()){
+    $("logRow").hidden = false;
+    $("logLbl").textContent = "Actually got out of " + mineSlot.room + " at… (optional)";
+    if (!$("logTime").value) $("logTime").value = fmt24(nowMinutes()).replace(/^(\d\d)(\d\d)$/, "$1:$2");
+    $("logRow").setAttribute("data-room", mineSlot.room);
+    $("logDone").hidden = true;
+    $("btnLog").hidden = false;
+    $("logTime").hidden = false;
+  } else {
+    $("logRow").hidden = true;
+  }
+
+  /* name the slot that actually goes home first — L5 usually isn't in play */
+  var lastL = pub.slots.length;
+  $("crewHint").innerHTML = "L1 stays latest &middot; L" + lastL +
+    " goes home first &middot; <b>~</b> means a guessed case length";
+
+  if (pub.uncovered && pub.uncovered.length){
+    var ob = $("crewOverflow");
+    ob.hidden = false;
+    ob.innerHTML = "<strong>No one on the list for</strong> " +
+      pub.uncovered.map(function(x){
+        return esc(x.room) + " (out " + (x.approx ? "~" : "") + fmt(x.finish) + ")";
+      }).join(", ");
+  }
+}
+
+var fetching = false;
+function fetchBoard(){
+  if (!API){
+    /* no server behind this copy — show this device's own working board */
+    $("calWrap").hidden = true;
+    var a = assign();
+    if (!liveRooms().length){
+      renderCrew(null, "This copy isn't connected to the crew's board. Build one under “Run the board.”");
+    } else {
+      renderCrew(localPublish(), "Your own working copy on this device — not posted to anyone.");
+    }
+    return;
+  }
+  var code = getCode();
+  if (!code){
+    $("calWrap").hidden = true;
+    renderCrew(null, "Enter the crew passcode to see tonight's board.");
+    askCode(null, fetchBoard);
+    return;
+  }
+  if (fetching) return;
+  fetching = true;
+  $("tonightStamp").textContent = "Checking…";
+
+  fetch(API.replace(/\/read$/, "/board"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code })
+  }).then(function(r){
+    return r.json().then(function(j){ return { status:r.status, body:j }; });
+  }).then(function(res){
+    fetching = false;
+    /* the calendar stands on its own — somebody may have posted it without a board yet */
+    if (res.status !== 401) showCrewCalendar();
+    if (res.status === 401){
+      try { localStorage.removeItem(CODE_KEY); } catch(e){}
+      renderCrew(null, "That passcode didn't work.");
+      askCode("That code didn't work. Try again.", fetchBoard);
+      return;
+    }
+    if (res.status !== 200){
+      renderCrew(null, res.body.error || "Couldn't reach the board. Try Refresh.");
+      return;
+    }
+    var pub = res.body.board;
+    if (!pub){ renderCrew(null, "Nothing has been posted yet."); return; }
+    var stamp = "Posted " + dayLabel(pub.postedAt) + " at " + clockLabel(pub.postedAt) +
+      (pub.turnover != null ? " · " + pub.turnover + " min turnover" : "") +
+      (pub.padPct ? " · cases padded " + pub.padPct + "%" : "");
+    var fd = dayFromIso(pub.forDate), t = new Date();
+    var todayNoon = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 12, 0, 0).getTime();
+    if (fd && fd < todayNoon){
+      stamp = "This board was for " + dayLabel(fd) + " — nobody has posted a newer one yet. " + stamp;
+    }
+    renderCrew(pub, stamp);
+  }).catch(function(){
+    fetching = false;
+    renderCrew(null, "Couldn't reach the board — check the signal, then tap Refresh.");
+  });
+}
+$("btnRefresh").onclick = function(){ fetchBoard(); };
+
+/* ---- logging an actual end time (never required) ---- */
+$("btnLog").onclick = function(){
+  var room = $("logRow").getAttribute("data-room");
+  var t = parseTime($("logTime").value);
+  if (t === null || !room || !API) return;
+  var code = getCode();
+  if (!code){ askCode(null, function(){ setView("crew"); }); return; }
+
+  var btn = this;
+  btn.disabled = true;
+  fetch(API.replace(/\/read$/, "/actual"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, room: room, endedAt: t,
+                           day: isoDay(Date.now()) })
+  }).then(function(r){ return r.json().then(function(j){ return { s:r.status, j:j }; }); })
+    .then(function(res){
+      btn.disabled = false;
+      if (res.s !== 200){
+        $("logDone").hidden = false;
+        $("logDone").style.color = "var(--late)";
+        $("logDone").textContent = res.j.error || "Couldn't save that.";
+        return;
+      }
+      $("btnLog").hidden = true;
+      $("logTime").hidden = true;
+      $("logLbl").textContent = "Logged " + fmt(t) + " for " + room + ".";
+      $("logDone").hidden = false;
+      $("logDone").style.color = "";
+      $("logDone").textContent = "Thanks — that sharpens tomorrow's guess.";
+    }).catch(function(){
+      btn.disabled = false;
+      $("logDone").hidden = false;
+      $("logDone").style.color = "var(--late)";
+      $("logDone").textContent = "Couldn't reach the server.";
+    });
+};
+
+/* ---- what past days actually showed ---- */
+function loadLearned(){
+  if (!API) return;
+  var code = getCode();
+  if (!code) return;
+  fetch(API.replace(/\/read$/, "/learned"), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code })
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if (j && j.byProc){
+      S.learned = j.byProc;
+      S.recent = j.recent || [];
+      if (S.view === "board") render();
+    }
+  }).catch(function(){});
+}
+
+/* ============================================================
+   publishing
+   ============================================================ */
+/* Every case the person covering this unit is responsible for, in the order they
+   happen. A flip pair interleaves by time; a follow runs one room then the other,
+   which the times take care of on their own. */
+function unitCases(u){
+  var out = [];
+  u.rooms.forEach(function(r){
+    project(r).forEach(function(b){
+      out.push({
+        room: r.label,
+        site: r.site,
+        start: b.start,
+        end: b.end,
+        pushed: !!b.pushed,
+        /* a guessed length means the END time is soft — flag it so the crew
+           see the same ~ the runner does rather than a false precision */
+        approx: b.src === "guess",
+        /* the runner typed this end time himself — the crew should know it's his call */
+        set: b.src === "runner",
+        proc: b.ref.proc || "",
+        surgeon: b.ref.surgeon || ""
+      });
+    });
+  });
+  out.sort(function(x, y){ return x.start - y.start; });
+  return out;
+}
+
+function localPublish(){
+  var a = assign(), slots = [], L, u;
+  for (L = 1; L <= S.crnas; L++){
+    u = a.byL[L] || null;
+    if (!u){ slots.push({ L:L, room:null, who:(S.names[L] || null) }); continue; }
+    slots.push({
+      L: L,
+      room: unitLabel(u),
+      site: u.rooms[0].site,
+      finish: u.finish,
+      approx: unitCall(u).approx,
+      byRunner: unitCall(u).byRunner,
+      who: (S.names[L] || null),
+      flip: !!u.flip,
+      /* which room the board runner is helping in, when that's how it's being shown */
+      br: (u.flip && S.flipShowsBR) ? u.rooms[1].label : null,
+      /* a follow: start at the first room, drive over, finish at the second */
+      follow: !!u.follow,
+      followTo: u.follow ? u.rooms[1].label : null,
+      followAt: u.follow ? (project(u.rooms[1])[0] || {}).start : null,
+      /* The actual day, not just where to stand. Everybody wants to know what
+         they're doing, and until now the only way to see it was to squint at the
+         photograph. Both rooms of a flip or a follow go in, in time order. */
+      cases: unitCases(u)
+    });
+  }
+  return {
+    postedAt: Date.now(),
+    forDate: isoDay(Date.now() + 86400000),
+    crnas: S.crnas,
+    turnover: S.turnover,
+    padPct: S.padPct,
+    slots: slots,
+    uncovered: a.uncovered.map(function(u2){
+      return { room:unitLabel(u2), site:u2.rooms[0].site, finish:u2.finish,
+               approx:unitCall(u2).approx, byRunner:unitCall(u2).byRunner };
+    }),
+    /* What the last case in each assignment was, so that a logged end time can be
+       turned into a real duration. Without this an end time teaches nothing. */
+    lastCases: (function(){
+      var outs = [];
+      Object.keys(a.byL).forEach(function(k){
+        var u2 = a.byL[k], late = u2.rooms[0], i;
+        for (i = 1; i < u2.rooms.length; i++){
+          if (finishOf(u2.rooms[i]) > finishOf(late)) late = u2.rooms[i];
+        }
+        var p = project(late), lastBlk = p[p.length - 1];
+        if (!lastBlk) return;
+        outs.push({ room:unitLabel(u2), start:lastBlk.start,
+                    surgeon:(lastBlk.ref.surgeon || ""), proc:(lastBlk.ref.proc || "") });
+      });
+      return outs;
+    })(),
+    note: ""
+  };
+}
+
+$("btnPublish").onclick = function(){
+  if (!liveRooms().length){
+    alert("Put a board together first — there's nothing to send.");
+    return;
+  }
+  /* Sending the demo day would replace everyone's real list with Douglas and Anselmo.
+     It's two taps away on a screen nobody but the runner should be on, so refuse it
+     outright rather than warning about it. */
+  if (S.isSample){
+    alert("This is still the sample day — sending it would replace tonight's real list " +
+          "for everyone with the demo.\n\nRead in the real schedule first, or tap " +
+          "“Clear it” on the sample banner.");
+    return;
+  }
+  var pub = localPublish();
+  var lines = pub.slots.map(function(s){
+    var who = s.who ? pad(s.who, 11) + " " : "";
+    if (!s.room) return "L" + s.L + "   " + who + (s.L === 5 ? "early out" : "—");
+    return "L" + s.L + "   " + who + pad(s.room, 16) + " " +
+      (s.follow ? "both" : (s.site === "NP" ? "N.Pointe" : "Hospital")) +
+      "   out " + (s.approx ? "~" : "") + fmt(s.finish) + (s.byRunner ? "*" : "") +
+      (s.flip ? (s.br ? "  (flip, BR in " + s.br + ")" : "  (flip)") : "") +
+      (s.follow ? "  (travels over)" : "");
+  });
+  if (pub.uncovered.length){
+    lines.push("");
+    lines.push("Not covered: " + pub.uncovered.map(function(x){ return x.room; }).join(", "));
+  }
+  if (pub.slots.some(function(s){ return s.approx; })){
+    lines.push("");
+    lines.push("~ the last case's length wasn't on the schedule");
+  }
+  if (pub.slots.some(function(s){ return s.byRunner; })){
+    lines.push("* your own end time for that room");
+  }
+  $("pubPreview").className = "parseNote";
+  $("pubPreview").textContent = dayLabel(dayFromIso(pub.forDate)) + "\n\n" + lines.join("\n");
+  $("pubNoteMsg").hidden = true;
+  $("pubNote").value = "";
+
+  /* one name box per L slot, pre-filled with whatever was typed last time */
+  var host = $("pubNames");
+  host.innerHTML = "";
+  for (var L = 1; L <= S.crnas; L++){
+    var wrap = document.createElement("label");
+    wrap.style.cssText = "display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;color:var(--muted)";
+    wrap.innerHTML = "L" + L +
+      '<input data-nm="' + L + '" value="' + esc(S.names[L] || "") + '" maxlength="18" placeholder="name" ' +
+      'style="flex:1;min-width:0;background:var(--ground);border:1px solid var(--line);border-radius:3px;padding:6px 8px;font-family:var(--sans);font-size:13.5px;color:var(--ink)" />';
+    host.appendChild(wrap);
+  }
+  host.querySelectorAll("[data-nm]").forEach(function(inp){
+    inp.addEventListener("input", function(){
+      var L = inp.getAttribute("data-nm"), v = inp.value.trim();
+      if (v) S.names[L] = v; else delete S.names[L];
+      save();
+    });
+  });
+  open_("ovPub");
+};
+
+$("btnPubConfirm").onclick = function(){
+  var btn = this, msg = $("pubNoteMsg");
+  var pub = localPublish();
+  pub.note = $("pubNote").value.trim().slice(0, 240);
+
+  if (!API){
+    msg.hidden = false;
+    msg.className = "parseNote bad";
+    msg.textContent = "This copy isn't connected to the crew's board, so there's nowhere to send it. " +
+      "Use Copy instead and paste it into a text.";
+    return;
+  }
+  var code = getCode();
+  if (!code){
+    close_("ovPub");
+    askCode(null, function(){ open_("ovPub"); });
+    return;
+  }
+
+  btn.disabled = true;
+  var old = btn.textContent;
+  btn.textContent = "Sending…";
+  msg.hidden = false;
+  msg.className = "parseNote";
+  msg.textContent = "Sending…";
+
+  fetch(API.replace(/\/read$/, "/publish"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, board: pub })
+  }).then(function(r){
+    return r.json().then(function(j){ return { status:r.status, body:j }; });
+  }).then(function(res){
+    btn.disabled = false;
+    btn.textContent = old;
+    if (res.status === 401){
+      try { localStorage.removeItem(CODE_KEY); } catch(e){}
+      close_("ovPub");
+      askCode("That code didn't work. Try again.", function(){ open_("ovPub"); });
+      return;
+    }
+    if (res.status !== 200){
+      msg.className = "parseNote bad";
+      msg.textContent = res.body.error || "Couldn't send it. Try again in a moment.";
+      return;
+    }
+    msg.className = "parseNote";
+    msg.textContent = "Sent. Everyone will see it when they open the app.";
+    /* Send the schedule photo along with the board so the crew can look at the
+       actual sheet, not just their own room. Shrunk hard — nine people fetch it. */
+    if (S.photos.length){
+      var n = S.photos.length;
+      msg.textContent = "Sent. Posting the schedule photo" + (n > 1 ? "s" : "") + " too…";
+      var shrunk = [], left = n;
+      S.photos.forEach(function(p, i){
+        shrinkImage(p.url, 1600, function(small){
+          shrunk[i] = small;
+          if (--left === 0){
+            fetch(API.replace(/\/read$/, "/calendar"), {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: code, kind: "sched", images: shrunk })
+            }).then(function(){
+              msg.textContent = "Sent, with " + (n > 1 ? "both sheets." : "the schedule photo.");
+            }).catch(function(){
+              msg.textContent = "Board sent, but the schedule photo didn't go up.";
+            }).then(function(){
+              setTimeout(function(){ close_("ovPub"); setView("crew"); }, 1000);
+            });
+          }
+        }, 0.7);
+      });
+      return;
+    }
+    setTimeout(function(){ close_("ovPub"); setView("crew"); }, 1100);
+  }).catch(function(){
+    btn.disabled = false;
+    btn.textContent = old;
+    msg.className = "parseNote bad";
+    msg.textContent = "Couldn't reach the board — check the signal and try again.";
+  });
+};
+
+/* ============================================================
+   boot
+   ============================================================ */
+applyMode();
+if (!load()) loadSample();
+render();
+setView(S.view);
+
+/* expose the parser so it can be checked from the console */
+window.PeelOff = { parseSchedule:parseSchedule, parseTime:parseTime, parseDur:parseDur, project:project, assign:assign, state:S,
+                   assignmentText:assignmentText, localPublish:localPublish, render:render, setView:setView };
+
+})();
+</script>
+
+</body></html>
