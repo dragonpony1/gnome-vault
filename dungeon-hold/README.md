@@ -149,6 +149,10 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   E at the stands opens the sheet on the first kept piece. `armory-test.mjs` covers it. `?nogate` on the page URL turns the
   level gate off (`Meta.levelGate(false)` at runtime); every other suite runs with it so their high-level test pieces equip.
 
+- The loot hook: a piece that has landed within 3.2 units of the hero flies to their hands and is bagged (no need to stand
+  on it; the test magnet extends it to anywhere). Walking over a piece still works. A legendary's bonus stat is drawn from
+  the rollable stats only (the forge-only ones — defense speed and range, pet projectiles — are bought, never rolled).
+
 ## Open items
 
 - Void set models: the concept art (runed blade, chain whip, shard charm, galaxy amulet, starless robe) is waiting on Meshy

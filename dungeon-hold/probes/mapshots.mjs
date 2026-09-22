@@ -1,0 +1,9 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8908);
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const ctx=await browser.newContext({viewport:{width:1000,height:640}}); const page=await ctx.newPage();
+for(let m=0;m<4;m++){ await page.goto("http://127.0.0.1:8908/?silent&nogate&map="+m); await page.evaluate(()=>{ try{ localStorage.setItem("ddMapsCleared","4"); }catch(e){} }); const idx=await page.evaluate(()=>window.__dd&&window.__dd.map?window.__dd.map().index:-1); if(idx!==m) await page.goto("http://127.0.0.1:8908/?silent&nogate&map="+m);
+  await page.waitForFunction(()=>window.__dd&&window.__dd.map&&window.__dd.heroModel()&&window.__crystal&&window.__crystal.state().model&&window.__defglb&&window.__defglb.list().harpoon&&window.__defglb.list().harpoon[0],null,{timeout:120000});
+  await page.evaluate(()=>{ const d=window.__dd; d.start(); d.step(1/60,40); document.getElementById("hud").style.display="none"; window.__freeze=true; }); await page.waitForTimeout(300); await page.screenshot({path:SP+"/parts/shots/map"+m+"-start.png"});
+  const lanes=await page.evaluate(()=>{ const d=window.__dd; const L=d.lanes(); return Object.keys(L).map(k=>{ const l=L[k]; const cx=l.cx!==undefined?l.cx:l[0], cz=l.cz!==undefined?l.cz:l[1]; return {k,x:d.cw(cx),z:d.cwz(cz)}; }); });
+  const g=lanes[0]; await page.evaluate(g=>{ const d=window.__dd; const yaw=Math.atan2(0-g.x,0-g.z); d.setHero(g.x+Math.sin(yaw)*3,g.z+Math.cos(yaw)*3,yaw); d.setCam(yaw,.32,7); window.__freeze=false; d.step(1/60,30); window.__freeze=true; },g); await page.waitForTimeout(300); await page.screenshot({path:SP+"/parts/shots/map"+m+"-gate.png"}); }
+await browser.close(); server.close(); console.log("done");

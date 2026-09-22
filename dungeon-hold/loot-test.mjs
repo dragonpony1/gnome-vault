@@ -53,6 +53,8 @@ check("held wave drops a reward by the crystal (uncommon+)", wave.phase === "bui
 await page.evaluate(() => { const d = window.__dd; d.setHero(0, 8, Math.PI); d.setCam(Math.PI, .5, 8); for (let i = 0; i < 5; i++) d.dropLoot(d.rollItem(i, ["weapon","armor","charm"][i % 3]), -3 + i * 1.5, 4.5, true); d.step(1/60, 60); });
 await page.waitForTimeout(300);
 await page.screenshot({ path: process.env.SP + "/loot-shot.png" });
+const hook=await page.evaluate(()=>{ const d=window.__dd; d.setHero(0,10,0); d.step(1/60,2); const it=d.rollItem(1,"charm",3); d.dropLoot(it,2.0,10); d.step(1/60,50); const n0=d.loot.length; let picked=false; for(let i=0;i<120&&!picked;i++){ d.step(1/60,1); picked=!d.loot.find(l=>l.it===it); } const far=d.rollItem(1,"charm",3); d.dropLoot(far,6,10); d.step(1/60,150); const farStays=!!d.loot.find(l=>l.it===far); return {n0,picked,farStays}; });
+check("the loot hook: a landed piece 2 units away flies to the hero and is bagged; one 6 units away stays put", hook.picked && hook.farStays, JSON.stringify(hook));
 check("no errors during play", errors.length === 0, errors.join(" | ").slice(0, 300));
 await browser.close(); server.close();
 const failed = results.filter(x => !x).length; console.log(`${results.length - failed}/${results.length} loot checks passed`); process.exit(failed ? 1 : 0);
