@@ -81,9 +81,9 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   vertices are welded by position, the vine is seeded by its green texture colour and grown through connected triangles that
   sit away from the bones, and a `whipMount_100` is added under LeftHand with its axis along the forearm (the vine's own
   direction pointed through her leg — that was "she whips her leg").
-- Assets carry a content stamp (`assets/x.glb.txt?v=<sha1[0:8]>`, filled in by `assemble.mjs` for the folder build) so a
-  re-exported model is never served from an old browser cache; `fetchBytes` falls back to the plain path if a host refuses
-  the query.
+- Model files carry their content stamp in the name (`assets/witch.<sha1[0:8]>.glb.txt`, written by `assemble.mjs` for the
+  folder build next to the plain copy) so a re-exported model is a new file and no browser or CDN cache can hand out the
+  old one; `fetchBytes` falls back to the plain path if the stamped file is missing.
 - `68-paperdoll.js` is the Tab character sheet in the ashen style: the live hero (the hall's own model, turning on a stone
   pedestal under an arch, rendered by a second camera that sees only layer 1 and copied into the sheet), the five slot
   plaques with the forge rows, HP / mana / attack / defense, seven medallions, an INVENTORY grid (click a piece to read,
