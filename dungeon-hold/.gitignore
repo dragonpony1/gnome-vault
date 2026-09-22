@@ -1,0 +1,9 @@
+dist*/
+dungeon.html
+parts/shots/
+node_modules/
+meshy/**/*.glb
+meshy/**/*.png
+meshy/**/*.zip
+meshy/**/*.wav
+meshy/**/*.mp3

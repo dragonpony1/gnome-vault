@@ -1,0 +1,41 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8862);
+const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:1280,height:800}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.text().slice(0,200)); });
+await page.goto("http://127.0.0.1:8862/?silent"); await page.waitForFunction(()=>window.__dd&&window.__forge&&window.__doll&&window.__familiar&&window.__familiar.glb&&window.__familiar.glb().length===6&&window.__dd.heroModel()&&window.__dd.mobModel("goblin"),null,{timeout:90000});
+const r0=await page.evaluate(()=>{ const F=window.__forge; return [0,1,2,3,4].map(r=>F.max({rarity:r})); });
+check("upgrade allowance by rarity: 50 / 75 / 100 / 150 / 200",r0.join()==="50,75,100,150,200",r0.join());
+// one point into a common sword: gold out, damage up, saved
+const r1=await page.evaluate(()=>{ const d=window.__dd, F=window.__forge, M=window.__meta; M.reset(); d.resetGear(); d.start(); d.step(1/60,3); const it=d.rollItem(0,"weapon",1); it.rarity=0; M.giveItem(it); M.equip(it.id); M.giveGold(1000-M.gold()); const g0=M.gold(), dmg0=d.heroDmg(), sd=it.stats.dmg||0, cost=F.cost(it), can=F.can(it,"dmg");
+  const n=F.upgrade(it.id,"dmg",1); const saved=JSON.parse(localStorage.getItem("ddGear")).weapon; return {n,cost,can,spent:g0-M.gold(),dmgUp:+(it.stats.dmg-sd).toFixed(2),heroUp:+(d.heroDmg()-dmg0).toFixed(2),up:it.up,ups:it.ups,savedUp:saved.up,line:d.statStr(it),keys:F.keys(it)}; });
+check("+1 hero damage on a common sword: costs 3 gold, +0.5 dmg, hero damage rises, saved with the gear",r1.n===1&&r1.cost===3&&r1.spent===3&&r1.dmgUp===.5&&r1.heroUp>=.4&&r1.up===1&&r1.ups.dmg===1&&r1.savedUp===1&&/⬆ 1\/50/.test(r1.line)&&r1.keys.join()==="dmg,spd,tow,trate",JSON.stringify(r1));
+// fill it: 50 points and no more; cost climbs; can() says why
+const r2=await page.evaluate(()=>{ const d=window.__dd, F=window.__forge, M=window.__meta; const it=d.gear().weapon; M.giveGold(1e6); const g0=M.gold(); const n=F.upgrade(it.id,"spd",999); const more=F.upgrade(it.id,"dmg",1); return {n,more,up:it.up,left:F.left(it),spent:g0-M.gold(),why:F.can(it,"dmg").why,cost:F.cost(it),spd:it.stats.spd}; });
+check("a common fills at 50 points, then refuses; gold cost climbed",r2.n===49&&r2.more===0&&r2.up===50&&r2.left===0&&/fully/.test(r2.why)&&r2.spent>49*3&&r2.cost>3,JSON.stringify(r2));
+// armor cap: the armor line stops at 60%
+const r3=await page.evaluate(()=>{ const d=window.__dd, F=window.__forge, M=window.__meta; const a=d.rollItem(4,"armor",20); a.stats.def=58; M.giveItem(a); M.equip(a.id); const n=F.upgrade(a.id,"def",100); return {n,def:a.stats.def,why:F.can(a,"def").why,left:F.left(a)}; });
+check("armor caps at 60% (points stop at the cap, allowance stays)",r3.n===10&&Math.abs(r3.def-60)<1e-6&&/cap/.test(r3.why)&&r3.left===190,JSON.stringify(r3));
+// gold gate
+const r4=await page.evaluate(()=>{ const d=window.__dd, F=window.__forge, M=window.__meta; const c=d.rollItem(1,"charm",4); M.giveItem(c); M.equip(c.id); M.giveGold(-M.gold()); const n=F.upgrade(c.id,"tow",1); const can=F.can(c,"tow"); M.giveGold(4); const n2=F.upgrade(c.id,"tow",3); return {n,why:can.why,n2,gold:M.gold()}; });
+check("no gold, no point; partial buys stop when the purse runs dry",r4.n===0&&/more gold/.test(r4.why)&&r4.n2===0,JSON.stringify(r4));
+// defense stats from the charm: attack speed and range
+const r5=await page.evaluate(()=>{ const d=window.__dd, F=window.__forge, M=window.__meta; d.addMana(500); d.setHero(6,10,Math.PI); const t=d.place("harpoon",16,13,Math.PI); const cd0=F.defStat(t,"cd"), rg0=F.defStat(t,"range"); const c=d.gear().charm; M.giveGold(1e6); F.upgrade(c.id,"trate",10); F.upgrade(c.id,"tarea",10); const cd1=F.defStat(t,"cd"), rg1=F.defStat(t,"range"); d.sellDef&&null; return {cd0:+cd0.toFixed(3),cd1:+cd1.toFixed(3),rg0:+rg0.toFixed(2),rg1:+rg1.toFixed(2),trate:c.stats.trate,tarea:c.stats.tarea}; });
+check("10 points of defense attack speed (+4%) shorten the ballista cooldown; 10 of range (+4%) lengthen its reach",r5.trate===4&&r5.tarea===4&&Math.abs(r5.cd1-r5.cd0/1.04)<1e-3&&Math.abs(r5.rg1-r5.rg0*1.04)<1e-2,JSON.stringify(r5));
+// pet projectiles: common pets get none, a legendary wisp gets three extra bolts a volley
+const r6=await page.evaluate(async()=>{ const d=window.__dd, F=window.__forge, M=window.__meta, P=window.__familiar; for(const e of d.enemies) d.kill(e); const c=d.rollItem(0,"familiar",3); c.name="Rusty Wisp"; c.rarity=0; M.giveItem(c); const cwhy=F.can(c,"fproj").why; const w=d.rollItem(4,"familiar",12); w.name="Mythic Wisp"; M.giveItem(w); M.equip(w.id); const n=F.upgrade(w.id,"fproj",9); const why=F.can(w,"fproj").why; d.step(1/60,40);
+  const e=d.spawn("goblin","N"); e.x=d.hero.x; e.z=d.hero.z-4; e.spd=0; e.hp=9999; let maxBolts=0; for(let i=0;i<240;i++){ d.step(1/60,1); e.x=d.hero.x; e.z=d.hero.z-4; maxBolts=Math.max(maxBolts,P.bolts()); } d.kill(e); return {cwhy,n,fproj:w.stats.fproj,why,maxBolts,line:d.statStr(w)}; });
+check("projectiles: Common refused, Legendary takes 3, the wisp then fires 4 bolts a volley",/Uncommon/.test(r6.cwhy)&&r6.n===3&&r6.fproj===3&&/max projectiles/.test(r6.why)&&r6.maxBolts>=4&&/3 pet projectiles/.test(r6.line),JSON.stringify(r6));
+// the sheet: tap the weapon → forge panel → +1 → back
+const r7=await page.evaluate(async()=>{ const d=window.__dd, M=window.__meta; const w=d.rollItem(2,"weapon",6); w.rarity=2; M.giveItem(w); M.equip(w.id); M.giveGold(1e6); window.__doll.open(); await new Promise(r=>setTimeout(r,50)); document.querySelector('#doll [data-slot="weapon"]').click(); await new Promise(r=>setTimeout(r,50)); const html=window.__doll.html(); const rows=(html.match(/class="fg-row/g)||[]).length, title=/THE FORGE/.test(html); const g0=M.gold(); document.querySelector('#doll [data-act="up"][data-key="dmg"][data-n="5"]').click(); await new Promise(r=>setTimeout(r,50)); const spent=g0-M.gold(), up=w.up; const meter=/5 \/ 100 upgrades/.test(window.__doll.html()); document.querySelector('#doll [data-act="back"]').click(); await new Promise(r=>setTimeout(r,50)); const back=/THE WARDEN/.test(window.__doll.html())&&/dl-stat/.test(window.__doll.html()); return {rows,title,spent,up,meter,back,forge:window.__doll.forge()}; });
+check("sheet: weapon slot opens THE FORGE (4 rows), +5 spends gold and fills the meter, BACK returns to the numbers",r7.rows===4&&r7.title&&r7.up===5&&r7.spent>0&&r7.meter&&r7.back&&r7.forge===null,JSON.stringify(r7));
+await page.evaluate(async()=>{ window.__doll.setForge("weapon"); await new Promise(r=>setTimeout(r,300)); });
+await page.screenshot({path:SP+"/parts/shots/forge.png"});
+await page.evaluate(()=>window.__doll.close());
+// the anvil in the tavern opens the sheet with the hint
+const r8=await page.evaluate(async()=>{ const d=window.__dd; const st=window.__room.stations().find(s=>s.tab==="forge"); d.setHero(st.x-.6,st.z,0); d.step(1/60,3); const prompt=document.getElementById("prompt").textContent; window.dispatchEvent(new KeyboardEvent("keydown",{code:"KeyE",bubbles:true})); await new Promise(r=>setTimeout(r,80)); const open=window.__doll.isOpen(), hint=/buy upgrades for it/.test(window.__doll.html()); window.__doll.close(); return {prompt,open,hint,near:window.__room.near()}; });
+check("anvil: prompt names it, E opens the sheet with the forge hint",/anvil/.test(r8.prompt)&&r8.open&&r8.hint&&r8.near==="forge",JSON.stringify(r8));
+await page.evaluate(()=>{ const d=window.__dd; const a=window.__anvil; d.setHero(a[0]-2.2,a[1]+1.4,-Math.PI*.35); d.setCam(-Math.PI*.35+Math.PI-.4,.3,5); d.step(1/60,40); document.getElementById("hud").style.display="none"; });
+await page.waitForTimeout(200); await page.screenshot({path:SP+"/parts/shots/anvil.png"});
+const realErrors=errors.filter(e=>!/Failed to load resource|favicon/i.test(e));
+check("no page errors",realErrors.length===0,realErrors.slice(0,3).join(" | "));
+await browser.close(); server.close(); console.log(results.filter(Boolean).length+"/"+results.length+" passed");

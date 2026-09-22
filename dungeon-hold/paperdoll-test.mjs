@@ -1,0 +1,27 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8855);
+const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:1280,height:800}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.text().slice(0,200)); });
+await page.goto("http://127.0.0.1:8855/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__doll&&window.__feel,null,{timeout:60000});
+// HUD: gear list and stat block hidden, resources bigger
+const h=await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.step(1/60,3); const cs=e=>getComputedStyle(document.getElementById(e)); return {gear:cs("gear").display,stats:document.getElementById("herostats")?cs("herostats").display:"none",res:parseFloat(getComputedStyle(document.querySelector("#hud .res")).fontSize),bar:parseFloat(getComputedStyle(document.querySelector("#hud .bar")).height)}; });
+check("HUD declutter: gear list + stat block hidden, resources ≥ 20px, bars ≥ 20px",h.gear==="none"&&h.stats==="none"&&h.res>=20&&h.bar>=20,JSON.stringify(h));
+// Tab opens the sheet with the equipped gear and the numbers
+const r1=await page.evaluate(async()=>{ const d=window.__dd; const w=d.rollItem(3,"weapon",6); w.name="Stormforged Halberd of Fury"; window.__meta.giveItem(w); window.__meta.equip(w.id); const a=d.rollItem(2,"armor",5); window.__meta.giveItem(a); window.__meta.equip(a.id); d.step(1/60,3);
+  window.dispatchEvent(new KeyboardEvent("keydown",{code:"Tab",bubbles:true})); await new Promise(r=>setTimeout(r,400)); const html=window.__doll.html(); const st=window.__feel.stats(); /* the sheet refreshes every 250 ms */ const open=window.__doll.isOpen(); const blocks=window.__dd.Meta.isOpen();
+  return {open,blocks,hasWeapon:html.includes("Stormforged Halberd of Fury"),hasArmor:html.includes(a.name),slots:(html.match(/class="dl-slot /g)||[]).length,dps:html.includes("<b>"+st.dps+"</b>"),dmg:html.includes("<b>"+st.dmg+"</b>"),level:/LEVEL \d+/.test(html)}; });
+check("Tab opens the character sheet: 5 slots, equipped names, DPS and damage match the live numbers",r1.open&&r1.blocks&&r1.hasWeapon&&r1.hasArmor&&r1.slots===5&&r1.dps&&r1.dmg&&r1.level,JSON.stringify(r1));
+// game input is blocked while it is open; Escape closes; Tab again reopens and closes
+const r2=await page.evaluate(async()=>{ const d=window.__dd; const x0=d.hero.x, z0=d.hero.z; window.dispatchEvent(new KeyboardEvent("keydown",{code:"KeyW",bubbles:true})); d.step(1/60,30); const moved=Math.hypot(d.hero.x-x0,d.hero.z-z0); window.dispatchEvent(new KeyboardEvent("keyup",{code:"KeyW",bubbles:true}));
+  window.dispatchEvent(new KeyboardEvent("keydown",{code:"Escape",bubbles:true})); await new Promise(r=>setTimeout(r,40)); const closed=!window.__doll.isOpen()&&!d.Meta.isOpen();
+  window.dispatchEvent(new KeyboardEvent("keydown",{code:"Tab",bubbles:true})); await new Promise(r=>setTimeout(r,40)); const re=window.__doll.isOpen(); window.dispatchEvent(new KeyboardEvent("keydown",{code:"Tab",bubbles:true})); await new Promise(r=>setTimeout(r,40)); return {moved,closed,re,closed2:!window.__doll.isOpen()}; });
+check("W does nothing while the sheet is open; Escape closes; Tab toggles",r2.moved<.01&&r2.closed&&r2.re&&r2.closed2,JSON.stringify(r2));
+// the sheet and the tavern do not stack
+const r3=await page.evaluate(async()=>{ const d=window.__dd; window.__tavern.open(); await new Promise(r=>setTimeout(r,40)); window.dispatchEvent(new KeyboardEvent("keydown",{code:"Tab",bubbles:true})); await new Promise(r=>setTimeout(r,40)); const dollWhileTavern=window.__doll.isOpen(); window.__tavern.close(); window.__doll.open(); await new Promise(r=>setTimeout(r,40)); document.querySelector('#doll [data-act="tavern"]').click(); await new Promise(r=>setTimeout(r,60)); const out={dollWhileTavern,tavernOpen:window.__tavern.isOpen(),dollClosed:!window.__doll.isOpen()}; window.__tavern.close(); return out; });
+check("no stacking: Tab ignored over the tavern; TAVERN button swaps sheet for tavern",!r3.dollWhileTavern&&r3.tavernOpen&&r3.dollClosed,JSON.stringify(r3));
+await page.evaluate(async()=>{ const d=window.__dd; const f=d.rollItem(4,"familiar",8); window.__meta.giveItem(f); window.__meta.equip(f.id); const c=d.rollItem(1,"charm",3); window.__meta.giveItem(c); window.__meta.equip(c.id); window.__meta.addXP(700); window.__meta.spend("blade"); window.__meta.spend("overseer"); d.step(1/60,3); window.__doll.open(); await new Promise(r=>setTimeout(r,300)); });
+await page.screenshot({path:SP+"/parts/shots/paperdoll.png"});
+await page.evaluate(()=>{ window.__doll.close(); document.getElementById("hud").style.display=""; }); await page.waitForTimeout(200); await page.screenshot({path:SP+"/parts/shots/hud-clean.png",clip:{x:0,y:0,width:640,height:300}});
+const realErrors=errors.filter(e=>!/Failed to load resource|favicon/i.test(e));
+check("no page errors",realErrors.length===0,realErrors.slice(0,3).join(" | "));
+await browser.close(); server.close(); console.log(results.filter(Boolean).length+"/"+results.length+" passed");

@@ -1,0 +1,6 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8865); const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errs=[]; page.on("pageerror",e=>errs.push(String(e)));
+await page.goto("http://127.0.0.1:8865/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel()&&window.__defglb&&(window.__defglb.list().acorn||[]).filter(Boolean).length===4,null,{timeout:90000});
+await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.addMana(2000); d.setHero(0,10,Math.PI); const t=d.place("acorn",17,11,Math.PI); for(let i=0;i<3;i++){ d.setHero(t.x+1.2,t.z+1.2,0); d.step(1/60,2); d.upgrade(); } d.setHero(t.x-1.4,t.z-3.2,0); d.setCam(0,.25,4.5); d.step(1/60,60); document.getElementById("hud").style.display="none"; window.__t=t; });
+const info=await page.evaluate(()=>({lvl:window.__t.lvl,glb:!!window.__t.mdl.userData.glb})); console.log(JSON.stringify(info));
+await page.waitForTimeout(150); await page.screenshot({path:SP+"/parts/shots/cannon-mk4.png"}); console.log("errors:",errs.join(" | ")||"none"); await browser.close(); server.close();

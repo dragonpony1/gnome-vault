@@ -1,0 +1,48 @@
+import { serve } from "./serve.mjs";
+import { chromium } from "playwright";
+import http from "http"; import fs from "fs";
+const html = fs.readFileSync(process.env.SP + "/dungeon.html");
+const server = await serve(8781);
+const results = []; const check = (n, ok, d) => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + n + (d ? "  -> " + d : "")); };
+const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+const context = await browser.newContext({ viewport: { width: 960, height: 600 } });
+const page = await context.newPage();
+const errors = []; page.on("pageerror", e => errors.push(String(e))); page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+await page.goto("http://127.0.0.1:8781/?silent");
+await page.waitForFunction(() => window.__dd && window.__dd.heroModel && window.__dd.heroModel(), null, { timeout: 30000 });
+const hm = await page.evaluate(() => window.__dd.heroModel());
+check("built-in Meshy gnome loaded", /^Gnome Warden \(Meshy/.test(hm.label) && hm.useGLB, JSON.stringify(hm));
+check("all six clips mapped", ["idle","walk","run","attack","jump","death"].every(k => hm.clips.includes(k)), hm.clips.join(","));
+check("scaled to hero height (scale × model height ≈ 2.6)", Math.abs(hm.scale*hm.height-2.6) < .05, hm.scale+" × "+hm.height);
+check("no errors on load", errors.length === 0, errors.join(" | "));
+const cur = (k) => page.evaluate((k) => { const d = window.__dd; if (k) d.setKeys(k); d.step(1/60, 20); return d.heroModel().cur; }, k);
+await page.evaluate(() => { window.__dd.resetGear(); window.__dd.start(); window.__dd.setHero(0, 8, Math.PI); });
+check("idle when standing", await cur({ w: 0, s: 0, a: 0, d: 0, shift: 0 }) === "Idle");
+check("run when moving", await cur({ w: 1 }) === "Run");
+check("still run when sprinting", await cur({ shift: 1 }) === "Run");
+check("back to idle", await cur({ w: 0, shift: 0 }) === "Idle");
+const atk = await page.evaluate(() => { const d = window.__dd; d.swing(); d.step(1/60, 3); const a = d.heroModel().cur; d.step(1/60, 40); return { a, after: d.heroModel().cur }; });
+check("attack clip on swing, then idle", atk.a === "Attack" && atk.after === "Idle", JSON.stringify(atk));
+const jmp = await page.evaluate(() => { const d = window.__dd; d.jump(); d.step(1/60, 5); const a = d.heroModel().cur; d.step(1/60, 120); return { a, after: d.heroModel().cur }; });
+check("jump clip in the air, idle on landing", jmp.a === "Jump" && jmp.after === "Idle", JSON.stringify(jmp));
+const tog = await page.evaluate(() => { const d = window.__dd; d.toggleHero(); const off = { use: d.heroModel().useGLB, vis: d.heroModel().visible }; d.step(1/60, 2); const off2 = d.heroModel().visible; d.toggleHero(); d.step(1/60, 2); return { off, off2, on: d.heroModel().useGLB, vis: d.heroModel().visible }; });
+check("H toggles between GLB and primitives", tog.off.use === false && tog.off2 === false && tog.on === true && tog.vis === true, JSON.stringify(tog));
+// death + respawn
+const death = await page.evaluate(() => { const d = window.__dd; d.hero.hp = 1; d.hero.hurtT = 99; const e = d.spawn("goblin", "N"); e.x = d.hero.x + 0.8; e.z = d.hero.z; let guard = 0; while (d.hero.dead <= 0 && guard++ < 300) d.step(1/60, 1); d.step(1/60, 2); const dying = d.heroModel().cur; d.step(1/60, 300); return { dying, dead: d.hero.dead, after: d.heroModel().cur, hp: d.hero.hp }; });
+check("death clip plays, idle after respawn", death.dying === "Death" && death.dead === 0 && death.after === "Idle" && death.hp > 0, JSON.stringify(death));
+// drag-and-drop a .glb
+const drop = await page.evaluate(async () => { const u = Uint8Array.from(atob(SQUIRE_GLB_B64), c => c.charCodeAt(0)); const f = new File([u], "my-hero.glb", { type: "model/gltf-binary" }); const dt = new DataTransfer(); dt.items.add(f); window.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true })); await new Promise(r => setTimeout(r, 800)); return { label: window.__dd.heroModel().label, toast: document.getElementById("toast").textContent }; });
+check("dropping a .glb swaps the hero", drop.label === "my-hero.glb" && drop.toast.includes("my-hero.glb"), JSON.stringify(drop));
+const bad = await page.evaluate(async () => { const f = new File([new Uint8Array([1,2,3,4])], "junk.glb"); const dt = new DataTransfer(); dt.items.add(f); window.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true })); await new Promise(r => setTimeout(r, 500)); return { label: window.__dd.heroModel().label, toast: document.getElementById("toast").textContent }; });
+check("a bad file is refused politely, hero kept", bad.label === "my-hero.glb" && /Not a valid GLB/.test(bad.toast), JSON.stringify(bad));
+// pictures: GLB idle, GLB mid-attack, primitives idle (same camera, facing the camera)
+const shot = async (name, fn) => { await page.evaluate(fn); await page.waitForTimeout(150); await page.screenshot({ path: process.env.SP + "/" + name + ".png" }); };
+await shot("hero-glb-idle", () => { const d = window.__dd; d.setHero(0, 6, Math.PI); d.setKeys({ w: 0, shift: 0 }); d.setCam(0, .25, 5); d.cam.x = 0; d.cam.y = 2.6; d.cam.z = 1.2; d.step(1/60, 40); });
+await shot("hero-glb-attack", () => { const d = window.__dd; d.swing(); d.step(1/60, 9); });
+await shot("hero-glb-run", () => { const d = window.__dd; d.step(1/60, 40); d.setKeys({ w: 1, shift: 1 }); d.step(1/60, 14); d.setKeys({ w: 0, shift: 0 }); });
+await shot("hero-prims-idle", () => { const d = window.__dd; d.setHero(0, 6, Math.PI); d.toggleHero(); d.step(1/60, 10); });
+const perf = await page.evaluate(() => { const d = window.__dd; d.toggleHero(); const t0 = performance.now(); d.step(1/60, 120); return (performance.now() - t0) / 120; });
+console.log("ms per simulated frame (software GL):", perf.toFixed(2));
+check("no errors during play", errors.length === 0, errors.join(" | ").slice(0, 400));
+await browser.close(); server.close();
+const failed = results.filter(x => !x).length; console.log(`${results.length - failed}/${results.length} GLB checks passed`); process.exit(failed ? 1 : 0);

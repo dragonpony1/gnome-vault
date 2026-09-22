@@ -1,0 +1,11 @@
+import { chromium } from "playwright"; import http from "http"; import fs from "fs";
+const SP=process.env.SP; const FILE=process.env.FILE;
+import { serve } from "./serve.mjs"; const server=await serve(8794,{csp:true});
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
+const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error") errors.push(m.text().slice(0,120)); });
+await page.goto("http://127.0.0.1:8794/?silent"); await page.waitForFunction(()=>window.__dd,null,{timeout:30000}); await page.waitForTimeout(4000);
+const r=await page.evaluate(()=>({ hero: window.__dd.heroModel(), line: document.getElementById("buildline") && document.getElementById("buildline").textContent }));
+console.log((FILE||process.env.DIST||"").split("/").pop(), "->", JSON.stringify(r), "| console errors:", errors.length?errors.slice(0,2).join(" || "):"none");
+const extra=await page.evaluate(async()=>{ if(!window.__mus||!window.__defglb) return null; for(let i=0;i<100&&!(window.__mus.state().fetched.length>=2&&window.__defglb.list().harpoon&&window.__defglb.list().harpoon[1]);i++) await new Promise(r=>setTimeout(r,200)); return {music:window.__mus.state().fetched,ballista:(window.__defglb.list().harpoon||[]).length}; });
+console.log("fetched under CSP:",JSON.stringify(extra)); if(extra&&!(extra.music.length===2&&extra.ballista===2)) process.exitCode=2;
+await browser.close(); server.close();

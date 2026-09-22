@@ -1,0 +1,5 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const server=await serve(8856); const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage();
+await page.goto("http://127.0.0.1:8856/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel()&&window.__doll&&window.__feel,null,{timeout:60000});
+const r=await page.evaluate(async()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.step(1/60,3); const w=d.rollItem(3,"weapon",6); w.stats.dmg=13; window.__meta.giveItem(w); window.__meta.equip(w.id); d.step(1/60,3); const before=window.__feel.stats(); window.__doll.open(); const html0=window.__doll.html(); await new Promise(r=>setTimeout(r,400)); const html1=window.__doll.html(); const grab=h=>(h.match(/<div class="dl-stat[^>]*><i>[^<]*<\/i><b>[^<]*<\/b>/g)||[]).map(x=>x.replace(/<[^>]+>/g,' ').trim()); return {before,after:window.__feel.stats(),heroDmg:d.heroDmg(),html0:grab(html0),html1:grab(html1)}; });
+console.log(JSON.stringify(r,null,1)); await browser.close(); server.close();

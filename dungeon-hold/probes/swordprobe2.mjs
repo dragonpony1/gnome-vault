@@ -1,0 +1,16 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8859);
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:900,height:900}}); const errs=[]; page.on("pageerror",e=>errs.push(String(e)));
+await page.goto("http://127.0.0.1:8859/?silent"); await page.waitForFunction(()=>window.__dd&&window.__weapons&&window.__dd.heroModel()&&/v2/.test(window.__dd.heroModel().label),null,{timeout:60000});
+const info=await page.evaluate(async()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); for(let i=0;i<80&&!window.__weapons.state().mounted;i++){ d.step(1/60,1); await new Promise(r=>setTimeout(r,50)); }
+  d.setHero(0,10,0); d.step(1/60,5);
+  let mn=null; d.scene.traverse(o=>{ if(!mn&&/^weaponMount_/.test(o.name)) mn=o; }); const bone=mn.parent; let skinned=null; let heroRoot=mn; while(heroRoot.parent&&heroRoot.parent!==d.scene) heroRoot=heroRoot.parent; heroRoot.traverse(o=>{ if(!skinned&&o.isSkinnedMesh&&!o.userData.isOL) skinned=o; });
+  const bi=skinned.skeleton.bones.indexOf(bone); const inSkel=bi>=0; const names=skinned.skeleton.bones.map(b=>b.name); const hi=names.indexOf('RightHand');
+  const fist=(bidx)=>{ skinned.skeleton.update(); const g=skinned.geometry, pos=g.attributes.position, si=g.attributes.skinIndex, sw=g.attributes.skinWeight; const bm=skinned.skeleton.boneMatrices; const v=new THREE.Vector3(), acc=new THREE.Vector3(), t=new THREE.Vector3(), m4=new THREE.Matrix4(); const mean=new THREE.Vector3(); let n=0; skinned.updateWorldMatrix(true,false);
+    for(let i=0;i<pos.count;i++){ const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; let dom=0; for(let k=1;k<4;k++) if(w[k]>w[dom]) dom=k; if(idx[dom]!==bidx||w[dom]<.6) continue; v.fromBufferAttribute(pos,i).applyMatrix4(skinned.bindMatrix); acc.set(0,0,0); for(let k=0;k<4;k++){ if(!w[k]) continue; m4.fromArray(bm,idx[k]*16); t.copy(v).applyMatrix4(m4); acc.addScaledVector(t,w[k]); } acc.applyMatrix4(skinned.matrixWorld); mean.add(acc); n++; }
+    return n?mean.multiplyScalar(1/n).toArray().map(x=>+x.toFixed(2)).concat([n]):null; };
+  const sw=mn.children[0]; const swBox=new THREE.Box3().setFromObject(sw); const rows=[]; 
+  for(let f=0;f<4;f++){ d.step(1/60,15); const out={t:+(f*.25).toFixed(2),mount:mn.getWorldPosition(new THREE.Vector3()).toArray().map(x=>+x.toFixed(2)),hand:bone.getWorldPosition(new THREE.Vector3()).toArray().map(x=>+x.toFixed(2)),fist:fist(hi),swordMin:new THREE.Box3().setFromObject(sw).min.toArray().map(x=>+x.toFixed(2)),swordMax:new THREE.Box3().setFromObject(sw).max.toArray().map(x=>+x.toFixed(2))}; rows.push(out); }
+  // bind pose: stop the mixer and reset bones to the file's rest transforms
+  const gl=window.__dd.heroModel(); return {inSkel,bi,hi,boneName:bone.name,bones:names.length,mountScale:mn.getWorldScale(new THREE.Vector3()).toArray().map(x=>+x.toFixed(4)),boneScale:bone.getWorldScale(new THREE.Vector3()).toArray().map(x=>+x.toFixed(4)),rows,skinnedName:skinned.name,bindMode:skinned.bindMode,heroLabel:gl.label,cur:gl.cur}; });
+console.log(JSON.stringify(info,null,1)); console.log("errors:",errs.join(" | ")||"none"); await browser.close(); server.close();
