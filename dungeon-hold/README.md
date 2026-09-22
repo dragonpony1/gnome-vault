@@ -81,18 +81,20 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   vertices are welded by position, the vine is seeded by its green texture colour and grown through connected triangles that
   sit away from the bones, and a `whipMount_100` is added under LeftHand with its axis along the forearm (the vine's own
   direction pointed through her leg — that was "she whips her leg").
-- Meshy's rig for the witch is scrambled: her file weights only ten of the 22 bones (the left arm's skin on the right-arm
-  bones, legs on the wrong bones — that was the "high kick"), and the right-arm bones sit inside her torso. The merge
-  (`merge.html?reskin=auto`) binds every vertex afresh to the nearest bone segments of the bind pose (core first: anything
-  within the trunk's radius binds to the spine bones, above the neck to the head bones, limbs to the nearest limb bone; up to
-  three bones by inverse square distance). Idle, walk, run, death and jump then play cleanly; her Meshy attack clip's tracks
-  don't fit the rig at all (they explode the mesh), so it is never played. `probes/skinhist.mjs <glb…>` prints a file's
-  weights per joint — run it on any new Meshy export before trusting the rig. A clean re-rig from Meshy (whip removed
-  first) is still the better source.
-- `72-witchswing.js`: the witch's Meshy "whip attack" clip is unusable, so her swing is made by hand — the left arm
-  winds up over her shoulder and snaps forward (bones aimed in world space and blended into the idle or walk pose); the kick
-  clip stays in the file but never plays for her, and the hit lands at the snap (`hitFrac` .5). Heroes opt in by id in
-  `PROC` with the arm to use.
+- The witch is a hybrid of two Meshy exports. The first export had the real mesh (8397 verts) with scrambled weights (ten of
+  22 bones, the left arm's skin on the right-arm bones — the "high kick"); the re-rig came back as a 217-triangle stand-in
+  with a sane skeleton and good clips (idle, walk, run, whip crack). `meshy/witch2/merge.mjs` runs
+  `merge.html?whip=1&reskin=auto&axis=forearm&grip=.03&mesh=old.glb`: the re-rig's skeleton and clips, the first export's
+  geometry and texture swapped in (`mesh=`), every vertex bound afresh to the nearest bone segments of the bind pose
+  (`reskin=auto`, core first: the trunk binds to the spine bones unless a limb bone outside the trunk hugs the vertex, above
+  the neck to the head bones; a limb bone that itself runs inside the trunk — this rig's right arm crosses the chest — may
+  not claim trunk vertices), the baked vine cut off, a `whipMount_<cm>` under LeftHand along the forearm. Clips keep
+  rotations and the hips only; a Meshy idle (`idle.glb`) replaces the breathing loop when present. `probes/skinhist2.mjs
+  <glb…>` prints every skinned primitive's weights per joint and encoding — run it on any new Meshy export first.
+- `72-witchswing.js`: a hand-made strike for a hero whose attack clip is unusable — the whip arm winds up over the shoulder
+  and snaps forward (bones aimed in world space and blended into the idle or walk pose), the clip never plays, the hit lands
+  at the snap. Nobody uses it now (the witch plays her own crack: a raised wind-up, then a low lunge); heroes opt in by id
+  in `PROC`, or at runtime `window.__armSwing.set('witch','Left')`.
 - Model files carry their content stamp in the name (`assets/witch.<sha1[0:8]>.glb.txt`, written by `assemble.mjs` for the
   folder build next to the plain copy) so a re-exported model is a new file and no browser or CDN cache can hand out the
   old one; `fetchBytes` falls back to the plain path if the stamped file is missing.
