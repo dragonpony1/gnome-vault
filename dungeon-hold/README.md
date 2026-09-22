@@ -52,16 +52,25 @@ ballista-shot, lootfeel, weapons, towers, paperdoll, casino, ogre, forge, fix-r1
 ## The campaign (maps)
 
 `MAPS` in `parts/game.js` is the list of maps. Each one holds its grid (`build(f,g,h,ramp)`: fill tiles, set a tile, fill a
-raised floor height, lay a staircase), the crystal cell, the gates (`lanes`, in the order waves open them), props, lights
-(world coords, or `{cx,cz}` cells), the hall rectangle (banners), beams, a throne, and where the tavern room sits
+raised floor height, lay a staircase), the crystal cell, the gates (`lanes`, in the order waves open them, or each with
+`from`: the map's own wave that gate first opens on), props, lights (world coords, `{cx,cz,y}` cells, or `{cx,cz,up}`
+above that cell's floor), the hall rectangle (banners), beams, a throne, and where the tavern room sits
 (`tavern:{dx,dz}`, an offset from map 1's room). The map is chosen when the page loads: `?map=N` or the saved `ddMap`, never
 past `ddMapsCleared`. Hold `waves` waves and the map is cleared (`winMap`): the tally shows NEXT MAP, which reloads with the
 next `?map`. Difficulty carries across maps through `effWave()` (map 2 wave 1 fights like wave 8); the HUD shows the map's own
 wave count. Height: `hgt`/`rampA` per cell, `floorH(x,z)` (stairs are two flat steps per cell), no walking or pathing up a
-ledge taller than a step, no building on stairs; raised tops and stone drops are generated after the walls.
+ledge taller than a step, a flight is entered and left at its ends only (never over its side), no building on stairs;
+raised tops and stone drops are generated after the walls (pale stone in marble halls), gates, torches, banners and
+windows sit on the floor of the cell they stand at, and `style.rails` adds a balustrade (instanced posts and a gold rail)
+along every drop of a step and a half or more.
 
-Maps so far: 1 The Gnome Hall (the original), 2 The Throne Room (a vast marble hall under a 14-high ceiling with arched windows and drapes; the grand stair climbs to a terrace, twin stairs climb on to the
-crystal six up, the throne behind it), 3 The Cloister Court (outdoors under a night sky: a sunken court, a covered
+Maps so far: 1 The Gnome Hall (the original), 2 The Throne Room (a 27×48 marble stair hall under a 14-high ceiling with
+arched windows and drapes, built as a switchback climb: the horde comes in at the south gate on the floor, climbs the first
+flight up the east wall to the lower landing (two up), walks the landing's length, turns up the second flight on the west
+wall to the upper landing (four up), then the third flight up the middle to the throne platform (six up) with the crystal
+and the throne; feeder gates open straight onto the landings as the waves go, the west landing's from wave 3 and the east
+landing's from wave 5, with far shorter climbs; balustrades line every drop; `throne-test.mjs` checks all of it and takes
+the `throne-*.png` shots), 3 The Cloister Court (outdoors under a night sky: a sunken court, a covered
 colonnade a step and a half up with four flights down, trees, three corner gates), 4 The Great Feast Hall (three long
 tables with benches and candles, four hearths, the crystal on the high-table dais, doors east, north and south).
 Map styles: `wallH`, `fog`, `style.marble` / `style.moss` (floor and wall painters), `style.windows` (arched windows with

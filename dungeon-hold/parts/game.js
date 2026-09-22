@@ -77,22 +77,26 @@ const MAPS=[
   lights:[[-9,4.4,-9,0xff8a2a,1.5,16],[9,4.4,-9,0xff8a2a,1.5,16],[-9,4.4,9,0xff8a2a,1.5,16],[9,4.4,9,0xff8a2a,1.5,16],
    [0,5,-6,0xffb05a,.8,13],[0,3.2,0,0x4ae6ff,1.3,15],[0,4,-18,0xff8a2a,1.7,15],[0,4,-26,0xff8a2a,1.2,12],[-16,4,0,0xff8a2a,1.7,15],[-24,4,-10,0xff8a2a,1.5,14],[-24,4,-22,0xff8a2a,1.4,13],[18,4,0,0xff8a2a,1.7,15],[28,4,0,0xff8a2a,1.6,15],[-22,4,-26,0xc040ff,.9,10],[0,4,-28,0xc040ff,.9,10],[30,4,0,0xc040ff,.9,10],
    [0,4.2,19,0xffb05a,1.3,13],[-6,3.8,24,0xff8a2a,1.2,12],[6,3.8,22,0xff8a2a,1.2,12],[0,2.2,26.4,0xff7a1a,1.6,9]]},   // the tavern: lamps and the hearth
- {id:'throne',name:'THE THRONE ROOM',sub:'a vast marble hall, the grand stair, the throne six steps above · seven waves',gw:46,gh:55,crystal:[23,7],waves:7,wallH:14,fog:[40,110],style:{marble:true,windows:true},
-  build(f,g,h,ramp){ f(14,32,3,14,T.FLOOR); h(14,32,3,14,6); f(21,25,3,14,T.CARPET); f(22,24,6,8,T.DAIS); g(23,7,T.CRYSTAL);   // the platform, six up: the throne and the crystal
-    f(14,17,11,14,T.CARPET); ramp(14,17,11,14,1,3,6); f(29,32,11,14,T.CARPET); ramp(29,32,11,14,1,3,6);   // twin upper stairs, terrace to platform, either side of a retaining wall
-    f(14,32,15,18,T.FLOOR); h(14,32,15,18,3); f(19,27,15,18,T.CARPET); f(14,18,19,24,T.FLOOR); h(14,18,19,24,3); f(28,32,19,24,T.FLOOR); h(28,32,19,24,3);   // the terrace, three up, with wings flanking the grand stair
-    f(19,27,19,24,T.CARPET); ramp(19,27,19,24,1,0,3);   // the grand stair, floor to terrace
-    for(let z=25;z<=45;z++){ const w=Math.round(8*(45-z)/20); f(4+w,42-w,z,z,T.FLOOR); } f(22,24,25,45,T.CARPET);   // the vast floor: wide at the gates, narrowing to the stair
-    f(1,7,34,36,T.FLOOR); g(2,35,T.SPAWN); f(39,45,34,36,T.FLOOR); g(44,35,T.SPAWN); f(22,24,46,50,T.FLOOR); g(23,49,T.SPAWN);   // gates: west, east, south
-    f(34,42,47,53,T.FLOOR); g(38,46,T.FLOOR); f(38,38,47,49,T.CARPET); [[34,48],[35,52],[41,49],[41,50],[41,51],[38,53]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern, south-east, off the bottom row
-    [[12,33],[34,33],[9,41],[37,41],[16,28],[30,28]].forEach(([x,z])=>g(x,z,T.PILLAR)); [[5,45],[41,45],[13,26],[33,26]].forEach(([x,z])=>g(x,z,T.PROP)); },
-  lanes:{W:{cx:2,cz:35,face:PI/2,name:'West'}, E:{cx:44,cz:35,face:-PI/2,name:'East'}, S:{cx:23,cz:49,face:PI,name:'South'}},
-  hall:[4,42,3,45],pillars:[[12,33],[34,33],[9,41],[37,41],[16,28],[30,28]],barrels:[[5,45],[41,45]],crates:[[13,26],[33,26]],chandeliers:[[0,42],[0,62]],beams:{zs:[40,50,60,70],w:78},tavern:{dx:22,dz:22},throne:[23,4],
-  lights:[{cx:15,cz:4,y:10.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:4,y:10.2,c:0xff8a2a,i:1.5,d:16},{cx:15,cz:12,y:10.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:12,y:10.2,c:0xff8a2a,i:1.5,d:16},[0,9.2,0,0x4ae6ff,1.3,15],[0,11,42,0xffb05a,.9,16],[0,11,62,0xffb05a,.9,16],
-   {cx:16,cz:17,y:7.2,c:0xff8a2a,i:1.4,d:14},{cx:30,cz:17,y:7.2,c:0xff8a2a,i:1.4,d:14},{cx:16,cz:24,y:7,c:0xff8a2a,i:1.4,d:14},{cx:30,cz:24,y:7,c:0xff8a2a,i:1.4,d:14},{cx:18,cz:26,y:4,c:0xff8a2a,i:1.6,d:15},{cx:28,cz:26,y:4,c:0xff8a2a,i:1.6,d:15},
-   {cx:9,cz:30,y:4,c:0xff8a2a,i:1.5,d:15},{cx:37,cz:30,y:4,c:0xff8a2a,i:1.5,d:15},{cx:6,cz:38,y:4,c:0xff8a2a,i:1.5,d:15},{cx:40,cz:38,y:4,c:0xff8a2a,i:1.5,d:15},{cx:8,cz:44,y:4,c:0xff8a2a,i:1.5,d:15},{cx:38,cz:44,y:4,c:0xff8a2a,i:1.5,d:15},
-   {cx:2,cz:35,y:4,c:0xc040ff,i:.9,d:10},{cx:44,cz:35,y:4,c:0xc040ff,i:.9,d:10},{cx:23,cz:49,y:4,c:0xc040ff,i:.9,d:10},
-   {cx:38,cz:46,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:36,cz:48,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:40,cz:52,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:38,cz:53,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]},
+ {id:'throne',name:'THE THRONE ROOM',sub:'a marble stair hall: up a flight, along the landing, turn, up again · feeder gates open on the landings · seven waves',gw:27,gh:48,crystal:[13,6],waves:7,wallH:14,fog:[36,110],style:{marble:true,windows:true,rails:true},
+  build(f,g,h,ramp){ f(4,22,3,9,T.FLOOR); h(4,22,3,9,6); f(12,14,3,9,T.CARPET); f(12,14,5,7,T.DAIS); g(13,6,T.CRYSTAL);   // the top: the throne and the crystal, six up
+    f(11,15,10,13,T.CARPET); ramp(11,15,10,13,1,4,6);   // the third flight: up the middle of the upper landing to the throne
+    f(4,10,10,13,T.FLOOR); h(4,10,10,13,4); f(16,22,10,13,T.FLOOR); h(16,22,10,13,4); f(4,22,14,16,T.FLOOR); h(4,22,14,16,4);   // the upper landing, four up: galleries either side of the flight, a walk along the front
+    f(23,25,14,16,T.FLOOR); h(23,25,14,16,4); g(25,15,T.SPAWN);   // the east feeder: a door straight onto the upper landing
+    f(4,7,17,20,T.CARPET); ramp(4,7,17,20,1,2,4);   // the second flight: up the west wall
+    f(8,22,17,20,T.FLOOR); h(8,22,17,20,2); f(4,22,21,23,T.FLOOR); h(4,22,21,23,2);   // the lower landing, two up: the turn — the horde walks its length from the east stair to the west one
+    f(1,3,21,23,T.FLOOR); h(1,3,21,23,2); g(1,22,T.SPAWN);   // the west feeder: a door onto the lower landing, at the foot of the second flight
+    f(19,22,24,27,T.CARPET); ramp(19,22,24,27,1,0,2);   // the first flight: up the east wall from the floor
+    f(4,18,24,27,T.FLOOR); f(4,22,28,38,T.FLOOR); f(12,14,24,38,T.CARPET);   // the floor of the hall, where the horde comes in
+    f(12,14,39,42,T.FLOOR); g(13,41,T.SPAWN);   // the main gate, south
+    f(16,24,40,46,T.FLOOR); g(20,39,T.FLOOR); f(20,20,40,42,T.CARPET); [[16,41],[17,45],[23,42],[23,43],[23,44],[20,46]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern, south-east, through a door in the bottom row
+    [[6,4],[20,4],[7,11],[19,11],[9,22],[17,22],[7,31],[19,31],[7,36],[19,36]].forEach(([x,z])=>g(x,z,T.PILLAR)); [[4,28],[22,28],[4,38],[22,38]].forEach(([x,z])=>g(x,z,T.PROP)); },
+  lanes:{S:{cx:13,cz:41,face:PI,name:'South',from:1}, W:{cx:1,cz:22,face:PI/2,name:'West landing',from:3}, E:{cx:25,cz:15,face:-PI/2,name:'East landing',from:5}},   // from: the map's wave the gate first opens on
+  hall:[4,22,3,38],pillars:[[6,4],[20,4],[7,11],[19,11],[9,22],[17,22],[7,31],[19,31],[7,36],[19,36]],barrels:[[4,28],[22,28]],crates:[[4,38],[22,38]],chandeliers:[[0,18],[0,34],[0,54]],beams:{zs:[-2,10,24,38,52],w:40},tavern:{dx:4,dz:15},throne:[13,3],
+  lights:[{cx:6,cz:4,up:4.2,c:0xff8a2a,i:1.4,d:15},{cx:20,cz:4,up:4.2,c:0xff8a2a,i:1.4,d:15},{cx:6,cz:9,up:4,c:0xff8a2a,i:1.3,d:14},{cx:20,cz:9,up:4,c:0xff8a2a,i:1.3,d:14},[0,9.2,0,0x4ae6ff,1.3,15],
+   {cx:6,cz:12,up:3.6,c:0xff8a2a,i:1.4,d:14},{cx:20,cz:12,up:3.6,c:0xff8a2a,i:1.4,d:14},{cx:13,cz:15,up:3.6,c:0xffb05a,i:1.2,d:14},{cx:25,cz:15,up:3.4,c:0xc040ff,i:.9,d:10},
+   {cx:6,cz:19,up:3.6,c:0xff8a2a,i:1.4,d:14},{cx:13,cz:22,up:3.6,c:0xffb05a,i:1.2,d:14},{cx:20,cz:19,up:3.6,c:0xff8a2a,i:1.4,d:14},{cx:1,cz:22,up:3.4,c:0xc040ff,i:.9,d:10},
+   {cx:20,cz:26,up:3.6,c:0xff8a2a,i:1.4,d:14},{cx:7,cz:26,up:4,c:0xff8a2a,i:1.4,d:15},{cx:13,cz:31,up:4.4,c:0xffb05a,i:1.0,d:16},{cx:5,cz:33,up:4,c:0xff8a2a,i:1.5,d:15},{cx:21,cz:33,up:4,c:0xff8a2a,i:1.5,d:15},{cx:13,cz:38,up:4,c:0xff8a2a,i:1.3,d:14},{cx:13,cz:41,up:3.4,c:0xc040ff,i:.9,d:10},
+   {cx:20,cz:39,up:4.2,c:0xffb05a,i:1.3,d:13},{cx:18,cz:41,up:3.8,c:0xff8a2a,i:1.2,d:12},{cx:22,cz:45,up:3.8,c:0xff8a2a,i:1.2,d:12},{cx:20,cz:46,up:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]},
  {id:'court',name:'THE CLOISTER COURT',sub:'open sky, a sunken court, covered walkways all round · seven waves',gw:44,gh:52,crystal:[22,21],waves:7,wallH:9,fog:[34,110],style:{outdoor:true,moss:true},
   build(f,g,h,ramp){ f(2,41,2,41,T.FLOOR); h(2,41,2,41,1.5); h(5,38,5,38,0); f(21,23,19,23,T.CARPET); f(21,23,20,22,T.DAIS); g(22,21,T.CRYSTAL);   // the cloister walkway a step and a half up, the court sunken, the crystal in the middle
     f(21,23,5,6,T.FLOOR); ramp(21,23,5,6,1,0,1.5); f(21,23,37,38,T.FLOOR); ramp(21,23,37,38,2,0,1.5); f(5,6,20,22,T.FLOOR); ramp(5,6,20,22,4,0,1.5); f(37,38,20,22,T.FLOOR); ramp(37,38,20,22,3,0,1.5);   // four flights down into the court
@@ -146,7 +150,7 @@ function bfs(respect,fly){
   const nxt=new Int16Array(GW*GH).fill(-1), dist=new Int16Array(GW*GH).fill(-1);
   dist[GOAL]=0; const q=[GOAL]; let qi=0;
   while(qi<q.length){ const i=q[qi++]; const x=i%GW, z=(i/GW)|0;
-    for(let k=0;k<4;k++){ const nx=x+[1,-1,0,0][k], nz=z+[0,0,1,-1][k]; if(!inb(nx,nz)) continue; const j=idx(nx,nz); if(!fly&&Math.abs(hgt[j]-hgt[i])>.8) continue; /* no path over a ledge: stairs only (flyers ignore it) */
+    for(let k=0;k<4;k++){ const nx=x+[1,-1,0,0][k], nz=z+[0,0,1,-1][k]; if(!inb(nx,nz)) continue; const j=idx(nx,nz); if(!fly){ if(Math.abs(hgt[j]-hgt[i])>.8) continue; /* no path over a ledge: stairs only (flyers ignore it) */ const ai=rampA[i], aj=rampA[j], alongZ=k>=2; if((ai&&((ai<=2)!==alongZ))||(aj&&((aj<=2)!==alongZ))) continue; } /* a flight is entered and left at its ends, never over its side (the side of a stair is a ledge the steps can't climb) */
       if(dist[j]>=0||!walk(grid[j])) continue; if(respect&&defAt[j]&&defAt[j].kind!=='slice') continue;
       dist[j]=dist[i]+1; nxt[j]=i; q.push(j); } }
   return {nxt,dist};
@@ -170,7 +174,7 @@ addEventListener('resize',onResize); onResize();
 // lights: cool ambient, warm torches, cyan crystal
 scene.add(new THREE.HemisphereLight(C(OUT?0x7a86c8:0x5a4a8a),C(OUT?0x1a2418:0x130d1a),OUT?.8:0.62));
 const sun=new THREE.DirectionalLight(C(OUT?0xa8b8ff:0x8a7ab0),OUT?.45:0.22); sun.position.set(6,14,4); scene.add(sun);
-const LIGHTS=MAP.lights.map(l=>Array.isArray(l)?l:[cw(l.cx)+(l.ox||0),l.y,cwz(l.cz)+(l.oz||0),l.c,l.i,l.d]);   // world coords, or {cx,cz} grid cells
+const LIGHTS=MAP.lights.map(l=>Array.isArray(l)?l:[cw(l.cx)+(l.ox||0),l.y!==undefined?l.y:(hgt[idx(l.cx,l.cz)]||0)+l.up,cwz(l.cz)+(l.oz||0),l.c,l.i,l.d]);   // world coords, or {cx,cz} grid cells (y absolute, or up: above that cell's floor)
 const torchLights=[];
 // sconces burn brighter and reach further than the crystal / portal glows (the hall was too dark)
 const SCONCE_BOOST=1.75, SCONCE_REACH=1.3;
@@ -293,7 +297,14 @@ const wallFaces=[];
       for(const [nx,nz,A,B,mine,theirs] of E){ if(theirs<0||mine<=theirs+.01) continue; side(A,B,theirs,mine,nx,nz); }
       if(a){ const lo=Hc(cx,cz,alongZ?fm:(a===3?.49:.51),alongZ?(a===1?.51:.49):fm), hi=Hc(cx,cz,alongZ?fm:(a===3?.51:.49),alongZ?(a===1?.49:.51):fm); if(hi>lo+.01){ const A=alongZ?[X0+f0*CELL,Z0+CELL/2]:[X0+CELL/2,Z0+f0*CELL], B=alongZ?[X0+f1*CELL,Z0+CELL/2]:[X0+CELL/2,Z0+f1*CELL]; const nx=a===3?-1:a===4?1:0, nz=a===1?1:a===2?-1:0; side(nx===-1||nz===-1?B:A,nx===-1||nz===-1?A:B,lo,hi,nx,nz); } } } }
   if(tv){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(tp,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(tn,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(tu,2)); g.setIndex(ti); world.add(new THREE.Mesh(g,new THREE.MeshToonMaterial({map:FLOORTEX,gradientMap:GRAD,color:C(0xffffff),side:THREE.DoubleSide})));
-    const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3)); sg.setAttribute('normal',new THREE.Float32BufferAttribute(sn,3)); sg.setIndex(si); world.add(new THREE.Mesh(sg,mat(0x3e3450,{side:THREE.DoubleSide}))); } }
+    const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3)); sg.setAttribute('normal',new THREE.Float32BufferAttribute(sn,3)); sg.setIndex(si); world.add(new THREE.Mesh(sg,mat((MAP.style&&MAP.style.marble)?0x7a6e62:0x3e3450,{side:THREE.DoubleSide}))); }
+  if(MAP.style&&MAP.style.rails){ const P=[], RX=[], RZ=[];   // a balustrade along every drop of a step and a half or more: a post each half cell on the edge, a gold rail between
+    for(let cz=0;cz<GH;cz++) for(let cx=0;cx<GW;cx++){ const i=idx(cx,cz); if(grid[i]===T.WALL||(hgt[i]<=0&&!rampA[i])) continue; const X0=cw(cx)-CELL/2, Z0=cwz(cz)-CELL/2;
+      for(const [nx,nz] of [[1,0],[-1,0],[0,1],[0,-1]]) for(let sgm=0;sgm<2;sgm++){ const f0=sgm/2, f1=(sgm+1)/2, fm=(f0+f1)/2; const mine=Hc(cx,cz,nx?(nx>0?.99:.01):fm,nz?(nz>0?.99:.01):fm), theirs=Hc(cx+nx,cz+nz,nx?(nx>0?.01:.99):fm,nz?(nz>0?.01:.99):fm); if(theirs<0||mine<theirs+1.5) continue;
+        const ex=nx?X0+(nx>0?CELL:0):0, ez=nz?Z0+(nz>0?CELL:0):0, ax=nx?ex:X0+f0*CELL, az=nz?ez:Z0+f0*CELL, bx=nx?ex:X0+f1*CELL, bz=nz?ez:Z0+f1*CELL, ox=-nx*.14, oz=-nz*.14;
+        P.push(ax+ox,mine+.45,az+oz); (nx?RZ:RX).push((ax+bx)/2+ox,mine+.92,(az+bz)/2+oz); } }
+    const inst=(geo,m,arr)=>{ const n=arr.length/3; if(!n) return; const im=new THREE.InstancedMesh(geo,m,n); const o=new THREE.Object3D(); for(let k=0;k<n;k++){ o.position.set(arr[k*3],arr[k*3+1],arr[k*3+2]); o.updateMatrix(); im.setMatrixAt(k,o.matrix); } im.userData.noOL=true; world.add(im); };
+    inst(G.box(.16,.9,.16),mat(0x8a7c6a),P); inst(G.box(CELL/2,.08,.1),mat(0xe0b040),RX); inst(G.box(.1,.08,CELL/2),mat(0xe0b040),RZ); world.userData.rails=P.length/3; } }
 // pillars, props, torches, banners
 const flames=[];
 function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(0x2b2540),0,0,.17)); const h=M(G.cyl(.05,.07,.7,7),mat(0x6b4a2a),0,.2,.34); h.rotation.x=-.35; g.add(h);
@@ -309,15 +320,15 @@ function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(
     g.add(M(G.box(1.1,1.1,1.1),cm,-.35,.55,.2)); g.add(M(G.box(.9,.9,.9),cm,.5,.45,-.3)); g.add(M(G.box(.8,.8,.8),cm,-.2,1.5,.2)); g.add(M(G.box(1.14,.08,.08),mat(0x3a2a20),-.35,.55,.76)); world.add(outline(g)); });
   // torches + banners along the walls
   const [hx0,hx1,hz0,hz1]=MAP.hall; const WIN=new Set(); let nWin=0;
-  if(WINDOWTEX){ let k=0; wallFaces.forEach(f=>{ if(!(f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1)) return; k++; if(k%6!==2) return; WIN.add(f); nWin++; const yaw=Math.atan2(f.nx,f.nz), tx=f.nz, tz=-f.nx;   // tall arched windows with crimson drapes, every sixth hall face
-      const w=new THREE.Mesh(new THREE.PlaneGeometry(2.4,6),new THREE.MeshBasicMaterial({map:WINDOWTEX,transparent:true,alphaTest:.5,side:THREE.DoubleSide})); w.position.set(f.x+f.nx*.1,WALLH*.56,f.z+f.nz*.1); w.rotation.y=yaw; w.userData.noOL=true; w.userData.window=true; world.add(w);
-      const dh=WALLH*.62; for(const sd of [-1,1]){ const d=new THREE.Mesh(new THREE.PlaneGeometry(1.0,dh),new THREE.MeshToonMaterial({map:DRAPETEX,gradientMap:GRAD,color:C(0xffffff),side:THREE.DoubleSide})); d.position.set(f.x+f.nx*.16+tx*sd*1.75,WALLH*.5,f.z+f.nz*.16+tz*sd*1.75); d.rotation.y=yaw; d.userData.noOL=true; world.add(d); }
-      const rod=M(G.cyl(.06,.06,4.9,6),mat(0xe0b040),f.x+f.nx*.2,WALLH*.5+dh/2+.12,f.z+f.nz*.2); rod.rotation.set(0,yaw,PI/2); world.add(rod); for(const sd of [-1,1]) world.add(M(G.sph(.14,7,6),mat(0xe0b040),f.x+f.nx*.2+tx*sd*2.45,WALLH*.5+dh/2+.12,f.z+f.nz*.2+tz*sd*2.45)); }); }
+  if(WINDOWTEX){ let k=0; wallFaces.forEach(f=>{ if(!(f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1)) return; k++; if(k%6!==2) return; WIN.add(f); nWin++; const yaw=Math.atan2(f.nx,f.nz), tx=f.nz, tz=-f.nx; const fy=hgt[idx(f.cx,f.cz)]||0, wh=WALLH-fy;   // tall arched windows with crimson drapes, every sixth hall face, in the wall above that cell's floor
+      const w=new THREE.Mesh(new THREE.PlaneGeometry(2.4,Math.min(6,wh*.6)),new THREE.MeshBasicMaterial({map:WINDOWTEX,transparent:true,alphaTest:.5,side:THREE.DoubleSide})); w.position.set(f.x+f.nx*.1,fy+wh*.56,f.z+f.nz*.1); w.rotation.y=yaw; w.userData.noOL=true; w.userData.window=true; world.add(w);
+      const dh=wh*.62; for(const sd of [-1,1]){ const d=new THREE.Mesh(new THREE.PlaneGeometry(1.0,dh),new THREE.MeshToonMaterial({map:DRAPETEX,gradientMap:GRAD,color:C(0xffffff),side:THREE.DoubleSide})); d.position.set(f.x+f.nx*.16+tx*sd*1.75,fy+wh*.5,f.z+f.nz*.16+tz*sd*1.75); d.rotation.y=yaw; d.userData.noOL=true; world.add(d); }
+      const rod=M(G.cyl(.06,.06,4.9,6),mat(0xe0b040),f.x+f.nx*.2,fy+wh*.5+dh/2+.12,f.z+f.nz*.2); rod.rotation.set(0,yaw,PI/2); world.add(rod); for(const sd of [-1,1]) world.add(M(G.sph(.14,7,6),mat(0xe0b040),f.x+f.nx*.2+tx*sd*2.45,fy+wh*.5+dh/2+.12,f.z+f.nz*.2+tz*sd*2.45)); }); }
   world.userData.windows=nWin;
   let i=0; wallFaces.forEach(f=>{ const inHall=f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1; i++; if(WIN.has(f)) return;
-    const yaw=Math.atan2(f.nx,f.nz);
-    if(i%4===1){ const t=makeTorch(); t.position.set(f.x,3.1,f.z); t.rotation.y=yaw; world.add(t); }
-    else if(inHall&&i%4===3){ const b=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.6),new THREE.MeshToonMaterial({map:BANNERTEX,gradientMap:GRAD,color:C(0xffffff),transparent:true,side:THREE.DoubleSide,alphaTest:.5})); b.position.set(f.x+f.nx*.12,4.2,f.z+f.nz*.12); b.rotation.y=yaw; world.add(b); const rod=M(G.cyl(.05,.05,1.7,6),mat(0xe0b040),f.x+f.nx*.12,5.5,f.z+f.nz*.12); rod.rotation.y=yaw; rod.rotation.z=PI/2; world.add(rod); } });
+    const yaw=Math.atan2(f.nx,f.nz), fy=hgt[idx(f.cx,f.cz)]||0;   // torches and banners hang above the floor of the cell they face (a landing's wall carries its own)
+    if(i%4===1){ const t=makeTorch(); t.position.set(f.x,fy+3.1,f.z); t.rotation.y=yaw; world.add(t); }
+    else if(inHall&&i%4===3){ const b=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.6),new THREE.MeshToonMaterial({map:BANNERTEX,gradientMap:GRAD,color:C(0xffffff),transparent:true,side:THREE.DoubleSide,alphaTest:.5})); b.position.set(f.x+f.nx*.12,fy+4.2,f.z+f.nz*.12); b.rotation.y=yaw; world.add(b); const rod=M(G.cyl(.05,.05,1.7,6),mat(0xe0b040),f.x+f.nx*.12,fy+5.5,f.z+f.nz*.12); rod.rotation.y=yaw; rod.rotation.z=PI/2; world.add(rod); } });
   (MAP.roofs||[]).forEach(([x0,x1,z0,z1])=>{ const y=(MAP.pillarH||6)+1.0; const w=(x1-x0+1)*CELL, d=(z1-z0+1)*CELL; const r=M(G.box(w,.45,d),mat(0x2a1f2c),(cw(x0)+cw(x1))/2,y,(cwz(z0)+cwz(z1))/2); world.add(r); world.add(M(G.box(w,.12,d),mat(0x4a4262),(cw(x0)+cw(x1))/2,y+.28,(cwz(z0)+cwz(z1))/2)); });   // covered walkways: a slab on the colonnade
   (MAP.trees||[]).forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),hgt[idx(x,z)]||0,cwz(z)); g.add(M(G.cyl(.22,.3,2.2,7),mat(0x5a3a22),0,1.1,0)); [[0,2.6,0,1.5],[.7,2.2,.4,1.0],[-.6,2.3,-.5,1.0],[0,3.5,0,1.1]].forEach(([ox,oy,oz,r])=>g.add(M(G.sph(r,8,6),mat(0x2f6a2a),ox,oy,oz))); world.add(outline(g)); });   // trees in the court
   (MAP.tables||[]).forEach(([x0,x1,z0,z1])=>{ const gaps=MAP.tableGaps||[]; let run=null; const flush=()=>{ if(!run) return; const [a,b]=run; const w=(b-a+1)*CELL-.3, cx0=(cw(a)+cw(b))/2, cz0=(cwz(z0)+cwz(z1))/2; const g=new THREE.Group(); g.position.set(cx0,0,cz0); const wood=mat(0x6b4a2a), plank=mat(0x8a5e34), cream=mat(0xf1e6d0);
@@ -344,7 +355,7 @@ const crystalMesh=(()=>{ const m=new THREE.Mesh(new THREE.OctahedronGeometry(1,0
   for(let k=0;k<4;k++){ const s=new THREE.Mesh(new THREE.OctahedronGeometry(.22,0),basic(0x9af8ff)); s.userData.noOL=true; s.userData.a=k/4*TAU; cg.add(s); crystalG.userData['s'+k]=s; } }
 // spawn portals
 const portals=[];
-Object.entries(LANES).forEach(([k,l])=>{ const g=new THREE.Group(); g.position.set(cw(l.cx),0,cwz(l.cz)); g.rotation.y=l.face;
+Object.entries(LANES).forEach(([k,l])=>{ const g=new THREE.Group(); g.position.set(cw(l.cx),hgt[idx(l.cx,l.cz)]||0,cwz(l.cz)); g.rotation.y=l.face;   // a gate on a landing stands on the landing
   const arch=new THREE.Group(); arch.position.z=-1.1; // stands at the back of the spawn room, facing the corridor
   arch.add(M(G.box(.6,4,.6),mat(0x2a2136),-1.7,2,0)); arch.add(M(G.box(.6,4,.6),mat(0x2a2136),1.7,2,0)); arch.add(M(G.box(4,.7,.7),mat(0x2a2136),0,4.2,0)); arch.add(M(G.box(.5,.5,.5),mat(0xe0b040),0,4.75,0));
   const disc=new THREE.Mesh(new THREE.CircleGeometry(1.5,20),new THREE.MeshBasicMaterial({color:C(0x4a1690),transparent:true,opacity:.9,side:THREE.DoubleSide})); disc.position.y=1.9; disc.userData.noOL=true;
@@ -710,7 +721,7 @@ function aimPoint(){ const fx=Math.sin(cam.yaw), fz=Math.cos(cam.yaw);
 function placeDefAt(kind,x,z,rot){ const cfg=DEFS[kind]; const cx=wc(x), cz=wcz(z); const base=baseFloor(x,z); const cells=footprintCells(kind,x,z,rot||0).filter(i=>walk(grid[i])&&!defAt[i]&&!rampA[i]);
   const d={kind,cx,cz,cells,x,z,base,rot:rot||0,hp:cfg.hp,max:cfg.hp,top:cfg.top+base,cd:R(.2,cfg.cd),yaw:rot||0,mdl:makeDef(kind,false),pop:0,recoil:0,spin:0,shake:0,lvl:1,spent:cfg.mana};
   d.mdl.position.set(d.x,base,d.z); d.mdl.rotation.y=d.rot; scene.add(d.mdl); defs.push(d); for(const i of cells) defAt[i]=d; S.du+=cfg.du; S.mana-=cfg.mana; reflow(); SFX.place(); return d; }
-function placeDef(kind,cx,cz,rot){ return placeDefAt(kind,cw(cx),cwz(cz),rot||0); }
+function placeDef(kind,cx,cz,rot){ const t=gat(cx,cz); if(!(t===T.FLOOR||t===T.CARPET)||footprintCells(kind,cw(cx),cwz(cz),rot||0).some(i=>!walk(grid[i])||rampA[i])) return null; /* the same 'can't build there' as the ghost: floor or carpet, never a stair */ return placeDefAt(kind,cw(cx),cwz(cz),rot||0); }
 function removeDef(d){ scene.remove(d.mdl); if(hoverFor===d){ if(hoverSector) scene.remove(hoverSector); hoverSector=null; hoverFor=null; } for(const i of (d.cells||[idx(d.cx,d.cz)])) if(defAt[i]===d) defAt[i]=null; const i=defs.indexOf(d); if(i>=0) defs.splice(i,1); S.du-=DEFS[d.kind].du; reflow(); }
 function hurtDef(d,dmg){ d.hp-=dmg; d.shake=.25; d.calm=0; floatText(d.x,d.top+.6,d.z,String(dmg),'#ff6a5a'); if(d.hp<=0){ removeDef(d); SFX.destroy(); toast(DEFS[d.kind].name+' destroyed!'); } }
 function fire(d,e){ const cfg=DEFS[d.kind]; const fx=Math.sin(d.yaw), fz=Math.cos(d.yaw); d.recoil=1;
@@ -836,10 +847,10 @@ function updateGearHUD(){ let h=''; for(const s of SLOTS){ const it=gear[s]; h+=
 loadGear();
 
 // ================= WAVES =================
-function waveComp(w){ const all=Object.keys(LANES); const lanes=w<2?all.slice(0,1):w<4?all.slice(0,2):all; const q=[]; let t=1.5; const n=6+3*w; const gap=Math.max(.35,.8-.03*w); for(let i=0;i<n;i++){ q.push({t,kind:'goblin',lane:lanes[i%lanes.length]}); t+=gap; }
+function waveComp(w){ const all=Object.keys(LANES); const mw=w-MAP.wbase; const lanes=all.some(k=>LANES[k].from)?all.filter(k=>(LANES[k].from||1)<=mw):(w<2?all.slice(0,1):w<4?all.slice(0,2):all); /* a map can say which of its waves each gate opens on (feeders join as the climb goes on); otherwise the gates open one, two, all */ const q=[]; let t=1.5; const n=6+3*w; const gap=Math.max(.35,.8-.03*w); for(let i=0;i<n;i++){ q.push({t,kind:'goblin',lane:lanes[i%lanes.length]}); t+=gap; }
   const orcs=w>=2?w-1:0; for(let i=0;i<orcs;i++) q.push({t:3+i*2.2,kind:'orc',lane:lanes[(i+1)%lanes.length]});
   const arch=w>=3?Math.floor(w/2):0; for(let i=0;i<arch;i++) q.push({t:4+i*1.8,kind:'archer',lane:lanes[i%lanes.length]});
-  const ogres=w>=4&&(w-4)%3===0?(w>=10?2:1):0; for(let i=0;i<ogres;i++) q.push({t:t+2+i*4,kind:'ogre',lane:i?all[all.length-1]:all[0]});
+  const ogres=w>=4&&(w-4)%3===0?(w>=10?2:1):0; for(let i=0;i<ogres;i++) q.push({t:t+2+i*4,kind:'ogre',lane:i?lanes[lanes.length-1]:lanes[0]});
   const drakes=w>=6?Math.min(6,Math.floor((w-4)/2)):0; for(let i=0;i<drakes;i++) q.push({t:6+i*3,kind:'drake',lane:lanes[(i+2)%lanes.length]});   // from the eighth-ish wave the sky joins in
   q.sort((a,b)=>a.t-b.t);
   const parts=['Goblins ×'+n]; if(orcs) parts.push('Orcs ×'+orcs); if(arch) parts.push('Bandits ×'+arch); if(drakes) parts.push('Drakes ×'+drakes); if(ogres) parts.push(ogres>1?'TWO OGRES':'AN OGRE');
