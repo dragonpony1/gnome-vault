@@ -52,5 +52,5 @@ ballista-shot, lootfeel, weapons, towers, paperdoll, casino, ogre, forge, fix-r1
 ## Open items
 
 - Bigger map per `parts/MAP.md` (seven doors, landings, stairs; needs a height layer).
-- Meshy art still wanted: turnip trebuchet, mushroom ring, hobgoblin archer.
+- Meshy art still wanted: turnip trebuchet, hobgoblin archer.
 - Upgraded gear raises gear score, which nudges mob health up a little (rubber band); revisit if it feels punishing.
