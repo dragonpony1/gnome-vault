@@ -37,7 +37,7 @@ await shot("throne-landingA",-6,29,-Math.PI*.75,.28,9,2);
 await shot("throne-landingB",4,18,Math.PI*.9,.3,9,4);
 await shot("throne-top",0,3,Math.PI,.25,7,6);
 await shot("throne-lookdown",0,4,0,.62,11,6);
-await shot("throne-wide",14,62,Math.PI*1.15,.32,11);
+await shot("throne-wide",4,62,Math.PI*1.1,.32,11);
 const realErrors=errors.filter(e=>!/Failed to load resource|favicon/i.test(e));
 check("no page errors",realErrors.length===0,realErrors.slice(0,3).join(" | "));
 await browser.close(); server.close(); console.log(results.filter(Boolean).length+"/"+results.length+" passed");
