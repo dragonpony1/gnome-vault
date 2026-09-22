@@ -32,7 +32,7 @@ await page.waitForTimeout(300); await page.screenshot({path:SP+"/parts/shots/for
 await page.evaluate(()=>window.__doll.close());
 // the anvil in the tavern opens the sheet with the hint
 const r8=await page.evaluate(async()=>{ const d=window.__dd; const st=window.__room.stations().find(s=>s.tab==="forge"); d.setHero(st.x-.6,st.z,0); d.step(1/60,3); const prompt=document.getElementById("prompt").textContent; window.dispatchEvent(new KeyboardEvent("keydown",{code:"KeyE",bubbles:true})); await new Promise(r=>setTimeout(r,80)); const open=window.__doll.isOpen(), hint=/buy upgrades for it/.test(window.__doll.html()); window.__doll.close(); return {prompt,open,hint,near:window.__room.near()}; });
-check("anvil: prompt names it, E opens the sheet with the forge hint",/anvil/.test(r8.prompt)&&r8.open&&r8.hint&&r8.near==="forge",JSON.stringify(r8));
+check("anvil: prompt names it, E opens the sheet with the forge hint",/anvil|smith/.test(r8.prompt)&&r8.open&&r8.hint&&r8.near==="forge",JSON.stringify(r8));
 await page.evaluate(()=>{ const d=window.__dd; const a=window.__anvil; d.setHero(a[0]-2.2,a[1]+1.4,-Math.PI*.35); d.setCam(-Math.PI*.35+Math.PI-.4,.3,5); d.step(1/60,40); document.getElementById("hud").style.display="none"; });
 await page.waitForTimeout(200); await page.screenshot({path:SP+"/parts/shots/anvil.png"});
 const realErrors=errors.filter(e=>!/Failed to load resource|favicon/i.test(e));

@@ -63,7 +63,7 @@ function open(hint){ ensure(); if(D.open||S.phase==='start'||(typeof Tavern!=='u
 function close(){ if(!D.open) return false; D.open=false; el.classList.add('hide'); clearInterval(D.timer); D.timer=0; return true; }
 function toggle(){ return D.open?close():open(); }
 { const prev=Meta.isOpen; Meta.isOpen=()=>D.open||!!prev(); }
-addEventListener('keydown',e=>{ if(e.code==='Tab'||e.code==='KeyC'){ if(S.phase==='start'||S.phase==='dead') return; if(e.code==='Tab') e.preventDefault(); if(typeof Tavern!=='undefined'&&Tavern&&Tavern.isOpen()) return; toggle(); e.stopImmediatePropagation(); return; }
+addEventListener('keydown',e=>{ if(e.code==='Tab'||e.code==='KeyC'){ if(S.phase==='start'||S.phase==='dead'||S.phase==='won') return; if(e.code==='Tab') e.preventDefault(); if(typeof Tavern!=='undefined'&&Tavern&&Tavern.isOpen()) return; toggle(); e.stopImmediatePropagation(); return; }
   if(D.open){ if(e.code==='Escape'||e.code==='KeyI'||e.code==='KeyB'){ e.preventDefault(); close(); } e.stopImmediatePropagation(); } },true);
 ensure();
 window.__doll={open,close,isOpen:()=>D.open,html:()=>el?el.innerHTML:'',forge:()=>null,setForge:()=>{}};

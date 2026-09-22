@@ -49,8 +49,22 @@ ballista-shot, lootfeel, weapons, towers, paperdoll, casino, ogre, forge, fix-r1
 - Rigged mobs/heroes: `meshy/<name>/merge.html` + `merge.mjs` merges the Meshy rig with its walk/run/attack(/shout) clips,
   fixes facing and hip drift, and (for the hero) cuts the baked sword out and leaves a `weaponMount_<cm>` node under RightHand.
 
+## The campaign (maps)
+
+`MAPS` in `parts/game.js` is the list of maps. Each one holds its grid (`build(f,g,h,ramp)`: fill tiles, set a tile, fill a
+raised floor height, lay a staircase), the crystal cell, the gates (`lanes`, in the order waves open them), props, lights
+(world coords, or `{cx,cz}` cells), the hall rectangle (banners), beams, a throne, and where the tavern room sits
+(`tavern:{dx,dz}`, an offset from map 1's room). The map is chosen when the page loads: `?map=N` or the saved `ddMap`, never
+past `ddMapsCleared`. Hold `waves` waves and the map is cleared (`winMap`): the tally shows NEXT MAP, which reloads with the
+next `?map`. Difficulty carries across maps through `effWave()` (map 2 wave 1 fights like wave 8); the HUD shows the map's own
+wave count. Height: `hgt`/`rampA` per cell, `floorH(x,z)` (stairs are two flat steps per cell), no walking or pathing up a
+ledge taller than a step, no building on stairs; raised tops and stone drops are generated after the walls.
+
+Maps so far: 1 The Gnome Hall (the original), 2 The Throne Room (a vast floor narrowing to three great stairs up to the
+crystal on a raised platform, the throne behind it).
+
 ## Open items
 
-- Bigger map per `parts/MAP.md` (seven doors, landings, stairs; needs a height layer).
+- More maps (the seven-door hall in `parts/MAP.md` now has the height layer it needed).
 - Meshy art still wanted: turnip trebuchet, hobgoblin archer.
 - Upgraded gear raises gear score, which nudges mob health up a little (rubber band); revisit if it feels punishing.

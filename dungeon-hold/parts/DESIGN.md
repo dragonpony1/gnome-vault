@@ -116,3 +116,10 @@ charms, amulets, familiars → put run experience into skill categories."
 - New stat keys: `trate` (defense attack speed, divides stat(d,'cd')), `tarea` (defense range and splash, multiplies stat(d,'range') and turnip splash), `fproj` (extra familiar projectiles: bolt kinds fire at more mobs, owl chains further, drake forks wider, bat bites more).
 - API: `Meta.forge.upgrade(idOrItem, key, n)` → points applied (gold deducted per point, stats/score updated, gear + meta saved); `.can(it,key)` → {ok,why,cost}; `.keys(it)`, `.used/left/max(it)`, `.label(k)`, `.fmt(k,v)`.
 - UI: the character sheet (Tab) — tap a worn item → THE FORGE panel with a row per stat and +1/+5/+25; the anvil in the tavern (north-east corner) opens the sheet with a hint. `statStr` appends `⬆ up/max` once an item has points.
+
+
+### Campaign and height (game.js)
+- `MAPS[]`, `MAPI`, `MAP`, `MAPS_CLEARED`; `effWave()` = MAP.wbase + S.wave drives spawn strength, loot level, pay and shop tiers; `S.wave` is the map's own count (banner "WAVE n OF 7").
+- Phases: 'start' · 'build' · 'wave' · 'won' (last wave held: `winMap()` → `Meta.onRunEnd(effWave(), {won:true, map, mapName, hasNext})`, payout 25·wave + 150, `ddMapsCleared` saved) · 'dead'.
+- `Tavern.summary(data)` renders HALL HELD with a NEXT MAP button when `data.won && data.hasNext`; `window.__campaign.next()/go(i)` reload with `?map=`.
+- Height: `hgt`, `rampA/rampL/rampH` per cell; `floorH(x,z)`, `baseFloor(x,z)` (+.5 on the dais); `solidAt` refuses a step taller than .62; `bfs` refuses neighbours more than .8 apart; stairs cannot hold defenses.

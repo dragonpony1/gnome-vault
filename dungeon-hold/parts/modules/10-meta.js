@@ -73,8 +73,8 @@ function onKill(e){ addXP(XP[e&&e.kind]||2); }
 function onWaveHeld(w){ const g=10+5*w, x=20+10*w; addGold(g,'wave'); floatText(hero.x,hero.y+2.2,hero.z,'+'+g+' ● gold  +'+x+' xp',GOLD_CSS); addXP(x); }
 // goldGained = everything earned this run (wave pay, sells, the end payout); goldSpent = buys/restock/respec; payout = the 25*w paid when the crystal fell; newBest = strictly beat the old best
 function summary(){ return {wave:S.wave,kills:S.kills,xpGained:run.xp,goldGained:run.gold,goldSpent:run.spent,goldNet:run.gold-run.spent,payout:run.payout,levelsGained:run.levels,drops:run.drops,items:run.items.slice(),best:st.best,newBest:run.newBest,gold:st.gold,level:st.level}; }
-function onRunEnd(w){ if(run.ended) return true; run.ended=true; w=w|0; const tierUp=stockTierFor(Math.max(st.best,w))>st.stockTier; run.newBest=w>st.best; if(w>st.best) st.best=w; if(w>0){ run.payout=25*w; addGold(25*w,'run'); }
-  if(tierUp){ st.stockTier=stockTierFor(st.best); rollStock(); } saveMeta(); const data=summary(); let shown=false;
+function onRunEnd(w,o){ if(run.ended) return true; run.ended=true; w=w|0; const tierUp=stockTierFor(Math.max(st.best,w))>st.stockTier; run.newBest=w>st.best; if(w>st.best) st.best=w; if(w>0){ run.payout=25*w+(o&&o.won?150:0); addGold(run.payout,'run'); }   // a map held pays 150 on top
+  if(tierUp){ st.stockTier=stockTierFor(st.best); rollStock(); } saveMeta(); const data=summary(); if(o) Object.assign(data,o); let shown=false;
   if(typeof Tavern!=='undefined'&&Tavern&&Tavern.summary){ try{ Tavern.summary(data); shown=true; }catch(e){ console.error(e); } }
   if(!shown) toast('The crystal fell on wave '+w+' — +'+(25*w)+' gold'); return shown; }
 // the reroll happens when a run actually starts (first in-play frame), never on a page load: TRY AGAIN / a refresh is not a free Restock

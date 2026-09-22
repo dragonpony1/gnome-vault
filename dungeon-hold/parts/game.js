@@ -56,7 +56,44 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden&&ac) ac.su
 window.addEventListener('pagehide',()=>{ if(ac) ac.suspend(); });
 
 // ================= GRID / MAP =================
-const CELL=2, GW=34, GH=33, OX=33, OZ=35, WALLH=7;   // rows 25..31 are the tavern, south of the hall
+// ================= MAPS =================
+// A campaign map: its grid (built with f=fill and g=set when the page loads), where the crystal stands, the gates the
+// horde comes through, the hall's props and lights, and where the tavern room sits (an offset from map 1's room, which
+// the room module is written against). Hold MAP.waves waves and the map is cleared: the next one unlocks, and the horde
+// carries on where it left off (map 2 wave 1 fights like wave 8). The map is chosen when the page loads (?map=N or the
+// saved ddMap) so the hall is built once.
+const MAPS=[
+ {id:'hall',name:'THE GNOME HALL',sub:'three gates · seven waves',gw:34,gh:33,crystal:[16,17],waves:7,
+  build(f,g){ f(10,22,11,23,T.FLOOR);                                   // the great hall
+    f(15,17,11,15,T.CARPET); f(10,14,16,18,T.CARPET); f(18,22,16,18,T.CARPET); f(15,17,16,18,T.DAIS); g(16,17,T.CRYSTAL);
+    f(15,17,4,10,T.FLOOR); f(14,18,1,3,T.FLOOR); g(16,2,T.SPAWN);          // north gate
+    f(4,9,16,18,T.FLOOR); f(4,6,6,18,T.FLOOR); f(2,8,2,5,T.FLOOR); g(5,3,T.SPAWN);   // west gate (with a bend)
+    f(23,29,16,18,T.FLOOR); f(29,32,14,20,T.FLOOR); g(31,17,T.SPAWN);      // east gate
+    f(12,20,25,31,T.FLOOR); g(16,24,T.FLOOR); f(16,16,25,27,T.CARPET);     // the tavern: a snug room through the south door
+    [[12,26],[13,30],[19,27],[19,28],[19,29],[16,31]].forEach(([x,z])=>g(x,z,T.PROP));   // locker · trainer's dummy · the bar · the hearth
+    [[12,13],[20,13],[12,21],[20,21]].forEach(([x,z])=>g(x,z,T.PILLAR)); [[10,11],[22,11],[10,23],[22,23]].forEach(([x,z])=>g(x,z,T.PROP)); },
+  lanes:{N:{cx:16,cz:2,face:0,name:'North'}, W:{cx:5,cz:3,face:0,name:'West'}, E:{cx:31,cz:17,face:-PI/2,name:'East'}},
+  hall:[10,22,11,23],pillars:[[12,13],[20,13],[12,21],[20,21]],barrels:[[10,11],[22,11]],crates:[[10,23],[22,23]],chandelier:[0,-6],beams:{zs:[-8,0,8],w:26},tavern:{dx:0,dz:0},
+  lights:[[-9,4.4,-9,0xff8a2a,1.5,16],[9,4.4,-9,0xff8a2a,1.5,16],[-9,4.4,9,0xff8a2a,1.5,16],[9,4.4,9,0xff8a2a,1.5,16],
+   [0,5,-6,0xffb05a,.8,13],[0,3.2,0,0x4ae6ff,1.3,15],[0,4,-18,0xff8a2a,1.7,15],[0,4,-26,0xff8a2a,1.2,12],[-16,4,0,0xff8a2a,1.7,15],[-24,4,-10,0xff8a2a,1.5,14],[-24,4,-22,0xff8a2a,1.4,13],[18,4,0,0xff8a2a,1.7,15],[28,4,0,0xff8a2a,1.6,15],[-22,4,-26,0xc040ff,.9,10],[0,4,-28,0xc040ff,.9,10],[30,4,0,0xc040ff,.9,10],
+   [0,4.2,19,0xffb05a,1.3,13],[-6,3.8,24,0xff8a2a,1.2,12],[6,3.8,22,0xff8a2a,1.2,12],[0,2.2,26.4,0xff7a1a,1.6,9]]},   // the tavern: lamps and the hearth
+ {id:'throne',name:'THE THRONE ROOM',sub:'a vast hall, three great stairs · seven waves',gw:46,gh:47,crystal:[23,8],waves:7,
+  build(f,g,h,ramp){ f(14,32,3,11,T.FLOOR); h(14,32,3,11,2); f(21,25,3,11,T.CARPET); f(22,24,7,9,T.DAIS); g(23,8,T.CRYSTAL);   // the throne platform, two units up, the crystal on its dais at the top
+    f(19,27,12,15,T.CARPET); ramp(19,27,12,15,1,0,2); f(14,16,12,15,T.FLOOR); ramp(14,16,12,15,1,0,2); f(30,32,12,15,T.FLOOR); ramp(30,32,12,15,1,0,2);   // the grand stair and two flanking stairs; balustrade walls between
+    for(let z=16;z<=36;z++){ const w=Math.round(8*(36-z)/20); f(4+w,42-w,z,z,T.FLOOR); } f(22,24,16,36,T.CARPET);   // the vast floor: wide at the bottom, narrowing to the stairs
+    f(1,7,25,27,T.FLOOR); g(2,26,T.SPAWN); f(39,45,25,27,T.FLOOR); g(44,26,T.SPAWN); f(22,24,37,41,T.FLOOR); g(23,40,T.SPAWN);   // gates: west, east, south
+    f(34,42,38,44,T.FLOOR); g(38,37,T.FLOOR); f(38,38,38,40,T.CARPET); [[34,39],[35,43],[41,40],[41,41],[41,42],[38,44]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern, south-east, off the bottom row
+    [[12,24],[34,24],[9,32],[37,32],[16,19],[30,19]].forEach(([x,z])=>g(x,z,T.PILLAR)); [[5,36],[41,36],[13,17],[33,17]].forEach(([x,z])=>g(x,z,T.PROP)); },
+  lanes:{W:{cx:2,cz:26,face:PI/2,name:'West'}, E:{cx:44,cz:26,face:-PI/2,name:'East'}, S:{cx:23,cz:40,face:PI,name:'South'}},
+  hall:[4,42,3,36],pillars:[[12,24],[34,24],[9,32],[37,32],[16,19],[30,19]],barrels:[[5,36],[41,36]],crates:[[13,17],[33,17]],chandelier:[0,32],beams:{zs:[22,32,42,52],w:78},tavern:{dx:22,dz:13},throne:[23,4],
+  lights:[{cx:15,cz:4,y:6.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:4,y:6.2,c:0xff8a2a,i:1.5,d:16},{cx:15,cz:10,y:6.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:10,y:6.2,c:0xff8a2a,i:1.5,d:16},[0,5.2,0,0x4ae6ff,1.3,15],[0,5,32,0xffb05a,.8,13],
+   {cx:17,cz:16,y:4,c:0xff8a2a,i:1.6,d:15},{cx:29,cz:16,y:4,c:0xff8a2a,i:1.6,d:15},{cx:9,cz:20,y:4,c:0xff8a2a,i:1.5,d:15},{cx:37,cz:20,y:4,c:0xff8a2a,i:1.5,d:15},{cx:6,cz:28,y:4,c:0xff8a2a,i:1.5,d:15},{cx:40,cz:28,y:4,c:0xff8a2a,i:1.5,d:15},{cx:8,cz:35,y:4,c:0xff8a2a,i:1.5,d:15},{cx:38,cz:35,y:4,c:0xff8a2a,i:1.5,d:15},{cx:23,cz:22,y:4.4,c:0xff8a2a,i:1.2,d:14},
+   {cx:2,cz:26,y:4,c:0xc040ff,i:.9,d:10},{cx:44,cz:26,y:4,c:0xc040ff,i:.9,d:10},{cx:23,cz:40,y:4,c:0xc040ff,i:.9,d:10},
+   {cx:38,cz:37,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:36,cz:39,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:40,cz:43,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:38,cz:44,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]}];
+const MAPS_CLEARED=(()=>{ try{ return Math.max(0,Math.min(MAPS.length,parseInt(localStorage.getItem('ddMapsCleared'))||0)); }catch(e){ return 0; } })();
+const MAPI=(()=>{ let i=parseInt(Q.get('map')); if(!(i>=0)){ try{ i=parseInt(localStorage.getItem('ddMap'))||0; }catch(e){ i=0; } } return Math.max(0,Math.min(i,MAPS_CLEARED,MAPS.length-1)); })();   // a map past the last one cleared is locked
+const MAP=MAPS[MAPI]; MAP.wbase=MAPS.slice(0,MAPI).reduce((a,m)=>a+m.waves,0);
+const CELL=2, GW=MAP.gw, GH=MAP.gh, OX=MAP.crystal[0]*CELL+CELL/2, OZ=MAP.crystal[1]*CELL+CELL/2, WALLH=7;   // the crystal stands at world (0,0)
 const T={WALL:0,FLOOR:1,CARPET:2,DAIS:3,PILLAR:4,SPAWN:5,CRYSTAL:6,PROP:7};
 const grid=new Uint8Array(GW*GH);
 const idx=(cx,cz)=>cz*GW+cx;
@@ -65,18 +102,13 @@ const wc=x=>Math.floor((x+OX)/CELL), wcz=z=>Math.floor((z+OZ)/CELL);
 const inb=(cx,cz)=>cx>=0&&cz>=0&&cx<GW&&cz<GH;
 const gat=(cx,cz)=>inb(cx,cz)?grid[idx(cx,cz)]:T.WALL;
 function fill(x0,x1,z0,z1,t){ for(let z=z0;z<=z1;z++) for(let x=x0;x<=x1;x++) grid[idx(x,z)]=t; }
-fill(10,22,11,23,T.FLOOR);                                   // the great hall
-fill(15,17,11,15,T.CARPET); fill(10,14,16,18,T.CARPET); fill(18,22,16,18,T.CARPET);
-fill(15,17,16,18,T.DAIS); grid[idx(16,17)]=T.CRYSTAL;
-fill(15,17,4,10,T.FLOOR); fill(14,18,1,3,T.FLOOR); grid[idx(16,2)]=T.SPAWN;         // north gate
-fill(4,9,16,18,T.FLOOR); fill(4,6,6,18,T.FLOOR); fill(2,8,2,5,T.FLOOR); grid[idx(5,3)]=T.SPAWN; // west gate (with a bend)
-fill(23,29,16,18,T.FLOOR); fill(29,32,14,20,T.FLOOR); grid[idx(31,17)]=T.SPAWN;    // east gate
-fill(12,20,25,31,T.FLOOR); grid[idx(16,24)]=T.FLOOR; fill(16,16,25,27,T.CARPET);   // the tavern: a snug room through the south door
-[[12,26],[13,30],[19,27],[19,28],[19,29],[16,31]].forEach(([x,z])=>grid[idx(x,z)]=T.PROP);   // locker · trainer's dummy · the bar · the hearth
-[[12,13],[20,13],[12,21],[20,21]].forEach(([x,z])=>grid[idx(x,z)]=T.PILLAR);
-[[10,11],[22,11],[10,23],[22,23]].forEach(([x,z])=>grid[idx(x,z)]=T.PROP);
-const GOAL=idx(16,17);
-const LANES={N:{cx:16,cz:2,face:0}, W:{cx:5,cz:3,face:0}, E:{cx:31,cz:17,face:-PI/2}};
+// floor height per cell (raised floors), and stairs: an axis (1 rises north/-z, 2 south/+z, 3 east/+x, 4 west/-x) with the low and high heights of each cell's two steps
+const hgt=new Float32Array(GW*GH), rampA=new Int8Array(GW*GH), rampL=new Float32Array(GW*GH), rampH=new Float32Array(GW*GH);
+function hfill(x0,x1,z0,z1,y){ for(let z=z0;z<=z1;z++) for(let x=x0;x<=x1;x++) hgt[idx(x,z)]=y; }
+function ramp(x0,x1,z0,z1,dir,y0,y1){ const alongZ=dir===1||dir===2; const n=alongZ?(z1-z0+1):(x1-x0+1); for(let z=z0;z<=z1;z++) for(let x=x0;x<=x1;x++){ const k=alongZ?(dir===1?z1-z:z-z0):(dir===3?x-x0:x1-x); const i=idx(x,z); rampA[i]=dir; rampL[i]=y0+(y1-y0)*k/n; rampH[i]=y0+(y1-y0)*(k+1)/n; hgt[i]=(rampL[i]+rampH[i])/2; } }
+MAP.build(fill,(x,z,t)=>{ grid[idx(x,z)]=t; },hfill,ramp);
+const GOAL=idx(MAP.crystal[0],MAP.crystal[1]);
+const LANES=MAP.lanes;
 const walk=t=>t===T.FLOOR||t===T.CARPET||t===T.DAIS||t===T.SPAWN;
 const heroSolid=t=>t===T.WALL||t===T.PILLAR||t===T.CRYSTAL||t===T.PROP;
 const defAt=new Array(GW*GH).fill(null);
@@ -87,7 +119,7 @@ function bfs(respect){
   const nxt=new Int16Array(GW*GH).fill(-1), dist=new Int16Array(GW*GH).fill(-1);
   dist[GOAL]=0; const q=[GOAL]; let qi=0;
   while(qi<q.length){ const i=q[qi++]; const x=i%GW, z=(i/GW)|0;
-    for(let k=0;k<4;k++){ const nx=x+[1,-1,0,0][k], nz=z+[0,0,1,-1][k]; if(!inb(nx,nz)) continue; const j=idx(nx,nz);
+    for(let k=0;k<4;k++){ const nx=x+[1,-1,0,0][k], nz=z+[0,0,1,-1][k]; if(!inb(nx,nz)) continue; const j=idx(nx,nz); if(Math.abs(hgt[j]-hgt[i])>.8) continue; /* no path over a ledge: stairs only */
       if(dist[j]>=0||!walk(grid[j])) continue; if(respect&&defAt[j]&&defAt[j].kind!=='slice') continue;
       dist[j]=dist[i]+1; nxt[j]=i; q.push(j); } }
   return {nxt,dist};
@@ -111,9 +143,7 @@ addEventListener('resize',onResize); onResize();
 // lights: cool ambient, warm torches, cyan crystal
 scene.add(new THREE.HemisphereLight(C(0x5a4a8a),C(0x130d1a),0.62));
 const sun=new THREE.DirectionalLight(C(0x8a7ab0),0.22); sun.position.set(6,14,4); scene.add(sun);
-const LIGHTS=[[-9,4.4,-9,0xff8a2a,1.5,16],[9,4.4,-9,0xff8a2a,1.5,16],[-9,4.4,9,0xff8a2a,1.5,16],[9,4.4,9,0xff8a2a,1.5,16],
-  [0,5,-6,0xffb05a,.8,13],[0,3.2,0,0x4ae6ff,1.3,15],[0,4,-18,0xff8a2a,1.7,15],[0,4,-26,0xff8a2a,1.2,12],[-16,4,0,0xff8a2a,1.7,15],[-24,4,-10,0xff8a2a,1.5,14],[-24,4,-22,0xff8a2a,1.4,13],[18,4,0,0xff8a2a,1.7,15],[28,4,0,0xff8a2a,1.6,15],[-22,4,-26,0xc040ff,.9,10],[0,4,-28,0xc040ff,.9,10],[30,4,0,0xc040ff,.9,10],
-  [0,4.2,19,0xffb05a,1.3,13],[-6,3.8,24,0xff8a2a,1.2,12],[6,3.8,22,0xff8a2a,1.2,12],[0,2.2,26.4,0xff7a1a,1.6,9]];   // the tavern: lamps and the hearth
+const LIGHTS=MAP.lights.map(l=>Array.isArray(l)?l:[cw(l.cx)+(l.ox||0),l.y,cwz(l.cz)+(l.oz||0),l.c,l.i,l.d]);   // world coords, or {cx,cz} grid cells
 const torchLights=[];
 // sconces burn brighter and reach further than the crystal / portal glows (the hall was too dark)
 const SCONCE_BOOST=1.75, SCONCE_REACH=1.3;
@@ -191,9 +221,9 @@ const FLOORTEX=paintFloor(), WALLTEX=paintWall(), BANNERTEX=paintBanner();
 const world=new THREE.Group(); scene.add(world);
 { const floor=new THREE.Mesh(new THREE.PlaneGeometry(GW*CELL,GH*CELL),new THREE.MeshToonMaterial({map:FLOORTEX,gradientMap:GRAD,color:C(0xffffff)})); floor.rotation.x=-PI/2; floor.position.set(GW*CELL/2-OX,0,GH*CELL/2-OZ); world.add(floor);
   const dais=new THREE.Mesh(new THREE.PlaneGeometry(6,6),new THREE.MeshToonMaterial({map:FLOORTEX,gradientMap:GRAD,color:C(0xffffff)})); // raised copy of the dais cells
-  const u0=15/GW,u1=18/GW,v0=1-19/GH,v1=1-16/GH; const uv=dais.geometry.attributes.uv; uv.setXY(0,u0,v1); uv.setXY(1,u1,v1); uv.setXY(2,u0,v0); uv.setXY(3,u1,v0); uv.needsUpdate=true;
-  dais.rotation.x=-PI/2; dais.position.set(0,0.5,0); world.add(dais);
-  const daisSide=new THREE.Mesh(G.box(6,0.5,6),mat(0x4e4236)); daisSide.position.set(0,0.25,0); world.add(daisSide);
+  const [kx,kz]=MAP.crystal; const u0=(kx-1)/GW,u1=(kx+2)/GW,v0=1-(kz+2)/GH,v1=1-(kz-1)/GH; const uv=dais.geometry.attributes.uv; uv.setXY(0,u0,v1); uv.setXY(1,u1,v1); uv.setXY(2,u0,v0); uv.setXY(3,u1,v0); uv.needsUpdate=true;
+  dais.rotation.x=-PI/2; dais.position.set(0,0.5+hgt[GOAL],0); world.add(dais);
+  const daisSide=new THREE.Mesh(G.box(6,0.5,6),mat(0x4e4236)); daisSide.position.set(0,0.25+hgt[GOAL],0); world.add(daisSide);
   [[0,-3.05],[0,3.05]].forEach(([x,z])=>world.add(M(G.box(6.2,.1,.12),mat(0xe0b040),x,.5,z))); [[-3.05,0],[3.05,0]].forEach(([x,z])=>world.add(M(G.box(.12,.1,6.2),mat(0xe0b040),x,.5,z)));
   const ceil=new THREE.Mesh(new THREE.PlaneGeometry(GW*CELL,GH*CELL),mat(0x120c1a)); ceil.rotation.x=PI/2; ceil.position.set(GW*CELL/2-OX,WALLH,GH*CELL/2-OZ); world.add(ceil);
 }
@@ -215,32 +245,51 @@ const wallFaces=[];
   for(let z=0;z<GH;z++) for(let x=0;x<GW;x++){ if(grid[idx(x,z)]!==T.WALL) continue; const x0=cw(x)-1,x1=cw(x)+1,z0=cwz(z)-1,z1=cwz(z)+1; cp.push(x0,WALLH,z0,x1,WALLH,z0,x1,WALLH,z1,x0,WALLH,z1); ci.push(cvi,cvi+2,cvi+1,cvi,cvi+3,cvi+2); cvi+=4; }
   capGeo.setAttribute('position',new THREE.Float32BufferAttribute(cp,3)); capGeo.setIndex(ci); world.add(new THREE.Mesh(capGeo,basic(0x0b0712)));
 }
+// raised floors and stairs: tops carry the painted floor (same texture window as the flat floor), drops and risers are stone
+{ const tp=[],tn=[],tu=[],ti=[]; let tv=0; const sp=[],sn=[],si=[]; let sv=0;
+  const Hc=(cx,cz,fx,fz)=>{ if(!inb(cx,cz)||grid[idx(cx,cz)]===T.WALL) return -1; return floorH(cw(cx)-CELL/2+fx*CELL,cwz(cz)-CELL/2+fz*CELL); };   // -1: a wall (its face covers the drop)
+  const side=(A,B,lo,hi,nx,nz)=>{ sp.push(A[0],lo,A[1], A[0],hi,A[1], B[0],hi,B[1], B[0],lo,B[1]); for(let q=0;q<4;q++) sn.push(nx,0,nz); si.push(sv,sv+1,sv+2,sv,sv+2,sv+3); sv+=4; };
+  for(let cz=0;cz<GH;cz++) for(let cx=0;cx<GW;cx++){ const i=idx(cx,cz); if(grid[i]===T.WALL||(hgt[i]<=0&&!rampA[i])) continue; const a=rampA[i], alongZ=a===1||a===2; const X0=cw(cx)-CELL/2, Z0=cwz(cz)-CELL/2;
+    for(let k=0;k<(a?2:1);k++){ const fx0=(a&&!alongZ)?k/2:0, fx1=(a&&!alongZ)?(k+1)/2:1, fz0=(a&&alongZ)?k/2:0, fz1=(a&&alongZ)?(k+1)/2:1; const y=Hc(cx,cz,(fx0+fx1)/2,(fz0+fz1)/2);
+      const P=[[X0+fx0*CELL,Z0+fz0*CELL],[X0+fx0*CELL,Z0+fz1*CELL],[X0+fx1*CELL,Z0+fz1*CELL],[X0+fx1*CELL,Z0+fz0*CELL]], U=[[fx0,fz0],[fx0,fz1],[fx1,fz1],[fx1,fz0]];
+      for(let q=0;q<4;q++){ tp.push(P[q][0],y,P[q][1]); tn.push(0,1,0); tu.push((cx+U[q][0])/GW,1-(cz+U[q][1])/GH); } ti.push(tv,tv+1,tv+2,tv,tv+2,tv+3); tv+=4; }
+    // drops to lower neighbours and the riser between a stair cell's two steps, in half-cell segments
+    for(let sgm=0;sgm<2;sgm++){ const f0=sgm/2, f1=(sgm+1)/2, fm=(f0+f1)/2;
+      const E=[[1,0,[X0+CELL,Z0+f0*CELL],[X0+CELL,Z0+f1*CELL],Hc(cx,cz,.99,fm),Hc(cx+1,cz,.01,fm)],[-1,0,[X0,Z0+f1*CELL],[X0,Z0+f0*CELL],Hc(cx,cz,.01,fm),Hc(cx-1,cz,.99,fm)],[0,1,[X0+f1*CELL,Z0+CELL],[X0+f0*CELL,Z0+CELL],Hc(cx,cz,fm,.99),Hc(cx,cz+1,fm,.01)],[0,-1,[X0+f0*CELL,Z0],[X0+f1*CELL,Z0],Hc(cx,cz,fm,.01),Hc(cx,cz-1,fm,.99)]];
+      for(const [nx,nz,A,B,mine,theirs] of E){ if(theirs<0||mine<=theirs+.01) continue; side(A,B,theirs,mine,nx,nz); }
+      if(a){ const lo=Hc(cx,cz,alongZ?fm:(a===3?.49:.51),alongZ?(a===1?.51:.49):fm), hi=Hc(cx,cz,alongZ?fm:(a===3?.51:.49),alongZ?(a===1?.49:.51):fm); if(hi>lo+.01){ const A=alongZ?[X0+f0*CELL,Z0+CELL/2]:[X0+CELL/2,Z0+f0*CELL], B=alongZ?[X0+f1*CELL,Z0+CELL/2]:[X0+CELL/2,Z0+f1*CELL]; const nx=a===3?-1:a===4?1:0, nz=a===1?1:a===2?-1:0; side(nx===-1||nz===-1?B:A,nx===-1||nz===-1?A:B,lo,hi,nx,nz); } } } }
+  if(tv){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(tp,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(tn,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(tu,2)); g.setIndex(ti); world.add(new THREE.Mesh(g,new THREE.MeshToonMaterial({map:FLOORTEX,gradientMap:GRAD,color:C(0xffffff),side:THREE.DoubleSide})));
+    const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3)); sg.setAttribute('normal',new THREE.Float32BufferAttribute(sn,3)); sg.setIndex(si); world.add(new THREE.Mesh(sg,mat(0x3e3450,{side:THREE.DoubleSide}))); } }
 // pillars, props, torches, banners
 const flames=[];
 function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(0x2b2540),0,0,.17)); const h=M(G.cyl(.05,.07,.7,7),mat(0x6b4a2a),0,.2,.34); h.rotation.x=-.35; g.add(h);
   g.add(M(G.cyl(.09,.07,.14,7),mat(0x3a3348),0,.56,.45));
   const f=M(G.cone(.17,.5,7),basic(0xff7a1a),0,.85,.46); f.userData.noOL=true; const f2=M(G.cone(.09,.34,7),basic(0xffd060),0,.82,.46); f2.userData.noOL=true; g.add(f,f2); const gl=glow(0xff8a2a,2.6,.7); gl.position.set(0,.9,.46); g.add(gl); flames.push({f,f2,p:rnd()*9}); return g; }
 { // pillars
-  [[12,13],[20,13],[12,21],[20,21]].forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z));
+  MAP.pillars.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z));
     g.add(M(G.box(2,.5,2),mat(0x4a4262),0,.25,0)); g.add(M(G.cyl(.62,.7,6,12),mat(0x5a5276),0,3.5,0)); g.add(M(G.box(2,.5,2),mat(0x4a4262),0,6.75,0)); g.add(M(G.box(1.6,.2,1.6),mat(0xe0b040),0,.6,0)); world.add(g); });
   // props: barrels & crates in the hall corners
-  [[10,11],[22,11]].forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); const bm=mat(0x7a4f2c), band=mat(0x2b2540);
+  MAP.barrels.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); const bm=mat(0x7a4f2c), band=mat(0x2b2540);
     [[-.4,0,-.3],[.45,0,.35],[0,1.1,0]].forEach(([bx,by,bz])=>{ const b=new THREE.Group(); b.position.set(bx,by+.55,bz); b.add(M(G.cyl(.42,.42,1.1,10),bm)); b.add(M(G.cyl(.45,.45,.1,10),band,0,.35,0)); b.add(M(G.cyl(.45,.45,.1,10),band,0,-.35,0)); g.add(b); }); world.add(outline(g)); });
-  [[10,23],[22,23]].forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); const cm=mat(0x8a5e34);
+  MAP.crates.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); const cm=mat(0x8a5e34);
     g.add(M(G.box(1.1,1.1,1.1),cm,-.35,.55,.2)); g.add(M(G.box(.9,.9,.9),cm,.5,.45,-.3)); g.add(M(G.box(.8,.8,.8),cm,-.2,1.5,.2)); g.add(M(G.box(1.14,.08,.08),mat(0x3a2a20),-.35,.55,.76)); world.add(outline(g)); });
   // torches + banners along the walls
-  let i=0; wallFaces.forEach(f=>{ const inHall=f.cx>=10&&f.cx<=22&&f.cz>=11&&f.cz<=23; i++;
+  let i=0; const [hx0,hx1,hz0,hz1]=MAP.hall; wallFaces.forEach(f=>{ const inHall=f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1; i++;
     const yaw=Math.atan2(f.nx,f.nz);
     if(i%4===1){ const t=makeTorch(); t.position.set(f.x,3.1,f.z); t.rotation.y=yaw; world.add(t); }
     else if(inHall&&i%4===3){ const b=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.6),new THREE.MeshToonMaterial({map:BANNERTEX,gradientMap:GRAD,color:C(0xffffff),transparent:true,side:THREE.DoubleSide,alphaTest:.5})); b.position.set(f.x+f.nx*.12,4.2,f.z+f.nz*.12); b.rotation.y=yaw; world.add(b); const rod=M(G.cyl(.05,.05,1.7,6),mat(0xe0b040),f.x+f.nx*.12,5.5,f.z+f.nz*.12); rod.rotation.y=yaw; rod.rotation.z=PI/2; world.add(rod); } });
+  if(MAP.throne){ const [tx,tz]=MAP.throne; const g=new THREE.Group(); g.position.set(cw(tx),hgt[idx(tx,tz)],cwz(tz)); const st=mat(0x4a4262), gd=mat(0xe0b040), rd=mat(0xa01c28), dk=mat(0x2b2540);   // the throne: a wide stone seat, tall back, gold trim, red cushion, facing the hall
+    g.add(M(G.box(4.2,.35,3.2),st,0,.17,.2)); g.add(M(G.box(2.6,1.0,1.9),dk,0,.85,-.1)); g.add(M(G.box(2.4,.28,1.6),rd,0,1.45,0)); g.add(M(G.box(3.0,3.6,.5),dk,0,2.6,-1.15)); g.add(M(G.box(2.6,3.2,.12),rd,0,2.7,-.85)); g.add(M(G.box(3.2,.2,.6),gd,0,4.45,-1.15));
+    for(const sx of [-1,1]){ g.add(M(G.box(.4,.7,1.9),dk,sx*1.5,1.55,-.1)); g.add(M(G.box(.5,.12,2.0),gd,sx*1.5,1.95,-.1)); g.add(M(G.sph(.28,8,6),gd,sx*1.4,4.7,-1.15)); g.add(M(G.cyl(.16,.2,.9,7),gd,sx*1.45,.8,.9)); }
+    world.add(outline(g)); }
   // chandelier over the north half of the hall
-  const ch=new THREE.Group(); ch.position.set(0,5.2,-6); const ring=M(new THREE.TorusGeometry(1.6,.09,6,18),mat(0x2b2540)); ring.rotation.x=PI/2; ch.add(ring); ch.add(M(G.cyl(.03,.03,1.8,5),mat(0x2b2540),0,.9,0));
+  const ch=new THREE.Group(); ch.position.set(MAP.chandelier[0],5.2,MAP.chandelier[1]); const ring=M(new THREE.TorusGeometry(1.6,.09,6,18),mat(0x2b2540)); ring.rotation.x=PI/2; ch.add(ring); ch.add(M(G.cyl(.03,.03,1.8,5),mat(0x2b2540),0,.9,0));
   for(let k=0;k<6;k++){ const a=k/6*TAU; ch.add(M(G.cyl(.06,.06,.32,6),mat(0xf4ead0),Math.cos(a)*1.6,.2,Math.sin(a)*1.6)); const f=M(G.cone(.08,.24,6),basic(0xffd060),Math.cos(a)*1.6,.48,Math.sin(a)*1.6); f.userData.noOL=true; ch.add(f); flames.push({f,f2:f,p:k}); } const cg=glow(0xffb05a,3,.5); cg.position.y=.4; ch.add(cg); world.add(ch);
   // beams
-  [-8,0,8].forEach(z=>world.add(M(G.box(26,.5,.5),mat(0x2a1f2c),0,WALLH-.25,z)));
+  MAP.beams.zs.forEach(z=>world.add(M(G.box(MAP.beams.w,.5,.5),mat(0x2a1f2c),0,WALLH-.25,z)));
 }
 // crystal on its pedestal
-const crystalG=new THREE.Group(); world.add(crystalG);
+const crystalG=new THREE.Group(); crystalG.position.y=hgt[GOAL]; world.add(crystalG);
 const crystalMesh=(()=>{ const m=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),new THREE.MeshToonMaterial({color:C(0x2fb8e8),emissive:C(0x0e7aa8),emissiveIntensity:.55,gradientMap:GRAD})); m.scale.set(1,1.9,1); return m; })();
 { crystalG.add(M(G.cyl(1.5,1.7,.3,12),mat(0x4a4262),0,.65,0)); crystalG.add(M(G.cyl(1.1,1.3,.3,12),mat(0x5a5276),0,.95,0)); crystalG.add(M(G.cyl(.7,.9,.35,10),mat(0x4a4262),0,1.27,0)); crystalG.add(M(G.cyl(1.32,1.32,.08,12),mat(0xe0b040),0,.83,0));
   const cg=new THREE.Group(); cg.position.y=3.2; cg.add(outline(crystalMesh)); cg.add(glow(0x4ae6ff,4.2,.45)); crystalG.add(cg); crystalG.userData.cg=cg;
@@ -373,6 +422,7 @@ function mobSpd(e){ return e.spd*(e.slowT>0?DEFS.slice.slow:1); }   // spored mo
 const MOBS={goblin:{hp:10,spd:3.4,dmg:3,cd:1.0,mana:1,detour:3}, orc:{hp:45,spd:2.1,dmg:8,cd:1.4,mana:3,detour:1}, archer:{hp:18,spd:2.8,dmg:3,cd:1.6,mana:2,ranged:11,detour:4}, ogre:{hp:200,spd:1.7,dmg:20,cd:2.2,mana:8,detour:0}};
 const DU_CAP=40, SENS=0.0042;
 const S={mana:260,du:0,crystal:100,wave:0,phase:'start',t:0,waveT:0,kills:0};
+function effWave(w){ return MAP.wbase+(w===undefined?S.wave:w); }   // map 2 wave 1 is the eighth wave of the campaign: mobs, loot and pay scale with this
 const hero={x:0,y:0,z:6,vy:0,yaw:PI,hp:100,max:100,swingT:-1,hitDone:false,dead:0,ph:0,moving:false,hurtT:0,grounded:true};
 const H=makeHero(); scene.add(H.g); const heroShadow=blob(.5); scene.add(heroShadow);
 const cam={yaw:PI,pitch:.42,dist:8,d:8,x:0,y:5,z:14};
@@ -392,12 +442,14 @@ const joy={x:0,y:0,id:null,ox:0,oy:0}; let lookId=null, lookX=0, lookY=0;
 function angDiff(a,b){ let d=(b-a)%TAU; if(d>PI) d-=TAU; if(d<-PI) d+=TAU; return d; }
 function angLerp(a,b,t){ return a+angDiff(a,b)*t; }
 function easeOutBack(t){ const c=1.7; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2); }
-function solidAt(x,z,y,forHero){ const cx=wc(x),cz=wcz(z); const t=gat(cx,cz); if(forHero?heroSolid(t):!walk(t)) return true; const d=inb(cx,cz)?defAt[idx(cx,cz)]:null; if(d){ if(d.kind==='slice') return false; return forHero?y<d.top-.25:true; } return false; }
+function solidAt(x,z,y,forHero){ const cx=wc(x),cz=wcz(z); const t=gat(cx,cz); if(forHero?heroSolid(t):!walk(t)) return true; if(baseFloor(x,z)>y+.62) return true; /* a ledge taller than a step: no climbing it (a jumping hero clears what it can) */ const d=inb(cx,cz)?defAt[idx(cx,cz)]:null; if(d){ if(d.kind==='slice') return false; return forHero?y<d.top-.25:true; } return false; }
 const ARC=[[1,0],[-1,0],[0,1],[0,-1],[.71,.71],[-.71,.71],[.71,-.71],[-.71,-.71]];
 function moveCircle(e,dx,dz,r,forHero){ const y=e.y||0; let nx=e.x+dx, ok=true; for(const a of ARC){ if(solidAt(nx+a[0]*r,e.z+a[1]*r,y,forHero)){ ok=false; break; } } if(ok) e.x=nx;
   let nz=e.z+dz; ok=true; for(const a of ARC){ if(solidAt(e.x+a[0]*r,nz+a[1]*r,y,forHero)){ ok=false; break; } } if(ok) e.z=nz; }
 function wallAt(x,z){ const t=gat(wc(x),wcz(z)); return t===T.WALL||t===T.PILLAR||t===T.CRYSTAL||t===T.PROP; }
-function baseFloor(x,z){ return gat(wc(x),wcz(z))===T.DAIS?.5:0; }
+// floor height at a point: raised floors, and stairs as two flat steps per cell (climbing them bobs a little, like stairs do)
+function floorH(x,z){ const cx=wc(x),cz=wcz(z); if(!inb(cx,cz)) return 0; const i=idx(cx,cz), a=rampA[i]; if(!a) return hgt[i]; const fx=(x+OX)/CELL-cx, fz=(z+OZ)/CELL-cz; const t=a===1?1-fz:a===2?fz:a===3?fx:1-fx; return rampL[i]+(rampH[i]-rampL[i])*(t<.5?.5:1); }
+function baseFloor(x,z){ return floorH(x,z)+(gat(wc(x),wcz(z))===T.DAIS?.5:0); }
 function floorAt(x,z,y){ const cx=wc(x),cz=wcz(z); let f=baseFloor(x,z); const d=inb(cx,cz)?defAt[idx(cx,cz)]:null; if(d&&y>=d.top-.25) f=Math.max(f,d.top); return f; }
 function floatText(x,y,z,txt,col){ floats.push({x,y,z,txt,col:col||'#fff',t:0}); }
 function banner(t,sub){ $('banner').innerHTML=t+'<small>'+(sub||'')+'</small>'; $('banner').style.opacity=1; bannerT=3.4; }
@@ -425,15 +477,15 @@ function heroUpdate(dt){
   heroModelUpdate(dt);
 }
 function jump(){ if(hero.grounded&&hero.dead<=0&&S.phase!=='start'){ hero.vy=10.6; hero.grounded=false; SFX.jump(); } }
-function swing(){ if(hero.swingT>=0||hero.dead>0||S.phase==='start'||S.phase==='dead') return; hero.swingT=0; hero.hitDone=false; SFX.swing(); if(!hero.moving) hero.yaw=cam.yaw;
+function swing(){ if(hero.swingT>=0||hero.dead>0||S.phase==='start'||S.phase==='dead'||S.phase==='won') return; hero.swingT=0; hero.hitDone=false; SFX.swing(); if(!hero.moving) hero.yaw=cam.yaw;
   if(useGLB&&GLBH&&GLBH.actions.attack) playHero('attack',{restart:true,fade:.05,speed:GLBH.map.attack.duration/swingDur()}); }
 function hitCone(){ const fx=Math.sin(hero.yaw), fz=Math.cos(hero.yaw); let n=0; for(const e of enemies){ if(e.dead) continue; const dx=e.x-hero.x, dz=e.z-hero.z, d=Math.hypot(dx,dz); if(d<2.4+e.r&&(dx*fx+dz*fz)/Math.max(d,.01)>.4){ hurt(e,heroDmg(),fx*1.4,fz*1.4); n++; } } if(n) SFX.hit(); }
 function hurtHero(dmg){ if(hero.dead>0) return; dmg=Math.max(1,Math.round(dmg*(1-Math.min(75,heroStat('def'))/100))); hero.hp-=dmg; hero.hurtT=3; flashDmg(); SFX.hurt(); if(hero.hp<=0){ hero.hp=0; hero.dead=4; toast('You fell! Back in 4 seconds…'); H.g.visible=false; heroShadow.visible=false; } }
-function hurtCrystal(dmg){ if(S.phase==='dead') return; S.crystal-=dmg; flashDmg(); SFX.crystal(); crystalShake=.4; if(S.crystal<=0){ S.crystal=0; S.phase='dead'; droneOff(); setMusic('none'); sting(); if(document.exitPointerLock) document.exitPointerLock(); document.body.classList.remove('play'); if(!Meta.onRunEnd(S.wave)){ $('deadwave').textContent=S.wave; $('dead').classList.remove('hide'); } } }
+function hurtCrystal(dmg){ if(S.phase==='dead'||S.phase==='won') return; S.crystal-=dmg; flashDmg(); SFX.crystal(); crystalShake=.4; if(S.crystal<=0){ S.crystal=0; S.phase='dead'; droneOff(); setMusic('none'); sting(); if(document.exitPointerLock) document.exitPointerLock(); document.body.classList.remove('play'); if(!Meta.onRunEnd(S.wave)){ $('deadwave').textContent=S.wave; $('dead').classList.remove('hide'); } } }
 
 // ================= GLB HERO (built-in squire, or drop any .glb on the page) =================
 let GLBH=null, useGLB=false, heroYawOff=0, heroLoadError='';
-const BUILD=19;
+const BUILD=20;
 function heroStatus(msg){ const el=$('buildline'); if(el) el.textContent='build '+BUILD+' · '+msg; }
 const OLSKIN=new THREE.ShaderMaterial({side:THREE.BackSide,fog:true,skinning:true,
   uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{t:{value:0.028},col:{value:C(0x160c1e)}}]),
@@ -537,7 +589,7 @@ function updateCamera(dt){
   if(S.phase==='start'){ introA+=dt*.1; camera.position.set(Math.sin(introA)*15,6.5,Math.cos(introA)*15); camera.lookAt(0,2.6,0); return; }
   const tx=hero.x, ty=hero.y+1.5, tz=hero.z;
   const cp=Math.cos(cam.pitch), fx=Math.sin(cam.yaw)*cp, fz=Math.cos(cam.yaw)*cp, fy=Math.sin(cam.pitch);
-  let d=cam.dist; for(let s=.5;s<cam.dist;s+=.25){ const px=tx-fx*s, py=ty+fy*s, pz=tz-fz*s; if(py>WALLH-.35){ d=s-.3; break; } const g=gat(wc(px),wcz(pz)); if(g===T.WALL||g===T.PILLAR||g===T.PROP){ d=s-.5; break; } }
+  let d=cam.dist; for(let s=.5;s<cam.dist;s+=.25){ const px=tx-fx*s, py=ty+fy*s, pz=tz-fz*s; if(py>WALLH-.35){ d=s-.3; break; } if(py<floorH(px,pz)+.5){ d=s-.4; break; } const g=gat(wc(px),wcz(pz)); if(g===T.WALL||g===T.PILLAR||g===T.PROP){ d=s-.5; break; } }
   d=Math.max(d,1.0); cam.d=dt>0?(d<cam.d?d:lerp(cam.d,d,1-Math.exp(-6*dt))):d;
   const dx=tx-fx*cam.d, dy=ty+fy*cam.d, dz=tz-fz*cam.d; const k=dt>0?1-Math.exp(-16*dt):1;
   cam.x=lerp(cam.x,dx,k); cam.y=lerp(cam.y,dy,k); cam.z=lerp(cam.z,dz,k);
@@ -545,7 +597,7 @@ function updateCamera(dt){
 }
 
 // ================= ENEMIES =================
-function spawnEnemy(kind,lane){ const L=LANES[lane]||LANES.N; const m=makeMob(kind); const cfg=MOBS[kind]; const w=Math.max(0,S.wave-1); const hpm=(1+.22*w)*(1+.08*gearScore()/100); /* waves get harder by wave, not by what you wear — good gear should feel good */ const dmm=1+.08*w;
+function spawnEnemy(kind,lane){ const L=LANES[lane]||LANES.N; const m=makeMob(kind); const cfg=MOBS[kind]; const w=Math.max(0,effWave()-1); const hpm=(1+.22*w)*(1+.08*gearScore()/100); /* waves get harder by wave, not by what you wear — good gear should feel good */ const dmm=1+.08*w;
   const e={kind,x:cw(L.cx)+R(-.6,.6),y:0,z:cwz(L.cz)+R(-.6,.6),hp:Math.round(cfg.hp*hpm),max:Math.round(cfg.hp*hpm),spd:cfg.spd*R(.9,1.1)*(1+.02*w),dmg:Math.round(cfg.dmg*dmm),cd:cfg.cd,atk:R(0,.5),r:m.r,h:m.h,mdl:m,sc:m.g.scale.x,ph:rnd()*6,yaw:L.face,dead:0,mana:cfg.mana,ranged:cfg.ranged||0,pop:0,squash:0,swing:-1,walking:false,sx:0,sz:0,shoutT:0};
   e.roar=(m.glb&&m.actions.shout)?0:-1;   // a mini-boss roars when it first comes into view (and again, enraged, at half health) — see ogreRoar
   m.g.position.set(e.x,0,e.z); m.g.rotation.y=e.yaw; scene.add(m.g); enemies.push(e); const p=portals.find(p=>p.k===lane); if(p) p.pulse=1; return e; }
@@ -594,9 +646,9 @@ function updateEnemies(dt){
 function footprintCells(kind,x,z,yaw){ const cells=[idx(wc(x),wcz(z))]; if(kind==='spike'){ const ax=Math.cos(yaw), az=-Math.sin(yaw); for(const s of [-.9,.9]){ const cx=wc(x+ax*s), cz=wcz(z+az*s); if(!inb(cx,cz)) continue; const i=idx(cx,cz); if(!cells.includes(i)) cells.push(i); } } return cells; }
 // where the camera is looking on the floor, kept within reach of the hero (look further away to build further away)
 function aimPoint(){ const fx=Math.sin(cam.yaw), fz=Math.cos(cam.yaw);
-  if(!TOUCH){ const dir=new THREE.Vector3(); camera.getWorldDirection(dir); if(dir.y<-.02){ const t=camera.position.y/-dir.y; let px=camera.position.x+dir.x*t, pz=camera.position.z+dir.z*t; const dx=px-hero.x, dz=pz-hero.z, d=Math.hypot(dx,dz); const md=Math.min(8,Math.max(1.6,d)); if(d>.01){ px=hero.x+dx/d*md; pz=hero.z+dz/d*md; } return [px,pz]; } }
+  if(!TOUCH){ const dir=new THREE.Vector3(); camera.getWorldDirection(dir); if(dir.y<-.02){ const t=(camera.position.y-hero.y)/-dir.y; let px=camera.position.x+dir.x*t, pz=camera.position.z+dir.z*t; const dx=px-hero.x, dz=pz-hero.z, d=Math.hypot(dx,dz); const md=Math.min(8,Math.max(1.6,d)); if(d>.01){ px=hero.x+dx/d*md; pz=hero.z+dz/d*md; } return [px,pz]; } }
   return [hero.x+fx*3.2,hero.z+fz*3.2]; }
-function placeDefAt(kind,x,z,rot){ const cfg=DEFS[kind]; const cx=wc(x), cz=wcz(z); const base=gat(cx,cz)===T.DAIS?.5:0; const cells=footprintCells(kind,x,z,rot||0).filter(i=>walk(grid[i])&&!defAt[i]);
+function placeDefAt(kind,x,z,rot){ const cfg=DEFS[kind]; const cx=wc(x), cz=wcz(z); const base=baseFloor(x,z); const cells=footprintCells(kind,x,z,rot||0).filter(i=>walk(grid[i])&&!defAt[i]&&!rampA[i]);
   const d={kind,cx,cz,cells,x,z,base,rot:rot||0,hp:cfg.hp,max:cfg.hp,top:cfg.top+base,cd:R(.2,cfg.cd),yaw:rot||0,mdl:makeDef(kind,false),pop:0,recoil:0,spin:0,shake:0,lvl:1,spent:cfg.mana};
   d.mdl.position.set(d.x,base,d.z); d.mdl.rotation.y=d.rot; scene.add(d.mdl); defs.push(d); for(const i of cells) defAt[i]=d; S.du+=cfg.du; S.mana-=cfg.mana; reflow(); SFX.place(); return d; }
 function placeDef(kind,cx,cz,rot){ return placeDefAt(kind,cw(cx),cwz(cz),rot||0); }
@@ -672,12 +724,12 @@ function heroDmg(){ return Math.round((8+heroStat('dmg'))*heroMult('dmg')*(swing
 function gearScore(){ let v=0; for(const s of SLOTS){ if(gear[s]) v+=gear[s].score; } return v; }
 function swingDur(){ return swingBase()/((1+heroStat('spd')/100)*heroMult('spd')); }
 function hitFrac(){ return (useGLB&&GLBH&&GLBH.hitFrac)||.32; }
-function rollRarity(minR){ const w=Math.max(1,S.wave); const wt=[Math.max(25,64-1.2*w),25,8.5+.7*w,w>=3?2+.35*w:0,w>=6?.5+.12*w:0]; const tot=wt.reduce((a,b)=>a+b,0); let r=LR()*tot, i=0; while(i<4&&r>=wt[i]){ r-=wt[i]; i++; } return Math.max(minR||0,i); }
+function rollRarity(minR){ const w=Math.max(1,effWave()); const wt=[Math.max(25,64-1.2*w),25,8.5+.7*w,w>=3?2+.35*w:0,w>=6?.5+.12*w:0]; const tot=wt.reduce((a,b)=>a+b,0); let r=LR()*tot, i=0; while(i<4&&r>=wt[i]){ r-=wt[i]; i++; } return Math.max(minR||0,i); }
 function rollStat(k,L,r){ const j=.8+LR()*.4; const v={dmg:(1.5+L*.6)*(1+r*.45),spd:5+r*6+L,hp:(8+L*4)*(1+r*.45),def:3+r*3+L*.6,regen:(.5+r*.5+L*.15)*10,tow:4+r*5+L*1.2,mana:10+r*8+L*1.5,move:3+r*2.5+L*.5,fdmg:(2+L*.8)*(1+r*.5),frate:8+r*8+L*1.5}[k]*j;
   return k==='regen'?Math.round(v)/10:Math.round(Math.min(k==='def'?45:k==='move'?40:999,v)); }
 // tier: which bracket of waves an item belongs to (shop stock is sold by tier)
 function tierOf(L){ return Math.min(5,1+Math.floor((Math.max(1,L)-1)/3)); }
-function rollItem(minR,slot,lvl){ slot=slot||SLOTS[(LR()*SLOTS.length)|0]; const r=rollRarity(minR), L=Math.max(1,lvl||S.wave);
+function rollItem(minR,slot,lvl){ slot=slot||SLOTS[(LR()*SLOTS.length)|0]; const r=rollRarity(minR), L=Math.max(1,lvl||effWave());
   const pools={weapon:['dmg','spd'],armor:['hp','def','regen'],charm:['tow','mana','move'],amulet:['hp','regen','def','spd'],familiar:['fdmg','frate']}; const keys=pools[slot].slice(0,1+Math.min(r,pools[slot].length-1));
   if(r===4){ const others=Object.keys(STATW).filter(k=>!keys.includes(k)); keys.push(others[(LR()*others.length)|0]); }
   const stats={}; keys.forEach(k=>{ stats[k]=rollStat(k,L,r); });
@@ -697,7 +749,7 @@ function lootMesh(it){ const g=new THREE.Group(); const col=RCOL[it.rarity]; con
   const ring=new THREE.Mesh(new THREE.RingGeometry(.35,.55,20),new THREE.MeshBasicMaterial({color:C(col),transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); ring.rotation.x=-PI/2; ring.position.y=.05; ring.userData.noOL=true; g.add(ring); g.userData.ring=ring;
   const gl=glow(col,1.6+it.rarity*.35,.6); gl.position.y=.55; g.add(gl); return g; }
 function dropLoot(it,x,z,gentle){ const a=LR()*TAU, sp=gentle?.6:2.2; const l={it,x,y:.6,z,vx:Math.cos(a)*sp,vy:gentle?3:5,vz:Math.sin(a)*sp,mesh:lootMesh(it),t:0}; l.mesh.position.set(x,.6,z); scene.add(l.mesh); loot.push(l); return l; }
-function rollDrop(e){ const ch=DROP[e.kind]||0; if(LR()<ch) dropLoot(rollItem(e.kind==='ogre'?(S.wave>=6?2:1):0),e.x,e.z); if(e.kind==='ogre'&&LR()<.5) dropLoot(rollItem(1),e.x,e.z); }
+function rollDrop(e){ const ch=DROP[e.kind]||0; if(LR()<ch) dropLoot(rollItem(e.kind==='ogre'?(effWave()>=6?2:1):0),e.x,e.z); if(e.kind==='ogre'&&LR()<.5) dropLoot(rollItem(1),e.x,e.z); }
 function lootToast(it,verb){ $('toast').innerHTML='<b style="color:'+RCSS[it.rarity]+'">'+it.name+'</b> · '+statStr(it)+' — '+verb; $('toast').style.opacity=1; toastT=3.4; }
 function applyGear(){ const oldMax=hero.max; hero.max=Math.round((100+heroStat('hp'))*heroMult('hp')); if(hero.max>oldMax) hero.hp+=hero.max-oldMax; hero.hp=Math.min(hero.hp,hero.max); }
 function saveGear(){ try{ localStorage.setItem('ddGear',JSON.stringify(gear)); }catch(e){} }
@@ -718,27 +770,33 @@ function updateGearHUD(){ let h=''; for(const s of SLOTS){ const it=gear[s]; h+=
 loadGear();
 
 // ================= WAVES =================
-function waveComp(w){ const lanes=w<2?['N']:w<4?['N','W']:['N','W','E']; const q=[]; let t=1.5; const n=6+3*w; const gap=Math.max(.35,.8-.03*w); for(let i=0;i<n;i++){ q.push({t,kind:'goblin',lane:lanes[i%lanes.length]}); t+=gap; }
+function waveComp(w){ const all=Object.keys(LANES); const lanes=w<2?all.slice(0,1):w<4?all.slice(0,2):all; const q=[]; let t=1.5; const n=6+3*w; const gap=Math.max(.35,.8-.03*w); for(let i=0;i<n;i++){ q.push({t,kind:'goblin',lane:lanes[i%lanes.length]}); t+=gap; }
   const orcs=w>=2?w-1:0; for(let i=0;i<orcs;i++) q.push({t:3+i*2.2,kind:'orc',lane:lanes[(i+1)%lanes.length]});
   const arch=w>=3?Math.floor(w/2):0; for(let i=0;i<arch;i++) q.push({t:4+i*1.8,kind:'archer',lane:lanes[i%lanes.length]});
-  const ogres=w>=4&&(w-4)%3===0?(w>=10?2:1):0; for(let i=0;i<ogres;i++) q.push({t:t+2+i*4,kind:'ogre',lane:i?'E':'N'});
+  const ogres=w>=4&&(w-4)%3===0?(w>=10?2:1):0; for(let i=0;i<ogres;i++) q.push({t:t+2+i*4,kind:'ogre',lane:i?all[all.length-1]:all[0]});
   q.sort((a,b)=>a.t-b.t);
   const parts=['Goblins ×'+n]; if(orcs) parts.push('Orcs ×'+orcs); if(arch) parts.push('Hobgoblin Archers ×'+arch); if(ogres) parts.push(ogres>1?'TWO OGRES':'AN OGRE');
-  const gates=lanes.map(l=>({N:'North',W:'West',E:'East'})[l]).join(' + ')+' gate'+(lanes.length>1?'s':'');
+  const gates=lanes.map(l=>LANES[l].name||l).join(' + ')+' gate'+(lanes.length>1?'s':'');
   return {q,desc:parts.join(' · ')+'  —  '+gates}; }
-function startWave(){ if(S.phase!=='build') return; S.wave++; S.phase='wave'; S.waveT=0; const c=waveComp(S.wave); spawnQ=c.q; banner('WAVE '+S.wave,c.desc); SFX.horn(); setMusic('wave'); cancelPlace(); }
+function startWave(){ if(S.phase!=='build') return; S.wave++; S.phase='wave'; S.waveT=0; const c=waveComp(effWave()); spawnQ=c.q; banner('WAVE '+S.wave+' OF '+MAP.waves,c.desc); SFX.horn(); setMusic('wave'); cancelPlace(); }
 function updateWave(dt){ if(S.phase!=='wave') return; S.waveT+=dt; while(spawnQ.length&&spawnQ[0].t<=S.waveT){ const s=spawnQ.shift(); spawnEnemy(s.kind,s.lane); }
-  if(!spawnQ.length&&!enemies.some(e=>!e.dead)){ S.phase='build'; const bonus=50+10*S.wave; S.mana+=bonus; dropLoot(rollItem(S.wave%5===0?2:1),R(-1.6,1.6),4.6,true); banner('HALL HELD','wave '+S.wave+' repelled  ·  +'+bonus+' mana  ·  a reward drops by the crystal'); setMusic('build'); SFX.held(); Meta.onWaveHeld(S.wave); } }
+  if(!spawnQ.length&&!enemies.some(e=>!e.dead)){ const bonus=50+10*effWave(); S.mana+=bonus; dropLoot(rollItem(effWave()%5===0?2:1),R(-1.6,1.6),4.6,true); Meta.onWaveHeld(effWave());
+    if(S.wave>=MAP.waves) winMap(); else { S.phase='build'; banner('HALL HELD','wave '+S.wave+' of '+MAP.waves+' repelled  ·  +'+bonus+' mana  ·  a reward drops by the crystal'); setMusic('build'); SFX.held(); } } }
+// the last wave of a map held: the map is cleared, the next one unlocks, the run ends in glory (the tavern shows the tally with a NEXT MAP button)
+function winMap(){ S.phase='won'; cancelPlace(); banner('HALL HELD','the horde broke on wave '+S.wave+'  ·  '+MAP.name+' is yours'); SFX.held(); setTimeout(()=>SFX.horn(),500); setMusic('none'); droneOff();
+  try{ localStorage.setItem('ddMapsCleared',String(Math.max(MAPS_CLEARED,MAPI+1))); }catch(e){}
+  if(document.pointerLockElement&&document.exitPointerLock) document.exitPointerLock(); document.body.classList.remove('play');
+  setTimeout(()=>{ if(S.phase!=='won') return; const shown=Meta.onRunEnd(effWave(),{won:true,map:MAPI,mapName:MAP.name,hasNext:MAPI+1<MAPS.length}); if(!shown){ $('deadwave').textContent=S.wave; $('dead').classList.remove('hide'); } },2400); }
 
 // ================= PLACEMENT / REPAIR / SELL =================
-function select(kind){ if(S.phase==='start'||S.phase==='dead') return; if(placing===kind){ cancelPlace(); return; } cancelPlace(); placing=kind; ghost=makeDef(kind,true); scene.add(ghost); const cfg=DEFS[kind]; ghostSector=sectorMesh(cfg.range||0,cfg.arc||360,0x40ff80); scene.add(ghostSector); ghostRot=0; placeStage=0; anchorPos=null; updateGhost(); }
+function select(kind){ if(S.phase==='start'||S.phase==='dead'||S.phase==='won') return; if(placing===kind){ cancelPlace(); return; } cancelPlace(); placing=kind; ghost=makeDef(kind,true); scene.add(ghost); const cfg=DEFS[kind]; ghostSector=sectorMesh(cfg.range||0,cfg.arc||360,0x40ff80); scene.add(ghostSector); ghostRot=0; placeStage=0; anchorPos=null; updateGhost(); }
 function cancelPlace(){ if(ghost){ scene.remove(ghost); ghost=null; } if(ghostSector){ scene.remove(ghostSector); ghostSector=null; } placing=null; placeStage=0; anchorPos=null; }
 function updateHoverSector(){ const d=placing?null:nearestDef(3.4); if(d!==hoverFor){ if(hoverSector){ scene.remove(hoverSector); hoverSector=null; } hoverFor=d; if(d&&DEFS[d.kind].range){ hoverSector=sectorMesh(stat(d,'range'),arcOf(d),0xe8b94a); hoverSector.position.set(d.x,d.base,d.z); hoverSector.rotation.y=d.rot; scene.add(hoverSector); } } }
 function unstick(){ if(placeStage===1){ placeStage=0; anchorPos=null; ghostRot=anchorYaw-cam.yaw; } }
 function rotateGhost(a){ if(placeStage===1) anchorYaw+=a; else ghostRot+=a; }
 function updateGhost(){ if(!placing) return; const [px,pz]=placeStage===1?anchorPos:aimPoint(); const cx=wc(px), cz=wcz(pz); const t=gat(cx,cz), cfg=DEFS[placing]; let reason='';
   const yaw=placeStage===1?anchorYaw:cam.yaw+ghostRot; const cells=footprintCells(placing,px,pz,yaw); const heroCell=idx(wc(hero.x),wcz(hero.z));
-  if(!(t===T.FLOOR||t===T.CARPET)||cells.some(i=>!walk(grid[i]))) reason="Can't build there"; else if(cells.some(i=>defAt[i])) reason='Already occupied'; else if(cells.includes(heroCell)||Math.hypot(px-hero.x,pz-hero.z)<1.1) reason="You're standing there"; else if(S.du+cfg.du>DU_CAP) reason='Not enough Defense Units'; else if(S.mana<cfg.mana) reason='Not enough mana'; else if(enemies.some(e=>!e.dead&&Math.hypot(e.x-px,e.z-pz)<2.2)) reason='Enemy too close';
+  if(!(t===T.FLOOR||t===T.CARPET)||cells.some(i=>!walk(grid[i])||rampA[i])) reason="Can't build there"; else if(cells.some(i=>defAt[i])) reason='Already occupied'; else if(cells.includes(heroCell)||Math.hypot(px-hero.x,pz-hero.z)<1.1) reason="You're standing there"; else if(S.du+cfg.du>DU_CAP) reason='Not enough Defense Units'; else if(S.mana<cfg.mana) reason='Not enough mana'; else if(enemies.some(e=>!e.dead&&Math.hypot(e.x-px,e.z-pz)<2.2)) reason='Enemy too close';
   ghostOk=!reason; ghostReason=reason; ghostCell=[cx,cz]; ghostPos=[px,pz]; ghostYaw=yaw;
   ghost.position.set(px,0,pz); ghost.rotation.y=ghostYaw; const m=ghostOk?GHOST_OK:GHOST_BAD; ghost.traverse(o=>{ if(o.isMesh) o.material=m; });
   if(ghostSector){ ghostSector.position.set(px,0,pz); ghostSector.rotation.y=ghostYaw; tintSector(ghostSector,ghostOk?0x40ff80:0xff3030); } }
@@ -765,7 +823,7 @@ const hud={}; function setT(id,v){ if(hud[id]!==v){ hud[id]=v; $(id).textContent
 function updateHUD(){ const cw_=Math.max(0,S.crystal)+'%'; if(hud.cbar!==cw_){ hud.cbar=cw_; $('cbar').style.width=cw_; } const hw=(hero.hp/hero.max*100)+'%'; if(hud.hbar!==hw){ hud.hbar=hw; $('hbar').style.width=hw; }
   setT('mana',Math.floor(S.mana)); setT('du',S.du+'/'+DU_CAP); updateGearHUD();
   const alive=enemies.filter(e=>!e.dead).length+spawnQ.length;
-  if(S.phase==='wave'){ setT('wavet','WAVE '+S.wave); setT('phaset',alive+' enem'+(alive===1?'y':'ies')+' left'); } else if(S.phase==='build'){ setT('wavet',S.wave?'HALL HELD — BUILD PHASE':'BUILD PHASE'); setT('phaset',TOUCH?'Place defenses, then tap 📯':'Place defenses (1–5), then press G to sound the horn'); }
+  if(S.phase==='wave'){ setT('wavet','WAVE '+S.wave+' / '+MAP.waves); setT('phaset',alive+' enem'+(alive===1?'y':'ies')+' left'); } else if(S.phase==='won'){ setT('wavet','HALL HELD — '+MAP.name+' CLEARED'); setT('phaset',''); } else if(S.phase==='build'){ setT('wavet',S.wave?'HALL HELD — BUILD PHASE':'BUILD PHASE'); setT('phaset',TOUCH?'Place defenses, then tap 📯':'Place defenses (1–5), then press G to sound the horn'); }
   DEFKEYS.forEach(k=>{ const el=$('slot-'+k), cfg=DEFS[k]; const cls='slot'+(placing===k?' sel':'')+((S.mana<cfg.mana||S.du+cfg.du>DU_CAP)?' poor':''); if(el.className!==cls) el.className=cls; });
   let pr=''; if(placing){ pr=placeStage===1?(ghostOk?(TOUCH?'Drag or ↻ to turn it  ·  tap ✔ to build':'Move the mouse, R or wheel to turn it  ·  click to build  ·  right-click to pick it up'):ghostReason):(ghostOk?(TOUCH?'Tap ✔ to set it down · look to aim':'Click to set it down  ·  look to aim  ·  Esc cancel'):ghostReason); } else { const d=nearestDef(3.4); if(d){ const cost=Math.ceil((d.max-d.hp)/8); pr=DEFS[d.kind].name+(d.lvl>1?' Mk '+MARK[d.lvl]:'')+'  '+Math.ceil(d.hp)+'/'+d.max+(cost?'  ·  E repair ('+cost+' mana)':(d.lvl<MAXLVL?'  ·  E upgrade ('+upCost(d)+' mana)':''))+'  ·  X sell (+'+Math.round(d.spent*.7)+')'; } }
   setT('prompt',pr); const wb=S.phase!=='build'; if(hud.wb!==wb){ hud.wb=wb; $('wavebtn').disabled=wb; }
@@ -790,7 +848,7 @@ addEventListener('keydown',e=>{ const c=e.code; if(Meta.isOpen()) return; if(c==
 addEventListener('keyup',e=>{ const c=e.code; if(c==='KeyW'||c==='ArrowUp') K.w=0; if(c==='KeyS'||c==='ArrowDown') K.s=0; if(c==='KeyA') K.a=0; if(c==='KeyD') K.d=0; if(c==='ShiftLeft'||c==='ShiftRight') K.shift=0; if(c==='ArrowLeft') K.tl=0; if(c==='ArrowRight') K.tr=0; });
 addEventListener('blur',()=>{ for(const k in K) K[k]=0; });
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('mousedown',e=>{ if(TOUCH||S.phase==='start'||S.phase==='dead'||Meta.isOpen()) return; mouseDown=true; if(!locked&&canvas.requestPointerLock) canvas.requestPointerLock();
+canvas.addEventListener('mousedown',e=>{ if(TOUCH||S.phase==='start'||S.phase==='dead'||S.phase==='won'||Meta.isOpen()) return; mouseDown=true; if(!locked&&canvas.requestPointerLock) canvas.requestPointerLock();
   if(e.button===0){ if(placing) confirmPlace(); else swing(); } else if(e.button===2){ if(placing){ if(placeStage===1) unstick(); else cancelPlace(); } else swing(); } });
 addEventListener('mouseup',()=>{ mouseDown=false; });
 addEventListener('mousemove',e=>{ if(TOUCH||S.phase==='start'||Meta.isOpen()) return; edgeX=e.clientX/innerWidth; const dx=e.movementX||0, dy=e.movementY||0; if(placing&&placeStage===1){ anchorYaw-=dx*SENS*1.6; return; } cam.yaw-=dx*SENS; cam.pitch=clamp(cam.pitch+dy*SENS,.1,1.15); });
@@ -810,7 +868,7 @@ $('playbtn').addEventListener('click',play); $('tavbtn').addEventListener('click
 
 // ================= MAIN LOOP =================
 function update(dt){ if(S.phase==='start'){ updateFx(dt); updateCamera(dt); return; }
-  if(S.phase!=='dead'&&!Meta.isOpen()){ /* the tavern pauses the hall: nothing walks, swings or fires behind the overlay */ if(!TOUCH&&!locked&&S.phase!=='start'){ if(edgeX<.1) cam.yaw+=1.6*dt; else if(edgeX>.9) cam.yaw-=1.6*dt; } if(K.tl) cam.yaw+=2.2*dt; if(K.tr) cam.yaw-=2.2*dt;
+  if(S.phase!=='dead'&&S.phase!=='won'&&!Meta.isOpen()){ /* the tavern pauses the hall: nothing walks, swings or fires behind the overlay */ if(!TOUCH&&!locked&&S.phase!=='start'){ if(edgeX<.1) cam.yaw+=1.6*dt; else if(edgeX>.9) cam.yaw-=1.6*dt; } if(K.tl) cam.yaw+=2.2*dt; if(K.tr) cam.yaw-=2.2*dt;
     heroUpdate(dt); updateDefs(dt); updateEnemies(dt); updateProj(dt); updateOrbs(dt); updateLoot(dt); updateWave(dt); updateGhost(); updateHoverSector(); Meta.update(dt); }
   updateFx(dt); updateCamera(dt); updateHUD(); Meta.hud(); }
 let lastT=performance.now();
@@ -825,6 +883,7 @@ window.__dd={S,hero,cam,enemies,defs,projs,orbs,loot,grid,DEFS,MOBS,gear:()=>gea
   shot:(w,h)=>{ w=w||960; h=h||540; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); updateCamera(0); renderer.render(scene,camera); const d=renderer.domElement.toDataURL('image/png'); onResize(); return d; },
   setHero:(x,z,yaw)=>{ hero.x=x; hero.z=z; if(yaw!==undefined) hero.yaw=yaw; }, setCam:(yaw,pitch,dist)=>{ cam.yaw=yaw; cam.pitch=pitch; cam.dist=dist; cam.d=dist; },
   status:()=>({phase:S.phase,wave:S.wave,mana:S.mana,du:S.du,crystal:S.crystal,heroHp:Math.round(hero.hp),enemies:enemies.filter(e=>!e.dead).length,defs:defs.length,projs:projs.length,orbs:orbs.length,queue:spawnQ.length,kills:S.kills,loot:loot.length,t:+S.t.toFixed(1)}),
-  addMana:n=>{ S.mana+=n; }, mute:()=>setSound(false), reflow, flow:()=>flowDef };
+  addMana:n=>{ S.mana+=n; }, mute:()=>setSound(false), reflow, flow:()=>flowDef,
+  map:()=>({index:MAPI,id:MAP.id,name:MAP.name,waves:MAP.waves,wbase:MAP.wbase,total:MAPS.length,cleared:MAPS_CLEARED,gw:GW,gh:GH}), maps:()=>MAPS.map(m=>({id:m.id,name:m.name,waves:m.waves})), effWave, winMap, lanes:()=>LANES, pathLen:(cx,cz)=>flowFree.dist[idx(cx,cz)], cellAt:(cx,cz)=>gat(cx,cz), cw, cwz, floorH, baseFloor, hgtAt:(cx,cz)=>hgt[idx(cx,cz)] };
 })();
 

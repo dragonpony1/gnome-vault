@@ -28,8 +28,8 @@ function upgrade(ref,k,n){ const it=findItem(ref); if(!it) return 0; n=Math.max(
 // items saved before the forge existed, or edited storage: points are whole numbers within the item's allowance
 function sane(it){ if(!it||!it.stats) return; it.up=clamp(Math.floor(+it.up||0),0,upMax(it)); const u={}; let sum=0; if(it.ups&&typeof it.ups==='object') for(const k in it.ups){ const v=clamp(Math.floor(+it.ups[k]||0),0,upMax(it)); if(v>0&&UPINC[k]){ u[k]=v; sum+=v; } } it.ups=u; if(sum>it.up) it.up=Math.min(upMax(it),sum); }
 for(const s of SLOTS) if(gear[s]) sane(gear[s]); Meta.bag().forEach(sane); Meta.stock().forEach(sane);
-// the stat line everywhere (bag, sheet, toasts) says how far along an item is
-const statStrForge=statStr; statStr=function(it){ const s=statStrForge(it); return (it&&it.up>0)?s+' · ⬆ '+it.up+'/'+upMax(it):s; };
+// the stat line everywhere (bag, shop, sheet, toasts) says its upgrades out of the allowance (Common 50 … Legendary 200)
+const statStrForge=statStr; statStr=function(it){ const s=statStrForge(it); return (it&&it.stats)?s+' · ⬆ '+upUsed(it)+'/'+upMax(it):s; };   // every card says how far it can go, even before the first point
 const forge={max:upMax,used:upUsed,left:upLeft,cost:upCost,keys:upKeys,can:canUp,upgrade,inc:UPINC,cap:capOf,label:k=>UPLBL[k]||k,fmt:(k,v)=>(UPFMT[k]||(x=>x))(v),find:findItem,defStat:(d,k)=>stat(d,k)};
 Meta.forge=forge; window.__forge=forge;
 })();

@@ -12,7 +12,7 @@ const settle=()=>page.waitForFunction(()=>window.__tavern.goldShown()===window._
 await page.goto("http://127.0.0.1:8810/?silent"); await ready(page); await page.waitForTimeout(300);
 // ---- load ----
 const boot=await page.evaluate(()=>({line:document.getElementById('buildline').textContent,meta:window.__meta===window.__dd.Meta,tavern:!!window.__tavern,fam:!!window.__familiar,gold:!!document.getElementById('gold'),xp:!!document.getElementById('xpline'),tv:!!document.getElementById('tavern'),phase:window.__dd.S.phase}));
-check("build line reads build 14+", /build 1[4-9]/.test(boot.line), boot.line);
+check("build line reads build 14+", /build (1[4-9]|[2-9]\d)/.test(boot.line), boot.line);
 check("modules loaded: Meta hook, tavern DOM, familiar, HUD gold + xp line", boot.meta&&boot.tavern&&boot.fam&&boot.gold&&boot.xp&&boot.tv&&boot.phase==='start', JSON.stringify(boot));
 check("no console errors or warnings on load", errors.length===0&&warns.length===0, [...errors,...warns].join(" | ").slice(0,300));
 // ---- fresh state + the three ways in from the start screen ----

@@ -54,6 +54,7 @@ body.play #c{cursor:none}
 .screen .build{font-size:12px;letter-spacing:2px;color:#8f8470;margin-top:16px}
 .screen .big.alt{background:linear-gradient(#3a2a44,#1c1424);border-color:#6b5a3c;font-size:17px;padding:10px 26px;margin-top:12px}
 .screen .big{margin-top:22px;font-size:22px;padding:14px 38px;background:linear-gradient(#7a2a2e,#3e1416);border:2px solid var(--gold);border-radius:10px;color:#fff;cursor:pointer;box-shadow:0 4px 0 #000;font-family:Georgia,serif;letter-spacing:2px}
+#start .mapline{display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;letter-spacing:2px;color:var(--gold);margin:14px 0 2px}#start .mapline button{background:#2a1f33;border:2px solid #6b5a3c;border-radius:8px;color:#fff;font:bold 16px Georgia,serif;width:40px;height:36px;cursor:pointer}#start .mapline button:disabled{opacity:.3;cursor:default}#start .mapline small{display:block;font-size:11px;letter-spacing:1px;color:#bfae90}
 kbd{background:#2a1f33;border:1px solid #6b5a3c;border-radius:4px;padding:1px 6px;font-family:Georgia,serif;color:var(--gold)}
 .hide{display:none!important}
 #dead{pointer-events:none}#dead .big{pointer-events:auto}
@@ -88,14 +89,16 @@ kbd{background:#2a1f33;border:1px solid #6b5a3c;border-radius:4px;padding:1px 6p
  <p><kbd>Tab</kbd> character sheet (gear + your numbers) &nbsp; <kbd>I</kbd> tavern pages from anywhere &nbsp; <kbd>H</kbd> swap hero model &nbsp; <b>drag a .glb file onto the page</b> to play as your own character &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>N</kbd> music</p>
  <p>The horde drops <b style="color:var(--gold)">loot</b>. Walk over it to bag it. Between waves, go through the <b style="color:var(--gold)">south door into the tavern</b>: your locker holds your bag, the barkeep buys and sells, the trainer teaches skills, and the <b style="color:var(--gold)">anvil</b> forges gold into the gear you wear — every item takes 50 to 200 upgrade points by rarity, each point into a stat you choose (<kbd>E</kbd> at each, or <kbd>I</kbd> anywhere, <kbd>Tab</kbd> for the forge).</p>
  <p><b style="color:var(--cyan)">◆ mana</b> builds, upgrades and repairs defenses during a run (the horde drops it) &nbsp;·&nbsp; <b style="color:#ffd060">● gold</b> is spent at the tavern and stays with you &nbsp;·&nbsp; <b>🌱 roots</b> cap how many defenses can stand at once</p>
+ <p id="mapline" class="mapline"></p>
  <button class="big" id="playbtn">ENTER THE HALL</button>
  <button class="big alt" id="tavbtn">🍺 TAVERN</button>
- <p class="build" id="buildline">build 19 · hero model: loading…</p>
+ <p class="build" id="buildline">build 20 · hero model: loading…</p>
 </div>
 <div id="dead" class="screen hide">
- <h1>SHATTERED</h1><h2>THE CRYSTAL FELL ON WAVE <span id="deadwave">1</span></h2>
- <p>Your gear, gold and skills stay with you. Go again.</p>
- <button class="big" onclick="location.reload()">TRY AGAIN</button>
+ <h1 id="deadh1">SHATTERED</h1><h2 id="deadh2">THE CRYSTAL FELL ON WAVE <span id="deadwave">1</span></h2>
+ <p id="deadp">Your gear, gold and skills stay with you. Go again.</p>
+ <button class="big" id="nextmapbtn" style="display:none">▶ NEXT MAP</button>
+ <button class="big" id="againbtn" onclick="location.reload()">TRY AGAIN</button>
  <button class="big alt" id="deadtavbtn">🍺 TAVERN</button>
 </div>
 
