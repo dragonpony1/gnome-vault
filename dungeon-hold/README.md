@@ -88,9 +88,10 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   pedestal under an arch, rendered by a second camera that sees only layer 1 and copied into the sheet), the five slot
   plaques with the forge rows, HP / mana / attack / defense, seven medallions, an INVENTORY grid (click a piece to read,
   equip or sell it) and the item card. `window.__doll.select(id,from)` picks an item for the card.
-- `92-sets.js`: items whose names end in "of the Hall / Deep / Crystal / Tower" form sets; three pieces give the small
-  bonus, five the big one (defense damage and area, health/armor/regen, mana and crystal mending, defense attack speed).
-  Suffixes now roll from Uncommon up. The sheet lists active and partial sets; stat lines say "Deep set 3/5".
+- `92-sets.js` is the set frame: pieces sharing an "of the …" name count together, three give the small bonus, five the
+  big one, completing one says so, the sheet's SET BONUSES panel lists every registered set with its count, stat lines say
+  "Void set 3/5". The frame holds no sets of its own: ordinary drops carry flavour suffixes only (of Embers, of Fury, of
+  Stone, of the Watch, of Thorns…) and never mean a set.
 - `93-gearsets.js` is the registry for the great sets (ten planned; the arcane **Void** set is the first). An entry gives
   the suffix, icon and colour, the lowest rarity that can carry it and the chance per drop by wave, the value multiplier,
   the drop sound, the three- and five-piece percentages (on `Meta.mult`) and an optional five-piece `onHit` power, plus

@@ -1,12 +1,9 @@
-// ===== ITEM SETS: pieces that share an "of the …" suffix belong to a set. Wear three for the small bonus, all five for the
-// big one. The bonuses ride the same hooks as skills (Meta.mult) and gear (heroStat), so every number on the sheet
-// already includes them. Completing a set says so.
+// ===== ITEM SETS, the frame: pieces that share an "of the …" suffix belong to a set. Wear three for the small bonus, all
+// five for the big one. The sets themselves are registered by 93-gearsets.js (the Void set is the first of ten); an
+// ordinary drop never carries an "of the …" name. The bonuses ride the same hooks as skills (Meta.mult) and gear
+// (heroStat), so every number on the sheet already includes them. Completing a set says so.
 (function(){
-const SETS={
-  'of the Hall':   {ic:'🏰',three:{tow:.12},five:{tow:.25,aoe:.10},text:['+12% defense damage','+25% defense damage · +10% defense range & area']},
-  'of the Deep':   {ic:'🌊',three:{hp:.15},five:{hp:.25,def:12,regen:2},text:['+15% max health','+25% max health · +12% armor · +2 hp/s']},
-  'of the Crystal':{ic:'💎',three:{mana:.25},five:{mana:.50,heal:10},text:['+25% mana from orbs','+50% mana from orbs · the crystal mends 10 every wave held']},
-  'of the Tower':  {ic:'🗼',three:{tcd:.12},five:{tcd:.25,tow:.10},text:['+12% defense attack speed','+25% defense attack speed · +10% defense damage']}};
+const SETS={};   // filled by 93-gearsets.js
 const NAMES=Object.keys(SETS);
 function setOf(it){ if(!it||!it.name) return null; for(const n of NAMES) if(it.name.endsWith(' '+n)) return n; return null; }
 function counts(){ const c={}; for(const s of SLOTS){ const n=setOf(gear[s]); if(n) c[n]=(c[n]|0)+1; } return c; }

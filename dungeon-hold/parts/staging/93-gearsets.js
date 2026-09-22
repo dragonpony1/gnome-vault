@@ -17,7 +17,7 @@ addSet({name:'of the Void',ic:'🌌',col:0x8a3dff,css:'#c070ff',emissive:0x5a2bd
 { const prev=Meta.mult; Meta.mult=k=>{ let v=prev(k)||0; for(const {pack,tier} of worn()){ const b=tier>=5?pack.five:pack.three; if(b&&b[k]) v+=b[k]; } return v; }; }
 { const prev=famDmg; famDmg=function(){ return Math.round(prev()*(1+(Meta.mult('fam')||0))*10)/10; }; }
 // ---- the drop rule: after the ordinary roll a Rare-or-better piece may become a set piece; the old suffix goes, the value climbs
-function makeSet(it,d){ let base=it.name; for(const s of SUFFIX) if(base.endsWith(' '+s)) base=base.slice(0,-(s.length+1)); for(const n in PACKS) if(base.endsWith(' '+n)) base=base.slice(0,-(n.length+1)); it.name=base+' '+d.name; it.value=Math.round(it.value*(d.valueMul||1)); return it; }
+function makeSet(it,d){ const base=it.name.replace(/ of (the )?[A-Z]\w*( [A-Z]\w*)?$/,''); it.name=base+' '+d.name;   /* any old "of …" tail goes, saved names from before the sets included */ it.value=Math.round(it.value*(d.valueMul||1)); return it; }
 { const prev=rollItem; rollItem=function(minR,slot,lvl){ const it=prev(minR,slot,lvl); const w=effWave(); for(const n in PACKS){ const d=PACKS[n]; if(it.rarity>=(d.minR|0)&&LR()<d.chance(w)){ makeSet(it,d); break; } } return it; }; }
 // ---- the drop: the set's own sound, a column of its light for three seconds, a shout; the piece on the floor takes its colour
 SFX.rift=()=>{ beep(140,.22,'sawtooth',.05,-90); noise(.12,.05,2400); };
