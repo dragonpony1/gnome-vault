@@ -1,0 +1,6 @@
+import { chromium } from "playwright"; import { serve } from "./serve.mjs";
+const SP=process.env.SP; const server=await serve(8901);
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await (await browser.newContext({viewport:{width:900,height:600}})).newPage();
+await page.goto("http://127.0.0.1:8901/?silent"); await page.waitForFunction(()=>window.__dd&&window.__crystal&&window.__crystal.state().model&&window.__dd.heroModel()&&/v2/.test(window.__dd.heroModel().label),null,{timeout:120000});
+const r=await page.evaluate(async()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.step(1/60,5); d.setHero(0,7,Math.PI); d.setCam(Math.PI,.32,5.5); d.step(1/60,30); document.getElementById("hud").style.display="none"; window.__freeze=true; d.setHero(0,1.5,Math.PI); d.step(1/60,2); const y=d.hero.y; d.setHero(0,7,Math.PI); d.step(1/60,2); return {yOnCrystalCells:+y.toFixed(2),base:d.baseFloor(0,1.5),floor:d.floorH(0,1.5),cg:window.__crystal.state().cgY}; });
+console.log(JSON.stringify(r)); await page.screenshot({path:SP+"/parts/shots/crystal-nodais.png"}); await browser.close(); server.close();

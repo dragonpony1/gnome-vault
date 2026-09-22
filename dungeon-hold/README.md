@@ -117,6 +117,9 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   still cancels the placement; the tavern and the sheet keep their own Escape. `window.__freeze=true` stops the live
   loop's update so a test can step the hall itself and still see it drawn.
 
+- The crystal stands on its own carved base, level with the floor: no raised dais (the DAIS cells remain an inlaid floor
+  marking with a gold border, and `baseFloor` no longer steps up on them).
+
 ## Open items
 
 - Void set models: the concept art (runed blade, chain whip, shard charm, galaxy amulet, starless robe) is waiting on Meshy

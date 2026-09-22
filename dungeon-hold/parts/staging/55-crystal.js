@@ -16,9 +16,9 @@
     const root=gltf.scene||gltf.scenes[0]; const tris=splitCrystal(root); const fit=fitModel(root,5.6); toonify(root,fit.scale);
     const mats=[]; root.traverse(m=>{ if(m.isMesh&&!m.userData.isOL&&m.userData.crystal){ (Array.isArray(m.material)?m.material:[m.material]).forEach(mt=>mats.push(mt)); } });
     const cg=crystalG.userData.cg; for(const c of crystalG.children.slice()){ if(c!==cg) crystalG.remove(c); }
-    fit.wrap.position.y=.52;   // a hair above the dais: its underside on the dais surface flickered
-    crystalG.add(fit.wrap); crystalG.userData.cgY=4.3; crystalG.userData.model=root; crystalG.userData.mats=mats; crystalG.userData.tris=tris;
+    fit.wrap.position.y=.02;   // a hair above the floor: its underside on the floor surface flickered
+    crystalG.add(fit.wrap); crystalG.userData.cgY=3.8; crystalG.userData.model=root; crystalG.userData.mats=mats; crystalG.userData.tris=tris;
     crystalMesh.visible=false; const gl=cg.children.find(o=>o.isSprite); if(gl) gl.scale.set(5.2,5.2,1);
   }catch(e){ console.warn('crystal model',e); } },e=>console.warn('crystal model',e))).catch(e=>console.warn('crystal model',e));
   const prev=Meta.hud; Meta.hud=()=>{ prev(); const mats=crystalG.userData.mats; if(mats){ const k=crystalMesh.material.emissiveIntensity*.75; for(const mt of mats) mt.emissiveIntensity=k; } };
-  window.__crystal={state:()=>({model:!!crystalG.userData.model,cgY:crystalG.userData.cgY||3.2,oldVisible:crystalMesh.visible,tris:crystalG.userData.tris||null,pulsing:(crystalG.userData.mats||[]).length})}; }
+  window.__crystal={state:()=>({model:!!crystalG.userData.model,cgY:crystalG.userData.cgY||2.7,oldVisible:crystalMesh.visible,tris:crystalG.userData.tris||null,pulsing:(crystalG.userData.mats||[]).length})}; }

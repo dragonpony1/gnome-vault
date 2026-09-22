@@ -255,10 +255,7 @@ const FLOORTEX=paintFloor(), WALLTEX=paintWall(), BANNERTEX=paintBanner(); const
 // ================= BUILD THE HALL =================
 const world=new THREE.Group(); scene.add(world);
 { const floor=new THREE.Mesh(new THREE.PlaneGeometry(GW*CELL,GH*CELL),new THREE.MeshToonMaterial({map:FLOORTEX,gradientMap:GRAD,color:C(0xffffff)})); floor.rotation.x=-PI/2; floor.position.set(GW*CELL/2-OX,0,GH*CELL/2-OZ); world.add(floor);
-  const dais=new THREE.Mesh(new THREE.PlaneGeometry(6,6),new THREE.MeshToonMaterial({map:FLOORTEX,gradientMap:GRAD,color:C(0xffffff)})); // raised copy of the dais cells
-  const [kx,kz]=MAP.crystal; const u0=(kx-1)/GW,u1=(kx+2)/GW,v0=1-(kz+2)/GH,v1=1-(kz-1)/GH; const uv=dais.geometry.attributes.uv; uv.setXY(0,u0,v1); uv.setXY(1,u1,v1); uv.setXY(2,u0,v0); uv.setXY(3,u1,v0); uv.needsUpdate=true;
-  dais.rotation.x=-PI/2; dais.position.set(0,0.5+hgt[GOAL],0); world.add(dais);
-  const daisSide=new THREE.Mesh(G.box(6,0.5,6),mat(0x4e4236)); daisSide.position.set(0,0.25+hgt[GOAL],0); world.add(daisSide);
+  // no raised dais: the crystal's own carved base stands straight on the floor (the DAIS cells stay as an inlaid floor marking)
   [[0,-3.05],[0,3.05]].forEach(([x,z])=>world.add(M(G.box(6.2,.1,.12),mat(0xe0b040),x,.5,z))); [[-3.05,0],[3.05,0]].forEach(([x,z])=>world.add(M(G.box(.12,.1,6.2),mat(0xe0b040),x,.5,z)));
   if(!OUT){ const ceil=new THREE.Mesh(new THREE.PlaneGeometry(GW*CELL,GH*CELL),mat(0x120c1a)); ceil.rotation.x=PI/2; ceil.position.set(GW*CELL/2-OX,WALLH,GH*CELL/2-OZ); world.add(ceil); }
   else { const st=new THREE.BufferGeometry(); const pts=[]; for(let i=0;i<400;i++){ const a=rnd()*TAU, e=.15+rnd()*1.2, r=120; pts.push(Math.cos(a)*Math.cos(e)*r,Math.sin(e)*r,Math.sin(a)*Math.cos(e)*r); } st.setAttribute('position',new THREE.Float32BufferAttribute(pts,3)); scene.add(new THREE.Points(st,new THREE.PointsMaterial({color:C(0xdfe8ff),size:1.1,sizeAttenuation:true,transparent:true,opacity:.85,fog:false})));
@@ -342,8 +339,8 @@ function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(
 // crystal on its pedestal
 const crystalG=new THREE.Group(); crystalG.position.y=hgt[GOAL]; world.add(crystalG);
 const crystalMesh=(()=>{ const m=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),new THREE.MeshToonMaterial({color:C(0x2fb8e8),emissive:C(0x0e7aa8),emissiveIntensity:.55,gradientMap:GRAD})); m.scale.set(1,1.9,1); return m; })();
-{ crystalG.add(M(G.cyl(1.5,1.7,.3,12),mat(0x4a4262),0,.65,0)); crystalG.add(M(G.cyl(1.1,1.3,.3,12),mat(0x5a5276),0,.95,0)); crystalG.add(M(G.cyl(.7,.9,.35,10),mat(0x4a4262),0,1.27,0)); crystalG.add(M(G.cyl(1.32,1.32,.08,12),mat(0xe0b040),0,.83,0));
-  const cg=new THREE.Group(); cg.position.y=3.2; cg.add(outline(crystalMesh)); cg.add(glow(0x4ae6ff,4.2,.45)); crystalG.add(cg); crystalG.userData.cg=cg;
+{ crystalG.add(M(G.cyl(1.5,1.7,.3,12),mat(0x4a4262),0,.15,0)); crystalG.add(M(G.cyl(1.1,1.3,.3,12),mat(0x5a5276),0,.45,0)); crystalG.add(M(G.cyl(.7,.9,.35,10),mat(0x4a4262),0,.77,0)); crystalG.add(M(G.cyl(1.32,1.32,.08,12),mat(0xe0b040),0,.83,0));
+  const cg=new THREE.Group(); cg.position.y=2.7; cg.add(outline(crystalMesh)); cg.add(glow(0x4ae6ff,4.2,.45)); crystalG.add(cg); crystalG.userData.cg=cg;
   for(let k=0;k<4;k++){ const s=new THREE.Mesh(new THREE.OctahedronGeometry(.22,0),basic(0x9af8ff)); s.userData.noOL=true; s.userData.a=k/4*TAU; cg.add(s); crystalG.userData['s'+k]=s; } }
 // spawn portals
 const portals=[];
@@ -502,7 +499,7 @@ function moveCircle(e,dx,dz,r,forHero){ const y=e.fly?1e6:(e.y||0); let nx=e.x+d
 function wallAt(x,z){ const t=gat(wc(x),wcz(z)); return t===T.WALL||t===T.PILLAR||t===T.CRYSTAL||t===T.PROP; }
 // floor height at a point: raised floors, and stairs as two flat steps per cell (climbing them bobs a little, like stairs do)
 function floorH(x,z){ const cx=wc(x),cz=wcz(z); if(!inb(cx,cz)) return 0; const i=idx(cx,cz), a=rampA[i]; if(!a) return hgt[i]; const fx=(x+OX)/CELL-cx, fz=(z+OZ)/CELL-cz; const t=a===1?1-fz:a===2?fz:a===3?fx:1-fx; return rampL[i]+(rampH[i]-rampL[i])*(t<.5?.5:1); }
-function baseFloor(x,z){ return floorH(x,z)+(gat(wc(x),wcz(z))===T.DAIS?.5:0); }
+function baseFloor(x,z){ return floorH(x,z); }   // the crystal's cells are level with the floor around them
 function floorAt(x,z,y){ const cx=wc(x),cz=wcz(z); let f=baseFloor(x,z); const d=inb(cx,cz)?defAt[idx(cx,cz)]:null; if(d&&y>=d.top-.25) f=Math.max(f,d.top); return f; }
 function floatText(x,y,z,txt,col){ floats.push({x,y,z,txt,col:col||'#fff',t:0}); }
 function banner(t,sub){ $('banner').innerHTML=t+'<small>'+(sub||'')+'</small>'; $('banner').style.opacity=1; bannerT=3.4; }
@@ -870,7 +867,7 @@ function sell(){ const d=nearestDef(3.4); if(!d) return; const back=Math.round(d
 function updateFx(dt){ S.t+=dt; const t=S.t;
   flames.forEach((f,i)=>{ const s=1+Math.sin(t*13+f.p)*.18+Math.sin(t*7.3+f.p*2)*.1; f.f.scale.set(1,s,1); f.f2.scale.set(1,1.1-(s-1),1); });
   torchLights.forEach((l,i)=>{ l.intensity=l.userData.base*(.92+Math.sin(t*9+i*1.7)*.05+Math.sin(t*23+i)*.04); });
-  const cg=crystalG.userData.cg; cg.rotation.y=t*.7; cg.position.y=(crystalG.userData.cgY||3.2)+Math.sin(t*1.6)*.15+(crystalShake>0?(rnd()-.5)*.3:0); crystalShake=Math.max(0,crystalShake-dt);
+  const cg=crystalG.userData.cg; cg.rotation.y=t*.7; cg.position.y=(crystalG.userData.cgY||2.7)+Math.sin(t*1.6)*.15+(crystalShake>0?(rnd()-.5)*.3:0); crystalShake=Math.max(0,crystalShake-dt);
   for(let k=0;k<4;k++){ const s=crystalG.userData['s'+k]; const a=s.userData.a+t*1.4; s.position.set(Math.cos(a)*1.7,Math.sin(t*2+k)*.5,Math.sin(a)*1.7); s.rotation.y=t*3; }
   crystalMesh.material.emissiveIntensity=S.phase==="dead"?.1:.55+Math.sin(t*3)*.15+(crystalShake>0?.6:0);
   portals.forEach(p=>{ p.ring.rotation.z=t*1.2; p.pulse=Math.max(0,(p.pulse||0)-dt*2); const s=1+p.pulse*.35; p.ring.scale.set(s,s,1); p.disc.material.opacity=.85+Math.sin(t*4)*.08; });

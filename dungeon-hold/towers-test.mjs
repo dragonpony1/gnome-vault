@@ -28,7 +28,7 @@ const r5=await page.evaluate(()=>{ const d=window.__dd; d.S.wave=2; d.startWave(
 check("wave banner names Bandits",/Bandits/.test(r5)&&!/Dark Elf|Hobgoblin/.test(r5),r5);
 // crystal model in place
 const r6=await page.evaluate(async()=>{ for(let i=0;i<100&&!(window.__crystal&&window.__crystal.state().model);i++) await new Promise(r=>setTimeout(r,100)); return window.__crystal?window.__crystal.state():null; });
-check("castle crystal model replaces the procedural crystal",r6&&r6.model&&!r6.oldVisible&&r6.cgY>4,JSON.stringify(r6));
+check("castle crystal model replaces the procedural crystal",r6&&r6.model&&!r6.oldVisible&&r6.cgY>3.5,JSON.stringify(r6));
 // screenshot: the five towers in a row, hero behind them, and a ghost of the ring
 await page.evaluate(()=>{ const d=window.__dd; for(const x of d.defs.slice()){ d.setHero(x.x,x.z+1,0); d.sell(); } for(const e of d.enemies) d.kill(e); d.step(1/60,60); d.addMana(9000); const ks=["harpoon","acorn","ball","slice","spike"]; ks.forEach((k,i)=>d.place(k,12+i*2,16,Math.PI)); d.setHero(4,6,Math.PI); d.setCam(Math.PI,.42,9); d.step(1/60,80); document.getElementById("hud").style.display="none"; });
 await page.waitForTimeout(300); await page.screenshot({path:SP+"/parts/shots/towers-row.png"});
