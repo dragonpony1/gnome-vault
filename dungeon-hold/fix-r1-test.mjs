@@ -4,7 +4,7 @@ const SP=process.env.SP; const server=await serve(8820,{csp:true});
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+(typeof d==="string"?d:JSON.stringify(d)).slice(0,420):"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
-async function open(vp,touch){ const page=await browser.newPage({viewport:vp,hasTouch:touch,isMobile:touch}); page.errs=[]; page.on("pageerror",e=>page.errs.push(String(e).slice(0,200))); page.on("console",m=>{ if(m.type()==="error"&&!/Failed to load resource/.test(m.text())) page.errs.push(m.text().slice(0,200)); });   /* serve.mjs 404s the optional assets/ fetches (music, ballista glb): harness, not the page */ await page.goto("http://127.0.0.1:8820/?silent"); await ready(page); return page; }
+async function open(vp,touch){ const page=await browser.newPage({viewport:vp,hasTouch:touch,isMobile:touch}); page.errs=[]; page.on("pageerror",e=>page.errs.push(String(e).slice(0,200))); page.on("console",m=>{ if(m.type()==="error"&&!/Failed to load resource/.test(m.text())) page.errs.push(m.text().slice(0,200)); });   /* serve.mjs 404s the optional assets/ fetches (music, ballista glb): harness, not the page */ await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page); return page; }
 // ================= desktop =================
 let page=await open({width:960,height:600},false);
 // blocking: dmm — spawn works
@@ -15,7 +15,7 @@ const pause=await page.evaluate(()=>{ const d=window.__dd; d.startWave(); d.step
 check("world pauses under the tavern mid-wave, resumes on close", pause.open&&pause.moved===0&&pause.moved2>0.5, pause);
 // new best only when strictly greater; summary tiles: earned + spent; count-up = payout only
 await page.evaluate(()=>{ const M=window.__meta; localStorage.setItem('ddMeta',JSON.stringify(Object.assign(M.state(),{best:3,gold:1000}))); });
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page);
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page);
 const tie=await page.evaluate(()=>{ const d=window.__dd, M=window.__meta; d.start(); d.step(1/60,2); M.buy(0); M.buy(0); const spent=1000-M.gold(); const g1=M.gold(); d.S.wave=3; M.onRunEnd(3); const h2=document.querySelector('#tv-sum h2').textContent; const tiles=[...document.querySelectorAll('.tv-stat')].map(t=>t.textContent); const sm=M.summary(); return {best:M.best(),h2,tiles,spent,sm:{earned:sm.goldGained,spent:sm.goldSpent,net:sm.goldNet,payout:sm.payout,newBest:sm.newBest},g1,g2:M.gold()}; });
 check("tie with best is NOT 'A NEW BEST'", tie.best===3&&!/NEW BEST/.test(tie.h2), tie.h2);
 check("summary GOLD EARNED tile shows +75 (payout) with '-N spent' note; net accounted", tie.sm.earned===75&&tie.sm.spent===tie.spent&&tie.sm.net===75-tie.spent&&tie.sm.payout===75&&tie.tiles.some(t=>/GOLD EARNED/.test(t)&&t.includes('spent')), tie);
@@ -23,11 +23,11 @@ await page.click('#tv-totavern'); await page.waitForTimeout(30);
 const cu=await page.evaluate(()=>({shown:window.__tavern.goldShown(),to:window.__meta.gold()}));
 check("TO THE TAVERN count-up starts at gold − payout (75), not gold − all income", cu.to-cu.shown>=40&&cu.to-cu.shown<=75, cu);   // the tween may have advanced a frame or two under software GL
 await page.evaluate(()=>{ const M=window.__meta; localStorage.setItem('ddMeta',JSON.stringify(Object.assign(M.state(),{best:3}))); });
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page);
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page);
 const nb=await page.evaluate(()=>{ const d=window.__dd, M=window.__meta; d.start(); d.step(1/60,2); d.S.wave=4; M.onRunEnd(4); return {best:M.best(),h2:document.querySelector('#tv-sum h2').textContent}; });
 check("beating the best IS 'A NEW BEST'", nb.best===4&&/NEW BEST/.test(nb.h2), nb.h2);
 // single rAF loop: crystal falls with the tavern open; close+open in one frame; summary while open
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page);
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page);
 const raf=await page.evaluate(async()=>{ const d=window.__dd, M=window.__meta, T=window.__tavern; M.reset(); d.start(); d.step(1/60,2);
   const count=async()=>{ let n=0; const orig=window.requestAnimationFrame; window.requestAnimationFrame=cb=>{ if(cb.name==='tvFrame') n++; return orig(cb); }; await new Promise(r=>setTimeout(r,400)); window.requestAnimationFrame=orig; return n; };
   T.open(); const base=await count(); T.close(); T.open(); T.close(); T.open(); const dbl=await count();
@@ -52,7 +52,7 @@ const fmt=await page.evaluate(()=>{ const d=window.__dd, M=window.__meta; M.give
 check("HUD gold has thousands separators; 'Need N more gold' formatted", fmt.hud==='1,234,567'&&/^Need [\d,]+ more gold$/.test(fmt.why)&&(/,/.test(fmt.why)||+fmt.why.replace(/\D/g,'')<1000), fmt);
 // corrupt rarity 2.5; gear without id/score; duplicate ids
 const rob=await page.evaluate(()=>{ localStorage.setItem('ddMeta',JSON.stringify({bag:[{slot:'charm',rarity:2.5,name:'Odd',stats:{hp:3}}]})); localStorage.setItem('ddGear',JSON.stringify({weapon:{slot:'weapon',rarity:3,lvl:4,name:'Old Blade',stats:{dmg:7},value:120}})); return 1; });
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page);
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page);
 const rob2=await page.evaluate(()=>{ const d=window.__dd, M=window.__meta, T=window.__tavern; d.start(); d.step(1/60,2); const bag=M.bag(); const w=d.gear().weapon; T.open(); document.querySelector('#tv-bag .tv-grid .tv-card').click(); const detail=!document.getElementById('tv-detail').classList.contains('hide'); T.select(null);
   M.giveItem(d.rollItem(4,'weapon',9)); const lo=d.rollItem(0,'weapon',1); lo.score=.5; M.giveItem(lo); T.render(); const vs=[...document.querySelectorAll('#tv-bag .tv-grid .tv-card .vs')].map(e=>e.textContent); document.querySelector('#tv-bag .tv-eq .tv-card[data-id="'+w.id+'"]').click(); const eqDetail=!document.getElementById('tv-detail').classList.contains('hide'); const sj=M.sellJunk(); T.close();
   const it=d.rollItem(1,'charm',2); M.giveItem(it); M.giveItem(it); const ids=M.bag().map(b=>b.id); const dup=ids.length!==new Set(ids).size; return {rarity:bag[0]&&bag[0].rarity,detail,wid:w.id,wscore:w.score,vs,eqDetail,sj,dup}; });

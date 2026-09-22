@@ -3,7 +3,7 @@ import { serve } from "./serve.mjs"; const SP=process.env.SP; const server=await
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const GLB=process.env.GLB||(SP+"/glb/squire.glb"); const b64=fs.readFileSync(GLB).toString("base64");
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.text().slice(0,200)); });
-await page.goto("http://127.0.0.1:8842/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel("goblin")&&window.__defglb&&window.__defglb.list().harpoon&&window.__defglb.list().harpoon[0]&&window.__defglb.list().harpoon[1],null,{timeout:60000});
+await page.goto("http://127.0.0.1:8842/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel("goblin")&&window.__defglb&&window.__defglb.list().harpoon&&window.__defglb.list().harpoon[0]&&window.__defglb.list().harpoon[1],null,{timeout:60000});
 const fetched=await page.evaluate(()=>window.__defglb.list());
 check("hero, goblin and both ballista tiers fetched from assets/",!!fetched.harpoon[0]&&!!fetched.harpoon[1]&&fetched.harpoon[0].turn===null,JSON.stringify(fetched));
 // the stand-in model (a rigged squire, so it has a "Head" node that turns) replaces the Mark I look; Mark II keeps the fetched tier-2 ballista

@@ -4,7 +4,7 @@ const log=(n,v)=>console.log(n+": "+JSON.stringify(v));
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
 const page=await browser.newPage({viewport:{width:960,height:600}}); const errs=[]; page.on("pageerror",e=>errs.push(String(e).slice(0,200))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errs.push(m.type()+": "+m.text().slice(0,200)); });
-await page.goto("http://127.0.0.1:8833/?silent"); await ready(page); await page.evaluate(()=>{ localStorage.clear(); window.__meta.reset(); window.__dd.start(); window.__dd.step(1/60,2); });
+await page.goto("http://127.0.0.1:8833/?silent&nogate"); await ready(page); await page.evaluate(()=>{ localStorage.clear(); window.__meta.reset(); window.__dd.start(); window.__dd.step(1/60,2); });
 // a. key toggling: synthetic vs real keyboard
 const a1=await page.evaluate(()=>{ const r=[]; for(let i=0;i<3;i++){ const ev=new KeyboardEvent('keydown',{code:'KeyI',key:'i',bubbles:true,cancelable:true}); const ok=window.dispatchEvent(ev); r.push([ok,window.__tavern.isOpen(),ev.code]); } return r; });
 const seq=[]; for(let i=0;i<3;i++){ await page.keyboard.press('KeyI'); seq.push(await page.evaluate(()=>window.__tavern.isOpen())); }

@@ -24,7 +24,7 @@ async function seed(page){ return page.evaluate(LONG=>{ const d=window.__dd, M=w
     return {gold:M.gold(),level:M.level(),points:M.points(),bag:M.bag().length,stock:M.stock().length,tier:M.tierLine(),touch:document.body.classList.contains('touch'),touchBag:[...document.querySelectorAll('#btns .hb')].map(b=>b.textContent),xpline:document.getElementById('xpline').textContent}; },LONG); }
 async function run(vp,tag){
   const phone=vp.width<500; const page=await browser.newPage({viewport:vp,deviceScaleFactor:phone?2:1,hasTouch:phone,isMobile:phone}); const errors=[]; page.on("pageerror",e=>errors.push(tag+": "+String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(tag+" "+m.type()+": "+m.text().slice(0,200)); });
-  await page.goto("http://127.0.0.1:8831/?silent"); await ready(page); await page.waitForTimeout(300);
+  await page.goto("http://127.0.0.1:8831/?silent&nogate"); await ready(page); await page.waitForTimeout(300);
   const s=await seed(page); log(tag+" seed",s);
   // ---- start screen with tavern button ----
   await page.screenshot({path:SHOT+tag+"-start.png"});

@@ -2,7 +2,7 @@ import { chromium } from "playwright"; import http from "http"; import fs from "
 import { serve } from "./serve.mjs"; const SP=process.env.SP; const server=await serve(8840);
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e)));
-await page.goto("http://127.0.0.1:8840/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:40000});
+await page.goto("http://127.0.0.1:8840/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:40000});
 // a harpoon at world (0,-4) facing -z; an enemy 12° off its axis at range 15 is outside a 16° cone (±8°) but inside a 28° one (±14°)
 const r=await page.evaluate(()=>{ const d=window.__dd; d.resetGear(); d.start(); d.addMana(5000); d.setHero(0,-2,Math.PI); d.step(1/60,5);
   const t=d.place("harpoon",16,15,Math.PI); const cones=[]; const off=12*Math.PI/180;

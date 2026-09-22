@@ -5,7 +5,7 @@ const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PAS
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.type()+": "+m.text().slice(0,200)); });
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
-await page.goto("http://127.0.0.1:8832/?silent"); await ready(page); await page.waitForTimeout(300);
+await page.goto("http://127.0.0.1:8832/?silent&nogate"); await ready(page); await page.waitForTimeout(300);
 // (the round-1 window.dmm shim is gone: game.js declares const dmm inside spawnEnemy)
 
 await page.evaluate(()=>{ const d=window.__dd, M=window.__meta; window.H={

@@ -4,7 +4,7 @@ const log=(n,v)=>console.log(n+": "+JSON.stringify(v));
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
 const page=await browser.newPage({viewport:{width:960,height:600}}); const errs=[]; page.on("pageerror",e=>errs.push(String(e).slice(0,200))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errs.push(m.type()+": "+m.text().slice(0,200)); });
-const URL="http://127.0.0.1:8833/?silent";
+const URL="http://127.0.0.1:8833/?silent&nogate";
 // 1. older ddGear without id/score (pre-bag saves) → equipped cards
 await page.goto(URL); await ready(page); await page.evaluate(()=>{ localStorage.clear(); localStorage.setItem('ddGear','{"weapon":{"slot":"weapon","rarity":3,"lvl":4,"tier":2,"name":"Old Blade","stats":{"dmg":7,"spd":10},"value":120},"armor":{"slot":"armor","rarity":1,"lvl":2,"name":"Old Mail","stats":{"hp":12},"value":30,"score":12}}'); });
 await page.goto(URL); await ready(page);

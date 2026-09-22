@@ -2,7 +2,7 @@ import { chromium } from "playwright"; import { serve } from "./serve.mjs";
 const SP=process.env.SP; const server=await serve(8864);
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.text().slice(0,200)); });
-await page.goto("http://127.0.0.1:8864/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel()&&window.__dd.mobModel("ogre"),null,{timeout:90000});
+await page.goto("http://127.0.0.1:8864/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel()&&window.__dd.mobModel("ogre"),null,{timeout:90000});
 // no roar at the door; the roar comes when the ogre first gets within sight of the hero, and it stands still for it
 const r1=await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.setHero(0,10,0); d.step(1/60,5); const e=d.spawn("ogre","N"); const atDoor={shoutT:e.shoutT,roar:e.roar,cur:d.mobState(e).cur}; d.step(1/60,120); const twoSec={shoutT:e.shoutT,roar:e.roar,cur:d.mobState(e).cur,walking:e.walking,z:+e.z.toFixed(1)};
   // bring the hero to it: 10 units away in the open lane

@@ -5,7 +5,7 @@ const out=[]; const log=(n,v)=>{ console.log(n+": "+(typeof v==='string'?v:JSON.
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
 const mkPage=async(opts)=>{ const page=await browser.newPage(opts||{viewport:{width:960,height:600}}); page.errs=[]; page.on("pageerror",e=>page.errs.push(String(e).slice(0,200))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") page.errs.push(m.type()+": "+m.text().slice(0,200)); }); return page; };
-const URL="http://127.0.0.1:8833/?silent";
+const URL="http://127.0.0.1:8833/?silent&nogate";
 // ===== A. localStorage corruption =====
 const page=await mkPage(); await page.goto(URL); await ready(page);
 const shapes={garbage:'garbage{{', empty:'{}', arr:'[]', nul:'null', str:'"str"', num:'42',

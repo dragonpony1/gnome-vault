@@ -8,7 +8,7 @@ const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=sw
 const context = await browser.newContext({ viewport: { width: 960, height: 600 } });
 const page = await context.newPage();
 const errors = []; page.on("pageerror", e => errors.push(String(e))); page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
-await page.goto("http://127.0.0.1:8781/?silent");
+await page.goto("http://127.0.0.1:8781/?silent&nogate");
 await page.waitForFunction(() => window.__dd && window.__dd.heroModel && window.__dd.heroModel(), null, { timeout: 30000 });
 const hm = await page.evaluate(() => window.__dd.heroModel());
 check("built-in Meshy gnome loaded", /^Gnome Warden \(Meshy/.test(hm.label) && hm.useGLB, JSON.stringify(hm));

@@ -49,7 +49,7 @@ async function tickReplay(page,label,fn){ // drive Tavern.tick(dt) by hand at 60
   log(label,r); }
 async function run(vp,tag){
   const phone=vp.width<500; const page=await browser.newPage({viewport:vp,deviceScaleFactor:phone?2:1,hasTouch:phone,isMobile:phone}); const errors=[]; page.on("pageerror",e=>errors.push(tag+": "+String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(tag+" "+m.type()+": "+m.text().slice(0,200)); });
-  await page.goto("http://127.0.0.1:8831/?silent"); await ready(page); await page.waitForTimeout(300);
+  await page.goto("http://127.0.0.1:8831/?silent&nogate"); await ready(page); await page.waitForTimeout(300);
   const s=await seed(page); log(tag+" seed",s);
   await page.screenshot({path:SHOT+tag+"-start.png"}); log(tag+" start measure",await page.evaluate(measure('#start')));
   // ---- BAG ----
@@ -148,7 +148,7 @@ async function run(vp,tag){
   await page.close(); }
 // ---- landscape phone: the HUD with six touch buttons + the tavern ----
 async function landscape(){ const tag='land'; const page=await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:2,hasTouch:true,isMobile:true}); const errors=[]; page.on("pageerror",e=>errors.push(String(e)));
-  await page.goto("http://127.0.0.1:8831/?silent"); await ready(page); await page.waitForTimeout(300); await seed(page);
+  await page.goto("http://127.0.0.1:8831/?silent&nogate"); await ready(page); await page.waitForTimeout(300); await seed(page);
   await page.evaluate(()=>{ const d=window.__dd; d.start(); d.step(1/60,5); }); await page.waitForTimeout(300); await page.screenshot({path:SHOT+tag+"-hud.png"});
   log(tag+" hud rects",await page.evaluate(rects(['.bars','xpline','topC','wavebtn','bagbtn','sndbtn','hotbar','btns','joy'])));
   log(tag+" hud overlaps",await page.evaluate(overlaps('#hud .bars *, #topC *, #bagbtn, #sndbtn, #wavebtn, #btns .hb, #hotbar .slot, #xpline, #gear .gr')));

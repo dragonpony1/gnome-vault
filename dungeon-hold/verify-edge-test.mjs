@@ -3,7 +3,7 @@ import { chromium } from "playwright"; import http from "http"; import fs from "
 const SP=process.env.SP; const html=fs.readFileSync(SP+"/dungeon.html"); const server=http.createServer((q,r)=>{ r.setHeader("content-type","text/html; charset=utf-8"); r.end(html); }); await new Promise(r=>server.listen(8832,"127.0.0.1",r));
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true}); const SHOT=SP+"/parts/shots/verify-r1-";
-await page.goto("http://127.0.0.1:8832/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:60000}); await page.waitForTimeout(300);
+await page.goto("http://127.0.0.1:8832/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:60000}); await page.waitForTimeout(300);
 const log=(k,v)=>console.log(k+": "+JSON.stringify(v));
 // HUD .res line: with and without the gold span
 log("res line with gold",await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); window.__meta.giveGold(1234567); d.S.mana=260; d.start(); d.step(1/60,3); const r=document.querySelector('.res'); const spans=[...r.children].map(c=>{ const b=c.getBoundingClientRect(); return c.textContent.trim()+' '+Math.round(b.width)+'x'+Math.round(b.height); }); return {h:Math.round(r.getBoundingClientRect().height),spans,gold:document.getElementById('gold').textContent}; }));

@@ -2,7 +2,7 @@ import { chromium } from "playwright"; import http from "http"; import fs from "
 import { serve } from "./serve.mjs"; const server=await serve(8798);
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e)));
-await page.goto("http://127.0.0.1:8798/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:30000});
+await page.goto("http://127.0.0.1:8798/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:30000});
 const r=await page.evaluate(()=>{ const d=window.__dd; d.start(); d.resetGear(); d.setHero(0,8,Math.PI); d.setCam(0,.42,8); d.step(1/60,30);
   d.select("harpoon"); d.step(1/60,5); const g1=d.ghost(); d.setCam(0,.15,8); d.step(1/60,5); const g2=d.ghost(); d.setCam(0,.9,8); d.step(1/60,5); const g3=d.ghost();
   d.rotateGhost(Math.PI/12); d.step(1/60,2); const g4=d.ghost();

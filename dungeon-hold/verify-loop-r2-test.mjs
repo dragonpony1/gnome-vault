@@ -13,7 +13,7 @@ const settle=()=>page.waitForFunction(()=>window.__tavern.goldShown()===window._
 const ui=()=>page.evaluate(()=>{ const T=window.__tavern.state(); return {open:window.__dd.Meta.isOpen(),tab:T.tab,sum:T.sum,goldTxt:document.getElementById('tv-goldn').textContent,goldHud:document.getElementById('gold').textContent,gold:window.__meta.gold(),msg:document.getElementById('tv-msg').textContent,xp:document.getElementById('tv-xpt').textContent,lv:document.getElementById('tv-lv').textContent,pts:document.getElementById('tv-pts').textContent,xpline:document.getElementById('xpline').textContent,phase:window.__dd.S.phase,defend:document.getElementById('tv-defend').textContent,detail:!document.getElementById('tv-detail').classList.contains('hide')}; });
 const totalXP=()=>page.evaluate(()=>{ const M=window.__meta; let t=M.xp(); for(let l=1;l<M.level();l++) t+=M.xpToNext(l); return t; });
 const tally={xp:0,goldEarned:0,goldSpent:0,given:0,kills:0,drops:0};
-await page.goto("http://127.0.0.1:8830/?silent"); await ready(page); await page.waitForTimeout(300);
+await page.goto("http://127.0.0.1:8830/?silent&nogate"); await ready(page); await page.waitForTimeout(300);
 await page.evaluate(()=>{ window.__meta.reset(); });
 // ================= 1. start a run from the start screen =================
 await page.click('#playbtn'); await page.waitForTimeout(150);
@@ -215,7 +215,7 @@ check("no page errors / console errors or warnings across the loop", errors.leng
 const stateSnap=await ctx.storageState(); await ctx.close();
 // ================= 9. phone pass: real taps =================
 const pctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,storageState:stateSnap}); const pp=await pctx.newPage(); const perr=[]; pp.on("pageerror",e=>perr.push(String(e))); pp.on("console",m=>{ if((m.type()==="error"||m.type()==="warning")&&!/assets\/|404/.test(m.text())) perr.push(m.text().slice(0,200)); });
-await pp.goto("http://127.0.0.1:8830/?silent",{timeout:120000}); await ready(pp); await pp.waitForTimeout(300);
+await pp.goto("http://127.0.0.1:8830/?silent&nogate",{timeout:120000}); await ready(pp); await pp.waitForTimeout(300);
 const pOverflow=()=>pp.evaluate(()=>{ const de=document.documentElement; const bad=[]; document.querySelectorAll('#tavern *').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.width>0&&(r.right>innerWidth+1||r.left<-1)) bad.push((el.className||el.id||el.tagName)+':'+Math.round(r.right)); }); return {sw:de.scrollWidth,iw:innerWidth,ok:de.scrollWidth<=innerWidth&&bad.length===0,bad:bad.slice(0,6)}; });
 await pp.tap('#playbtn'); await pp.waitForTimeout(150);
 const pst=await pp.evaluate(()=>({phase:window.__dd.S.phase,gold:window.__meta.gold(),bag:window.__meta.bag().length,touch:!!document.querySelector('#btns .hb')}));

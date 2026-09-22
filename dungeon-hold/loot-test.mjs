@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import http from "http"; import fs from "fs";
 const html = fs.readFileSync(process.env.SP + "/dungeon.html");
 const server = await serve(8780);
-const URL0 = "http://127.0.0.1:8780/?silent";
+const URL0 = "http://127.0.0.1:8780/?silent&nogate";
 const results = []; const check = (n, ok, d) => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + n + (d ? "  -> " + d : "")); };
 const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 const context = await browser.newContext({ viewport: { width: 960, height: 600 } });

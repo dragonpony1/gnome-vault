@@ -2,7 +2,7 @@
 import { chromium } from "playwright"; import { serve } from "./serve.mjs";
 const SP=process.env.SP; const server=await serve(8833,{csp:true,file:SP+"/verify.html"});
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
-const URL="http://127.0.0.1:8833/?silent";
+const URL="http://127.0.0.1:8833/?silent&nogate";
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
 const out=(n,v)=>console.log("## "+n+"\n"+JSON.stringify(v));
 const page=await browser.newPage({viewport:{width:960,height:600}}); const errs=[]; page.on("pageerror",e=>errs.push(String(e).slice(0,200)));

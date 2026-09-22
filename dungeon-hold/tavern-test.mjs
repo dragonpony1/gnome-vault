@@ -7,7 +7,7 @@ const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.
 const overflow=p=>p.evaluate(()=>{ const de=document.documentElement; const bad=[]; document.querySelectorAll('#tavern *').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.width>0&&(r.right>innerWidth+1||r.left<-1)) bad.push(el.className||el.id||el.tagName); }); return {sw:de.scrollWidth,iw:innerWidth,bad:bad.slice(0,6)}; });
 async function run(vp,tag){
   const page=await browser.newPage({viewport:vp,hasTouch:vp.width<500,isMobile:vp.width<500}); page.on("pageerror",e=>errors.push(tag+": "+String(e))); page.on("console",m=>{ if(m.type()==="error") errors.push(tag+": "+m.text().slice(0,160)); });
-  await page.goto("http://127.0.0.1:8822/?silent"); await ready(page);
+  await page.goto("http://127.0.0.1:8822/?silent&nogate"); await ready(page);
   // seed: items, gold, xp; open from the start screen
   const seed=await page.evaluate(()=>{ const d=window.__dd, M=window.__meta; M.reset(); M.giveGold(1240); M.addXP(1500); d.S.wave=7; for(let i=0;i<7;i++) M.giveItem(d.rollItem(i%5,d.SLOTS[i%5],3+i)); M.giveItem(d.rollItem(4,'weapon',9)); d.S.wave=0; const w=M.bag().find(b=>b.slot==='armor'); M.equip(w.id); const c=M.bag().find(b=>b.slot==='charm'); M.equip(c.id);
     d.Meta.open(); d.step(1/60,3); return {open:d.Meta.isOpen(),vis:!document.getElementById('tavern').classList.contains('hide'),bag:M.bag().length,gold:M.gold(),shown:window.__tavern?window.__tavern.goldShown():null}; });

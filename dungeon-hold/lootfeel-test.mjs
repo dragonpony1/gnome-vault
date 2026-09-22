@@ -2,7 +2,7 @@ import { chromium } from "playwright"; import fs from "fs"; import { serve } fro
 const SP=process.env.SP; const server=await serve(8844);
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.text().slice(0,200)); });
-await page.goto("http://127.0.0.1:8844/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__feel&&window.__meta,null,{timeout:60000});
+await page.goto("http://127.0.0.1:8844/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__feel&&window.__meta,null,{timeout:60000});
 // fresh hero: stat block shows base numbers
 const s0=await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.step(1/60,3); return {stats:window.__feel.stats(),text:document.getElementById("herostats")&&document.getElementById("herostats").textContent}; });
 check("hero stat block on the HUD (damage, swings/s, magic, DPS, armor, HP)",s0.text&&/Damage/.test(s0.text)&&/DPS/.test(s0.text)&&/Armor/.test(s0.text)&&s0.stats.dmg>0&&s0.stats.dps>0,JSON.stringify(s0.stats));

@@ -2,7 +2,7 @@ import { chromium } from "playwright"; import { serve } from "./serve.mjs";
 const SP=process.env.SP; const server=await serve(8845);
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e)));
-await page.goto("http://127.0.0.1:8845/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel("goblin"),null,{timeout:60000});
+await page.goto("http://127.0.0.1:8845/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel("goblin"),null,{timeout:60000});
 // find a spot on the north lane's path a few squares from the spawn, drop a blockade across it, then send an ogre
 const r=await page.evaluate(()=>{ const d=window.__dd; d.resetGear(); d.start(); d.addMana(9000); d.setHero(6,10,0); d.step(1/60,3);
   const probe=d.spawn("goblin","N"); d.step(1/60,90); const px=probe.x, pz=probe.z; d.kill(probe); d.step(1/60,80);

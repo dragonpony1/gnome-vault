@@ -139,6 +139,16 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
 - Both draw their ring on the floor at its reach with a small spinner and a plume of light at the top (`mdl.userData.aura`,
   added at runtime so a model swap keeps it). `totem-test.mjs` covers both.
 
+- `96-armory.js`: every piece asks for a hero level (`it.req` = drop level × 0.8 + rarity, so a wave-7 legendary wants 10, a
+  wave-7 common 6; old pieces get one on the way through `fixItem`); the sheet marks a locked piece (red Lv badge, 🔒 in
+  the grid, EQUIP becomes "LEVEL N NEEDED"), the tavern's cards carry the badge, and `Meta.equip` refuses with a toast.
+  The ARMORY keeps pieces for later: eight stands (`ddArmory`, its own save; `Meta.stash` / `Meta.unstash` / `Meta.armory`),
+  a grid under the inventory on the sheet (KEEP IN ARMORY on a bag piece's card, TAKE BACK on a kept one), and the stands
+  themselves along the tavern's north wall showing what they hold — armor on a wooden mannequin, a weapon on a rack with its
+  real model (`window.__weapons.model`), a charm or amulet on a pedestal, a familiar's egg on a perch, each with a name tag.
+  E at the stands opens the sheet on the first kept piece. `armory-test.mjs` covers it. `?nogate` on the page URL turns the
+  level gate off (`Meta.levelGate(false)` at runtime); every other suite runs with it so their high-level test pieces equip.
+
 ## Open items
 
 - Void set models: the concept art (runed blade, chain whip, shard charm, galaxy amulet, starless robe) is waiting on Meshy

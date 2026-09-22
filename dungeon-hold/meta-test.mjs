@@ -9,7 +9,7 @@ const page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,
 const errors=[], warns=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error") errors.push(m.text().slice(0,200)); else if(m.type()==="warning") warns.push(m.text().slice(0,200)); });
 const overflow=()=>page.evaluate(()=>{ const de=document.documentElement; const bad=[]; document.querySelectorAll('#tavern *').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.width>0&&(r.right>innerWidth+1||r.left<-1)) bad.push(el.className||el.id||el.tagName); }); return {sw:de.scrollWidth,iw:innerWidth,ok:de.scrollWidth<=innerWidth&&bad.length===0,bad:bad.slice(0,5)}; });
 const settle=()=>page.waitForFunction(()=>window.__tavern.goldShown()===window.__meta.gold(),null,{timeout:20000}).catch(()=>{});
-await page.goto("http://127.0.0.1:8810/?silent"); await ready(page); await page.waitForTimeout(300);
+await page.goto("http://127.0.0.1:8810/?silent&nogate"); await ready(page); await page.waitForTimeout(300);
 // ---- load ----
 const boot=await page.evaluate(()=>({line:document.getElementById('buildline').textContent,meta:window.__meta===window.__dd.Meta,tavern:!!window.__tavern,fam:!!window.__familiar,gold:!!document.getElementById('gold'),xp:!!document.getElementById('xpline'),tv:!!document.getElementById('tavern'),phase:window.__dd.S.phase}));
 check("build line reads build 14+", /build (1[4-9]|[2-9]\d)/.test(boot.line), boot.line);

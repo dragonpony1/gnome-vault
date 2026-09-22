@@ -5,7 +5,7 @@ const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PAS
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
 const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[], warns=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error") errors.push(m.text().slice(0,200)); else if(m.type()==="warning") warns.push(m.text().slice(0,200)); });
 const ready=p=>p.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__dd.mobModel&&window.__dd.mobModel("goblin"),null,{timeout:40000});
-await page.goto("http://127.0.0.1:8832/?silent"); await ready(page); await page.waitForTimeout(1500);
+await page.goto("http://127.0.0.1:8832/?silent&nogate"); await ready(page); await page.waitForTimeout(1500);
 console.log("load warnings:",JSON.stringify(warns)); console.log("load errors:",JSON.stringify(errors));
 const helpers=()=>{ const d=window.__dd, M=window.__meta; window.H={
   clear(){ for(const e of d.enemies) if(!e.dead){ e.hp=-1; e.dead=.001; } d.step(1/60,80); d.projs.length=0; for(const o of d.orbs) d.scene.remove(o.mesh); d.orbs.length=0; for(const l of d.loot) d.scene.remove(l.mesh); d.loot.length=0; },

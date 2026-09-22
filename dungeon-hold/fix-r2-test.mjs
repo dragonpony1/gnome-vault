@@ -8,7 +8,7 @@ const listen=p=>{ const errors=[], warns=[]; p.on("pageerror",e=>errors.push(Str
 
 // ---------- desktop ----------
 let page=await browser.newPage({viewport:{width:1280,height:800}}); let log=listen(page);
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page); await page.waitForTimeout(400);
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page); await page.waitForTimeout(400);
 check("single file: no 404 / mob model warnings on load", log.errors.length===0&&log.warns.length===0, [...log.errors,...log.warns].join(" | "));
 // focus: TAVERN → Escape → Space must start the run WITHOUT re-opening the tavern
 await page.click('#tavbtn'); await page.waitForTimeout(50); await page.keyboard.press('Escape'); await page.waitForTimeout(50);
@@ -75,7 +75,7 @@ await page.close();
 
 // ---------- phone portrait: dead end + detail panel + toast ----------
 page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:2}); log=listen(page);
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page); await page.tap('#playbtn'); await page.waitForTimeout(200);
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page); await page.tap('#playbtn'); await page.waitForTimeout(200);
 await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.startWave(); d.S.crystal=1; const o=d.spawn('ogre','N'); o.x=0; o.z=-3.2; let n=0; while(d.S.phase!=='dead'&&n++<3000) d.step(1/60,1); });
 const sum=await page.evaluate(()=>({phase:window.__dd.S.phase,sum:window.__tavern.state().sum,banner:getComputedStyle(document.getElementById('banner')).opacity}));
 check("phone: crystal falls → summary, wave banner hidden", sum.phase==='dead'&&sum.sum&&sum.banner==='0', JSON.stringify(sum));
@@ -94,7 +94,7 @@ await page.close();
 
 // ---------- phone landscape ----------
 page=await browser.newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:2}); log=listen(page);
-await page.goto("http://127.0.0.1:8820/?silent"); await ready(page); await page.evaluate(()=>{ window.__dd.start(); window.__dd.step(1/60,5); });
+await page.goto("http://127.0.0.1:8820/?silent&nogate"); await ready(page); await page.evaluate(()=>{ window.__dd.start(); window.__dd.step(1/60,5); });
 const land=await page.evaluate(()=>{ const R=id=>document.getElementById(id).getBoundingClientRect(); const hbs=[...document.querySelectorAll('#btns .hb')].map(b=>b.getBoundingClientRect()); const hit=(a,b)=>!(a.right<=b.left||a.left>=b.right||a.bottom<=b.top||a.top>=b.bottom); const hud=['wavebtn','sndbtn','bagbtn','topC','hotbar','joy','prompt'].map(R); const overlaps=[]; hbs.forEach((h,i)=>hud.forEach((u,j)=>{ if(u.width&&hit(h,u)) overlaps.push(i+':'+['wavebtn','sndbtn','bagbtn','topC','hotbar','joy','prompt'][j]); })); return {n:hbs.length,onScreen:hbs.every(h=>h.top>=0&&h.bottom<=390&&h.left>=0&&h.right<=844),size:hbs.map(h=>Math.round(h.height)),overlaps,btns:[Math.round(R('btns').top),Math.round(R('btns').bottom)]}; });
 check("landscape: all 6 touch buttons on screen and clear of the HUD", land.n===6&&land.onScreen&&land.overlaps.length===0, JSON.stringify(land));
 await page.screenshot({path:SP+"/parts/shots/fix-r2-land-hud.png"});

@@ -2,7 +2,7 @@ import { chromium } from "playwright"; import { serve } from "./serve.mjs";
 const SP=process.env.SP; const server=await serve(8855);
 const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
 const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}); const page=await browser.newPage({viewport:{width:1280,height:800}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error"||m.type()==="warning") errors.push(m.text().slice(0,200)); });
-await page.goto("http://127.0.0.1:8855/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__doll&&window.__feel,null,{timeout:60000});
+await page.goto("http://127.0.0.1:8855/?silent&nogate"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel()&&window.__doll&&window.__feel,null,{timeout:60000});
 // HUD: gear list and stat block hidden, resources bigger
 const h=await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.step(1/60,3); const cs=e=>getComputedStyle(document.getElementById(e)); return {gear:cs("gear").display,stats:document.getElementById("herostats")?cs("herostats").display:"none",res:parseFloat(getComputedStyle(document.querySelector("#hud .res")).fontSize),bar:parseFloat(getComputedStyle(document.querySelector("#hud .bar")).height)}; });
 check("HUD declutter: gear list + stat block hidden, resources ≥ 20px, bars ≥ 20px",h.gear==="none"&&h.stats==="none"&&h.res>=20&&h.bar>=20,JSON.stringify(h));
