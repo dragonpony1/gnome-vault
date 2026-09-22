@@ -1,0 +1,14 @@
+import { chromium } from "playwright"; import http from "http"; import fs from "fs";
+const SP=process.env.SP; const FILE=process.env.FILE, GLB=process.env.GLB, TAG=process.env.TAG;
+const files={"/":FILE,"/gnome.glb":GLB};
+const server=http.createServer((req,res)=>{ const p=new URL(req.url,"http://x").pathname; const f=files[p]; if(!f){res.statusCode=404;return res.end();} res.setHeader("content-type",p.endsWith(".glb")?"model/gltf-binary":"text/html; charset=utf-8"); res.end(fs.readFileSync(f)); });
+await new Promise(r=>server.listen(+process.env.PORT,"127.0.0.1",r));
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
+const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e)));
+await page.goto("http://127.0.0.1:"+process.env.PORT+"/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:30000});
+await page.evaluate(async()=>{ const d=window.__dd; const buf=await (await fetch("/gnome.glb")).arrayBuffer(); d.loadHeroGLB(buf,"gnome.glb"); await new Promise(r=>setTimeout(r,1500)); d.resetGear(); d.start(); });
+const shot=async(name,fn)=>{ await page.evaluate(fn); await page.waitForTimeout(150); await page.screenshot({path:SP+"/meshy/"+name+".png"}); };
+await shot(TAG+"-close",()=>{ const d=window.__dd; d.setHero(0,10,Math.PI); d.setKeys({w:0,s:0,shift:0}); d.setCam(0,.1,3.2); d.cam.x=0; d.cam.y=2.0; d.cam.z=6.8; d.step(1/60,70); });
+await shot(TAG+"-runfront",()=>{ const d=window.__dd; d.setCam(0,.15,5); d.step(1/60,30); d.setKeys({s:1,shift:1}); d.step(1/60,9); d.setKeys({s:0,shift:0}); d.setHero(0,10,Math.PI); });
+await shot(TAG+"-runside",()=>{ const d=window.__dd; d.setHero(0,10,Math.PI/2); d.setCam(Math.PI/2,.15,5); d.cam.x=-5; d.cam.y=2.2; d.cam.z=10; d.step(1/60,30); d.setKeys({s:1,shift:1}); d.step(1/60,7); d.setKeys({s:0,shift:0}); d.setHero(0,10,Math.PI/2); });
+console.log(TAG,"shots done; errors:",errors.length?errors.join(" | "):"none"); await browser.close(); server.close();

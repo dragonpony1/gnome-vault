@@ -1,0 +1,16 @@
+<!doctype html><html><body><script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
+const PI=Math.PI; const load=url=>fetch(url).then(r=>r.arrayBuffer()).then(buf=>new Promise((res,rej)=>new THREE.GLTFLoader().parse(buf,'',res,rej)));
+window.probe=async()=>{
+  const g=await load('gnome.glb'); const scene=g.scene; scene.updateMatrixWorld(true); const bone=n=>scene.getObjectByName(n);
+  let sk=null; scene.traverse(o=>{ if(o.isSkinnedMesh) sk=o; });
+  const pos=sk.geometry.attributes.position, si=sk.geometry.attributes.skinIndex, sw=sk.geometry.attributes.skinWeight; const v=new THREE.Vector3();
+  const hand=bone('mixamorigRightHand').getWorldPosition(new THREE.Vector3()), fore=bone('mixamorigRightForeArm').getWorldPosition(new THREE.Vector3()), arm=bone('mixamorigRightArm').getWorldPosition(new THREE.Vector3()), head=bone('mixamorigHead').getWorldPosition(new THREE.Vector3());
+  // candidate blade verts: right side, above the shoulder, not the head/hat (|x| of head is ~0)
+  const tally={}; let tip=null, n=0; const pts=[];
+  for(let i=0;i<pos.count;i++){ v.fromBufferAttribute(pos,i).applyMatrix4(sk.matrixWorld); if(v.x<-.2&&v.y>.8){ n++; const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; let bi=0; for(let k=1;k<4;k++) if(w[k]>w[bi]) bi=k; const nm=sk.skeleton.bones[idx[bi]].name; tally[nm]=(tally[nm]||0)+1; if(!tip||v.y>tip.y) tip=v.clone(); pts.push([+v.x.toFixed(2),+v.y.toFixed(2),+v.z.toFixed(2),nm.replace('mixamorig','')]); } }
+  // also: tally by height band for all verts bound mostly to hand/forearm/arm on the right
+  const band={}; for(let i=0;i<pos.count;i++){ const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; let bi=0; for(let k=1;k<4;k++) if(w[k]>w[bi]) bi=k; const nm=sk.skeleton.bones[idx[bi]].name; if(!/Right(Arm|ForeArm|Hand)/.test(nm)) continue; v.fromBufferAttribute(pos,i).applyMatrix4(sk.matrixWorld); const b=Math.round(v.y*10)/10; band[nm+'@'+b]=(band[nm+'@'+b]||0)+1; }
+  const r3=o=>o.toArray().map(x=>+x.toFixed(3));
+  return {n,tally,tip:tip&&r3(tip),hand:r3(hand),fore:r3(fore),arm:r3(arm),head:r3(head),sample:pts.filter((p,i)=>i%25===0).slice(0,20),band};
+};
+</script></body></html>

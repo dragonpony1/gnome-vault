@@ -1,0 +1,36 @@
+<!doctype html><html><body style="margin:0;background:#222">
+<script src="three.min.js"></script><script src="GLTFLoader.js"></script>
+<script>
+// Frame-strip viewer: ?glb=file.glb&clip=Attack&yaw=-90&n=8&t0=0&t1=(clip end)&w=300&h=360
+// Drives the mixer by hand (mixer.setTime), so the strip shows exact clip times regardless of render speed.
+const q=new URLSearchParams(location.search);
+const glb=q.get('glb')||'gnome.glb', clipName=q.get('clip')||'', yaw=(+q.get('yaw')||0)*Math.PI/180, n=+q.get('n')||8, W=+q.get('w')||300, Hh=+q.get('h')||360, elev=(+q.get('elev')||12)*Math.PI/180;
+window.render=()=>new Promise((res,rej)=>{
+  fetch(glb).then(r=>r.arrayBuffer()).then(buf=>new THREE.GLTFLoader().parse(buf,'',gltf=>{
+    const scene=new THREE.Scene(); scene.background=new THREE.Color(0x2a2a33); scene.add(new THREE.HemisphereLight(0xffffff,0x555566,1.1)); const dl=new THREE.DirectionalLight(0xffffff,.8); dl.position.set(1,2,2); scene.add(dl);
+    let root=gltf.scene; root.updateMatrixWorld(true);
+    const wrapS=+q.get('wrap')||0; if(wrapS){ const inner=new THREE.Group(); inner.add(root); inner.scale.setScalar(wrapS); inner.position.set(0,0,0); const wrap=new THREE.Group(); wrap.add(inner); wrap.position.set(0,0,0); scene.add(wrap); } else scene.add(root);
+    root.updateMatrixWorld(true);
+    if(q.get('toon')){ root.traverse(m=>{ if(m.isMesh){ const o=m.material; m.material=new THREE.MeshToonMaterial({color:0xffffff,map:o.map||null,skinning:!!m.isSkinnedMesh}); } }); }
+    if(q.get('ol')){ const OLSKIN=new THREE.ShaderMaterial({side:THREE.BackSide,skinning:true,uniforms:{t:{value:0.01},col:{value:new THREE.Color(0x160c1e)}},
+      vertexShader:'uniform float t;\n#include <common>\n#include <skinning_pars_vertex>\nvoid main(){\n#include <beginnormal_vertex>\n#include <skinbase_vertex>\n#include <skinnormal_vertex>\nvec3 transformed=position+objectNormal*t;\n#include <skinning_vertex>\nvec4 mvPosition=modelViewMatrix*vec4(transformed,1.0); gl_Position=projectionMatrix*mvPosition;\n}',
+      fragmentShader:'uniform vec3 col;\nvoid main(){ gl_FragColor=vec4(col,1.0);\n}'});
+      const list=[]; root.traverse(m=>{ if(m.isSkinnedMesh) list.push(m); }); for(const m of list){ const o=new THREE.SkinnedMesh(m.geometry,OLSKIN); o.frustumCulled=false; o.bind(m.skeleton,m.bindMatrix); m.add(o); } }
+    scene.updateMatrixWorld(true);
+    // model extent from the bones (skinned bbox is unreliable), falling back to the mesh box
+    let miny=1e9,maxy=-1e9,cx=0,cz=0,nb=0; const v=new THREE.Vector3(); root.traverse(o=>{ if(o.isBone){ o.getWorldPosition(v); miny=Math.min(miny,v.y); maxy=Math.max(maxy,v.y); cx+=v.x; cz+=v.z; nb++; } });
+    const box=new THREE.Box3().setFromObject(root); if(nb<3){ miny=box.min.y; maxy=box.max.y; cx=(box.min.x+box.max.x)/2; cz=(box.min.z+box.max.z)/2; nb=1; } else { cx/=nb; cz/=nb; miny=Math.min(miny,box.min.y); }
+    const h=Math.max(maxy-miny,1e-3), cy=(miny+maxy)/2; const d=h*2.1;
+    const cam=new THREE.PerspectiveCamera(35,W/Hh,.01,d*10); cam.position.set(cx+Math.sin(yaw)*Math.cos(elev)*d,cy+Math.sin(elev)*d,cz+Math.cos(yaw)*Math.cos(elev)*d); cam.lookAt(cx,cy,cz);
+    // floor grid for reference
+    const grid=new THREE.GridHelper(h*2,8,0x888899,0x555566); grid.position.set(cx,miny,cz); scene.add(grid);
+    const clips=gltf.animations||[]; const clip=clips.find(c=>c.name===clipName)||clips[0]; const info={clips:clips.map(c=>c.name+':'+c.duration.toFixed(2)),height:h,boxSize:box.getSize(new THREE.Vector3()).toArray(),bones:nb};
+    const rd=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,precision:q.get('prec')||'highp'}); info.prec=rd.capabilities.precision; info.fvt=rd.capabilities.floatVertexTextures; rd.setSize(W,Hh); rd.outputEncoding=THREE.sRGBEncoding;
+    const mixer=new THREE.AnimationMixer(root); let act=null; if(clip){ act=mixer.clipAction(clip); act.play(); }
+    const t0=+q.get('t0')||0, t1=q.get('t1')?+q.get('t1'):(clip?clip.duration:0);
+    const strip=document.createElement('canvas'); strip.width=W*n; strip.height=Hh; const g=strip.getContext('2d'); document.body.appendChild(strip);
+    for(let i=0;i<n;i++){ const t=n>1?t0+(t1-t0)*i/(n-1):t0; if(act){ mixer.setTime(0); mixer.update(t); } root.updateMatrixWorld(true); rd.render(scene,cam); g.drawImage(rd.domElement,i*W,0); g.fillStyle='#fff'; g.font='16px sans-serif'; g.fillText((clip?clip.name:'-')+' t='+t.toFixed(2)+'s',i*W+8,22); }
+    res({png:strip.toDataURL('image/png'),info});
+  },rej)).catch(rej);
+});
+</script></body></html>

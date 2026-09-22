@@ -1,0 +1,18 @@
+<!doctype html><html><body><script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
+const load=url=>fetch(url).then(r=>r.arrayBuffer()).then(buf=>new Promise((res,rej)=>new THREE.GLTFLoader().parse(buf,'',res,rej)));
+window.probe=async()=>{
+  const g=await load('walk.glb'); const scene=g.scene; scene.updateMatrixWorld(true); const bone=n=>scene.getObjectByName(n);
+  let sk=null; scene.traverse(o=>{ if(o.isSkinnedMesh) sk=o; });
+  const hf=scene.getObjectByName('headfront'); const hp=bone('mixamorigHead').getWorldPosition(new THREE.Vector3()), fp=hf.getWorldPosition(new THREE.Vector3()); const fwd=new THREE.Vector3(fp.x-hp.x,0,fp.z-hp.z).normalize();
+  const yaw=Math.atan2(fwd.x,fwd.z); scene.rotation.y=-yaw; scene.updateMatrixWorld(true);
+  const J=n=>sk.skeleton.bones.findIndex(b=>b.name===n); const fam=new Set([J('mixamorigRightHand'),J('mixamorigRightHandMiddle4')].filter(i=>i>=0)); const tally={};
+  const pos=sk.geometry.attributes.position, si=sk.geometry.attributes.skinIndex, sw=sk.geometry.attributes.skinWeight;
+  const hand=bone('mixamorigRightHand').getWorldPosition(new THREE.Vector3()), fore=bone('mixamorigRightForeArm').getWorldPosition(new THREE.Vector3()), arm=bone('mixamorigRightArm').getWorldPosition(new THREE.Vector3()), sh=bone('mixamorigRightShoulder').getWorldPosition(new THREE.Vector3());
+  let tip=null, td=0, nHand=0; const v=new THREE.Vector3();
+  for(let i=0;i<pos.count;i++){ const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; let wh=0; for(let k=0;k<4;k++){ if(fam.has(idx[k])) wh+=w[k]; if(w[k]>.5){ const nm=sk.skeleton.bones[idx[k]].name; tally[nm]=(tally[nm]||0)+1; } } if(wh<.3) continue; nHand++; v.fromBufferAttribute(pos,i).applyMatrix4(sk.matrixWorld); const d=v.distanceTo(hand); if(d>td){ td=d; tip=v.clone(); } }
+  const r3=o=>o.toArray().map(x=>+x.toFixed(3));
+  const up=arm.clone().sub(sh), fo=fore.clone().sub(arm), ha=hand.clone().sub(fore), bl=tip.clone().sub(hand);
+  return {tally:Object.fromEntries(Object.entries(tally).filter(([k,v])=>/Right|Hand/.test(k))),yawFix:Math.round(-yaw*180/PI), shoulder:r3(sh), arm:r3(arm), fore:r3(fore), hand:r3(hand), tip:r3(tip), tipDist:+td.toFixed(3), nHandVerts:nHand, upperDir:r3(fo.normalize()), foreDir:r3(ha.normalize()), bladeDir:r3(bl.normalize()), bladeVsFore:Math.round(Math.acos(Math.max(-1,Math.min(1,ha.dot(bl))))*180/PI)};
+};
+const PI=Math.PI;
+</script></body></html>

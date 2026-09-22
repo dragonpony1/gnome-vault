@@ -1,0 +1,114 @@
+<!doctype html><html><body>
+<script src="three.min.js"></script><script src="GLTFLoader.js"></script><script src="GLTFExporter.js"></script>
+<script>
+const PI=Math.PI;
+const load=url=>fetch(url).then(r=>r.arrayBuffer()).then(buf=>new Promise((res,rej)=>new THREE.GLTFLoader().parse(buf,'',res,rej)));
+window.build=async()=>{
+  const walk=await load('walk.glb'), run=await load('run.glb'), slash=await load('slash.glb');
+  const scene=walk.scene; scene.updateMatrixWorld(true);
+  const bone=n=>scene.getObjectByName(n);
+  const need=['mixamorigHips','mixamorigSpine','mixamorigSpine1','mixamorigSpine2','mixamorigNeck','mixamorigHead','mixamorigLeftArm','mixamorigRightArm','mixamorigLeftForeArm','mixamorigRightForeArm','mixamorigLeftUpLeg','mixamorigRightUpLeg','mixamorigLeftLeg','mixamorigRightLeg','mixamorigLeftFoot','mixamorigLeftToe_End'];
+  for(const n of need) if(!bone(n)) throw new Error('missing bone '+n);
+  // --- face +Z: use the foot direction ---
+  const fp=new THREE.Vector3(), tp=new THREE.Vector3(); let fwd0;
+  const hf=scene.getObjectByName('headfront');
+  if(hf){ bone('mixamorigHead').getWorldPosition(fp); hf.getWorldPosition(tp); fwd0=new THREE.Vector3(tp.x-fp.x,0,tp.z-fp.z).normalize(); }
+  else { const a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3(), d=new THREE.Vector3(); bone('mixamorigLeftFoot').getWorldPosition(a); bone('mixamorigLeftToe_End').getWorldPosition(b); bone('mixamorigRightFoot').getWorldPosition(c); bone('mixamorigRightToe_End').getWorldPosition(d); fwd0=new THREE.Vector3(b.x-a.x+d.x-c.x,0,b.z-a.z+d.z-c.z).normalize(); }
+  const yaw=Math.atan2(fwd0.x,fwd0.z);
+  scene.rotation.y=-yaw; scene.updateMatrixWorld(true);
+  // --- lighter mesh + textures ---
+  let skinned=null; scene.traverse(o=>{ if(o.isSkinnedMesh) skinned=o; });
+  skinned.geometry.deleteAttribute('tangent');
+  // --- repair the auto-rig: bind each arm's vertices to the nearest arm bone, blending at the joints ---
+  function reskinArm(side){
+    const names=['Shoulder','Arm','ForeArm','Hand','HandMiddle4'].map(n=>'mixamorig'+side+n);
+    const bs=names.map(n=>bone(n)); if(bs.some(b=>!b)) return {side,changed:0,reason:'missing bones'};
+    const jointIdx=names.map(n=>skinned.skeleton.bones.findIndex(b=>b.name===n)); if(jointIdx.some(i=>i<0)) return {side,changed:0,reason:'not in skin'};
+    const P=bs.map(b=>b.getWorldPosition(new THREE.Vector3()));
+    const segs=[[P[0],P[1]],[P[1],P[2]],[P[2],P[3]],[P[3],P[4]]];   // Shoulder, Arm, ForeArm, Hand
+    const g=skinned.geometry, pos=g.attributes.position, si=g.attributes.skinIndex, sw=g.attributes.skinWeight;
+    const fam=new Set(jointIdx); const v=new THREE.Vector3(), ab=new THREE.Vector3(), q=new THREE.Vector3(); let changed=0;
+    const R=0.06;   // joint blend radius (model is 1.19 tall)
+    // the sword: the highest arm-family vertex on this side is the blade tip; anything close to the hand->tip line is sword
+    let tip=null; if(side==='Right'){ for(let i=0;i<pos.count;i++){ const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; let famW=0; for(let k=0;k<4;k++) if(fam.has(idx[k])) famW+=w[k]; if(famW<0.3) continue; v.fromBufferAttribute(pos,i).applyMatrix4(skinned.matrixWorld); if(v.x<-.2&&(!tip||v.y>tip.y)) tip=v.clone(); } }
+    const handP=P[3], bladeAxis=tip?tip.clone().sub(handP):null, bladeLen=bladeAxis?bladeAxis.length():0; if(bladeAxis) bladeAxis.normalize(); let sword=0; window.__sword={tip:tip&&tip.toArray(),len:bladeLen};
+    for(let i=0;i<pos.count;i++){
+      const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)];
+      let famW=0; for(let k=0;k<4;k++) if(fam.has(idx[k])) famW+=w[k];
+      if(famW<0.05) continue;
+      v.fromBufferAttribute(pos,i).applyMatrix4(skinned.matrixWorld);
+      if(bladeAxis){ q.copy(v).sub(handP); const t=q.dot(bladeAxis)/bladeLen; const r=q.addScaledVector(bladeAxis,-t*bladeLen).length(); if(t>-.02&&t<1.1&&r<(t<.1?.05:.09)){ si.setXYZW(i,jointIdx[3],0,0,0); sw.setXYZW(i,1,0,0,0); sword++; changed++; continue; } }
+      let best=null; segs.forEach((sg,k)=>{ ab.copy(sg[1]).sub(sg[0]); const L2=ab.lengthSq()||1e-9; const t=Math.max(0,Math.min(1,q.copy(v).sub(sg[0]).dot(ab)/L2)); const d=v.distanceTo(q.copy(sg[0]).addScaledVector(ab,t)); if(!best||d<best.d) best={d,k,t,len:Math.sqrt(L2)}; });
+      let a=best.k, b=null, wb=0; const dEnd=(1-best.t)*best.len, dStart=best.t*best.len;
+      if(best.k<3&&dEnd<R){ b=best.k+1; wb=.5*(1-dEnd/R); } else if(best.k>0&&dStart<R){ b=best.k-1; wb=.5*(1-dStart/R); }
+      const out=[]; for(let k=0;k<4;k++) if(!fam.has(idx[k])&&w[k]>0) out.push([idx[k],w[k]]);
+      out.push([jointIdx[a],famW*(1-wb)]); if(b!==null) out.push([jointIdx[b],famW*wb]);
+      out.sort((x,y)=>y[1]-x[1]); while(out.length<4) out.push([0,0]); out.length=4; const tot=out.reduce((s,x)=>s+x[1],0)||1;
+      si.setXYZW(i,out[0][0],out[1][0],out[2][0],out[3][0]); sw.setXYZW(i,out[0][1]/tot,out[1][1]/tot,out[2][1]/tot,out[3][1]/tot); changed++;
+    }
+    si.needsUpdate=sw.needsUpdate=true; return {side,changed,sword};
+  }
+  const reskin=[reskinArm('Left'),reskinArm('Right')];
+  const m=skinned.material; const shrink=(tex,size)=>{ if(!tex) return null; const c=document.createElement('canvas'); c.width=c.height=size; c.getContext('2d').drawImage(tex.image,0,0,size,size); const t=new THREE.CanvasTexture(c); t.flipY=false; t.encoding=tex.encoding; t.wrapS=tex.wrapS; t.wrapT=tex.wrapT; return t; };
+  const srcSize=m.map&&m.map.image?m.map.image.width:0; m.map=shrink(m.map,1024); m.metalnessMap=null; m.roughnessMap=null; m.metalness=0; m.roughness=.9; m.needsUpdate=true;
+  // --- clips from Meshy: keep Walk + Run, strip forward drift from the hips ---
+  const fix=(clip,name)=>{ clip=clip.clone(); clip.name=name; for(const t of clip.tracks){ if(/Hips\.position$/.test(t.name)){ const v=t.values; for(let i=0;i<v.length;i+=3){ v[i]=v[0]; v[i+2]=v[2]; } } } return clip; };
+  const Walk=fix(walk.animations.find(c=>c.name==='Walking'),'Walk'), Run=fix(run.animations.find(c=>c.name==='Running'),'Run');
+  // --- pose tools (world-space rotations, so no guessing about bone axes) ---
+  const bones=[]; scene.traverse(o=>{ if(o.isBone) bones.push(o); });
+  const rest=new Map(bones.map(b=>[b,{q:b.quaternion.clone(),p:b.position.clone()}]));
+  const resetAll=()=>{ for(const b of bones){ const r=rest.get(b); b.quaternion.copy(r.q); b.position.copy(r.p); } scene.updateMatrixWorld(true); };
+  const X=new THREE.Vector3(1,0,0), Y=new THREE.Vector3(0,1,0), Z=new THREE.Vector3(0,0,1);
+  const pq=new THREE.Quaternion(), rq=new THREE.Quaternion(), tmp=new THREE.Quaternion();
+  // rotate a bone by `deg` about a WORLD axis, on top of its current pose
+  const rot=(name,axis,deg)=>{ const b=bone(name); scene.updateMatrixWorld(true); b.parent.getWorldQuaternion(pq); rq.setFromAxisAngle(axis,deg*PI/180); tmp.copy(pq).invert().multiply(rq).multiply(pq); b.quaternion.premultiply(tmp); b.updateMatrixWorld(true); };
+  const hips=bone('mixamorigHips'); const hipsRestY=rest.get(hips).p.y;
+  const record=()=>{ const out={}; for(const b of bones) out[b.name]=b.quaternion.toArray(); out.__hipsPos=hips.position.toArray(); return out; };
+  const clipFrom=(name,times,poses,loop)=>{ const tracks=[]; for(const b of bones){ const vals=[]; for(const p of poses) vals.push(...p[b.name]); tracks.push(new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,vals)); } const pv=[]; for(const p of poses) pv.push(...p.__hipsPos); tracks.push(new THREE.VectorKeyframeTrack(hips.name+'.position',times,pv)); return new THREE.AnimationClip(name,times[times.length-1],tracks); };
+  const S=(a,n,i,ph)=>Math.sin(i/n*2*PI+(ph||0))*a;
+  // Idle: breathe, sway, look around a little
+  { const n=8, times=[], poses=[]; for(let i=0;i<=n;i++){ times.push(i/n*2.4); resetAll(); rot('mixamorigSpine1',X,S(-2,n,i)); rot('mixamorigHead',Y,S(6,n,i,1)); rot('mixamorigHead',X,S(2,n,i)); rot('mixamorigLeftArm',X,S(2,n,i,.5)); rot('mixamorigRightArm',X,S(-2,n,i,.5)); hips.position.y=hipsRestY+S(.006,n,i); poses.push(record()); } window.Idle=clipFrom('Idle',times,poses); }
+  // Attack: wind the sword arm up and back, then slash forward-down, spine twists with it
+  { const keys=[[0,[]],[.12,[['mixamorigRightArm',X,120],['mixamorigRightForeArm',X,-70],['mixamorigSpine1',Y,-25],['mixamorigHead',Y,-15],['mixamorigLeftArm',X,-30]]],[.24,[['mixamorigRightArm',X,-70],['mixamorigRightForeArm',X,-15],['mixamorigSpine1',Y,30],['mixamorigHead',Y,15],['mixamorigLeftArm',X,20]]],[.32,[['mixamorigRightArm',X,-45],['mixamorigSpine1',Y,20]]],[.4,[]]];
+    const times=[], poses=[]; for(const [t,ops] of keys){ times.push(t); resetAll(); for(const [b,ax,d] of ops) rot(b,ax,d); poses.push(record()); } window.Attack=clipFrom('Attack',times,poses); }
+  // Jump: crouch, tuck legs, arms up, land
+  { const keys=[[0,[]],[.18,[['mixamorigLeftUpLeg',X,-55],['mixamorigRightUpLeg',X,-45],['mixamorigLeftLeg',X,80],['mixamorigRightLeg',X,70],['mixamorigLeftArm',X,-120],['mixamorigRightArm',X,-120],['mixamorigSpine1',X,15]]],[.45,[['mixamorigLeftUpLeg',X,-35],['mixamorigRightUpLeg',X,-30],['mixamorigLeftLeg',X,50],['mixamorigRightLeg',X,45],['mixamorigLeftArm',X,-90],['mixamorigRightArm',X,-90]]],[.7,[]]];
+    const times=[], poses=[]; for(const [t,ops] of keys){ times.push(t); resetAll(); for(const [b,ax,d] of ops) rot(b,ax,d); poses.push(record()); } window.Jump=clipFrom('Jump',times,poses); }
+  // Death: fall on his back, arms out
+  { const keys=[[0,[],0,0],[.3,[['mixamorigHips',X,50],['mixamorigLeftArm',Z,-50],['mixamorigRightArm',Z,50],['mixamorigHead',X,-20]],-.06,-.08],[.65,[['mixamorigHips',X,88],['mixamorigLeftArm',Z,-80],['mixamorigRightArm',Z,80],['mixamorigHead',X,-30],['mixamorigLeftLeg',X,25],['mixamorigRightLeg',X,20]],-.14,-.18],[.9,[['mixamorigHips',X,90],['mixamorigLeftArm',Z,-82],['mixamorigRightArm',Z,82],['mixamorigHead',X,-30],['mixamorigLeftLeg',X,25],['mixamorigRightLeg',X,20]],-.15,-.2]];
+    const times=[], poses=[]; for(const [t,ops,dy,dz] of keys){ times.push(t); resetAll(); for(const [b,ax,d] of ops) rot(b,ax,d); hips.position.y=hipsRestY*(1+dy*6); hips.position.z+=dz; poses.push(record()); } window.Death=clipFrom('Death',times,poses); }
+  resetAll();
+  // aim a bone so it points (world space) toward a direction: robust whatever the rest pose is
+  const aim=(bn,cn,dir)=>{ const b=bone(bn), c=bone(cn); scene.updateMatrixWorld(true); const bp=b.getWorldPosition(new THREE.Vector3()), cp=c.getWorldPosition(new THREE.Vector3()); const cur=cp.sub(bp).normalize(); const tgt=new THREE.Vector3().fromArray(dir).normalize(); const q2=new THREE.Quaternion().setFromUnitVectors(cur,tgt); b.parent.getWorldQuaternion(pq); tmp.copy(pq).invert().multiply(q2).multiply(pq); b.quaternion.premultiply(tmp); b.updateMatrixWorld(true); };
+  // the sword tip in the right hand's own frame (rest pose), so the blade can be aimed too
+  const rh=bone('mixamorigRightHand'); const tipW=new THREE.Vector3().fromArray(window.__sword.tip); const tipL=rh.worldToLocal(tipW.clone());
+  const aimBlade=dir=>{ scene.updateMatrixWorld(true); const hp=rh.getWorldPosition(new THREE.Vector3()); const tw=rh.localToWorld(tipL.clone()); const cur=tw.sub(hp).normalize(); const tgt=new THREE.Vector3().fromArray(dir).normalize(); const q2=new THREE.Quaternion().setFromUnitVectors(cur,tgt); rh.parent.getWorldQuaternion(pq); tmp.copy(pq).invert().multiply(q2).multiply(pq); rh.quaternion.premultiply(tmp); rh.updateMatrixWorld(true); };
+  const armPose=(up,fore,blade)=>{ aim('mixamorigRightArm','mixamorigRightForeArm',up); aim('mixamorigRightForeArm','mixamorigRightHand',fore); aimBlade(blade); };
+  // Overhand chop (character faces +Z, his right is -X): sword goes up over the head, blade back, then whips down in front.
+  { const keys=[
+      [0,   ()=>{}],
+      [.06, ()=>{ armPose([-.45,.55,.35],[-.2,.85,-.1],[.15,.3,-.95]); rot('mixamorigSpine1',X,-6); rot('mixamorigSpine1',Y,8); rot('mixamorigLeftArm',X,-20); }],
+      [.13, ()=>{ armPose([-.3,.9,-.3],[-.05,.8,-.6],[.1,-.45,-.88]); rot('mixamorigSpine1',X,-12); rot('mixamorigSpine1',Y,14); rot('mixamorigHead',X,-8); rot('mixamorigLeftArm',X,-40); rot('mixamorigLeftForeArm',X,30); }],
+      [.18, ()=>{ armPose([-.3,.85,-.4],[-.05,.75,-.65],[.1,-.5,-.86]); rot('mixamorigSpine1',X,-13); rot('mixamorigSpine1',Y,14); rot('mixamorigHead',X,-8); rot('mixamorigLeftArm',X,-40); rot('mixamorigLeftForeArm',X,30); }],
+      [.25, ()=>{ armPose([-.25,-.1,.96],[-.1,-.4,.9],[0,-.8,.6]); rot('mixamorigSpine1',X,22); rot('mixamorigSpine1',Y,-8); rot('mixamorigHead',X,14); rot('mixamorigLeftArm',X,20); rot('mixamorigLeftForeArm',X,15); }],
+      [.33, ()=>{ armPose([-.25,-.5,.83],[-.1,-.8,.6],[.05,-.95,-.2]); rot('mixamorigSpine1',X,26); rot('mixamorigSpine1',Y,-4); rot('mixamorigHead',X,18); rot('mixamorigLeftArm',X,25); rot('mixamorigLeftForeArm',X,10); }],
+      [.5,  ()=>{}]];
+    const times=[], poses=[]; for(const [t,fn] of keys){ times.push(t); resetAll(); fn(); poses.push(record()); } window.Chop=clipFrom('Attack',times,poses); }
+  resetAll();
+  // (old world-axis chop, kept for reference)
+  if(false){ // Overhand chop. Windup: sword arm up, elbow FOLDED so the blade hangs behind the head, spine back and twisted.
+  // Strike: arm straight, whipping forward and down. Follow-through low in front, then recover.
+  { const keys=[
+      [0,   []],
+      [.12, [['mixamorigRightArm',X,150],['mixamorigRightForeArm',X,100],['mixamorigRightHand',X,15],['mixamorigSpine1',X,-10],['mixamorigSpine1',Y,16],['mixamorigHead',X,-8],['mixamorigLeftArm',X,-40],['mixamorigLeftForeArm',X,30]]],
+      [.19, [['mixamorigRightArm',X,125],['mixamorigRightForeArm',X,60],['mixamorigRightHand',X,10],['mixamorigSpine1',X,-4],['mixamorigSpine1',Y,10],['mixamorigHead',X,-4],['mixamorigLeftArm',X,-35],['mixamorigLeftForeArm',X,25]]],
+      [.26, [['mixamorigRightArm',X,-60],['mixamorigRightForeArm',X,5],['mixamorigRightHand',X,-12],['mixamorigSpine1',X,24],['mixamorigSpine1',Y,-10],['mixamorigHead',X,14],['mixamorigLeftArm',X,20],['mixamorigLeftForeArm',X,15]]],
+      [.34, [['mixamorigRightArm',X,-75],['mixamorigRightForeArm',X,15],['mixamorigRightHand',X,-8],['mixamorigSpine1',X,28],['mixamorigSpine1',Y,-6],['mixamorigHead',X,18],['mixamorigLeftArm',X,25],['mixamorigLeftForeArm',X,10]]],
+      [.5,  []]];
+    const times=[], poses=[]; for(const [t,ops] of keys){ times.push(t); resetAll(); for(const [b,ax,d] of ops) rot(b,ax,d); poses.push(record()); } window.Chop=clipFrom('Attack',times,poses); } }
+  let AttackClip=window.Chop;
+  const clips=[window.Idle,Walk,Run,AttackClip,window.Jump,window.Death];
+  const box=new THREE.Box3().setFromObject(scene); const size=box.getSize(new THREE.Vector3());
+  return new Promise(res=>new THREE.GLTFExporter().parse(scene,buf=>{ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); res({b64:btoa(s),reskin,sword:window.__sword,yawFixDeg:Math.round(-yaw*180/PI),srcTex:srcSize,size:[size.x,size.y,size.z],clips:clips.map(c=>c.name+':'+c.duration.toFixed(2)+'s/'+c.tracks.length+'tr'),verts:skinned.geometry.attributes.position.count}); },{binary:true,animations:clips,onlyVisible:false,truncateDrawRange:false}));
+};
+</script></body></html>

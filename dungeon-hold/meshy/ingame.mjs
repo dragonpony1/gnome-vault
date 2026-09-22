@@ -1,0 +1,24 @@
+import { chromium } from "playwright"; import http from "http"; import fs from "fs"; import path from "path";
+const SP=process.env.SP; const files={"/":SP+"/dungeon.html","/gnome.glb":SP+"/meshy/gnome.glb"};
+const server=http.createServer((req,res)=>{ const p=new URL(req.url,"http://x").pathname; const f=files[p]; if(!f){res.statusCode=404;return res.end();} res.setHeader("content-type",p.endsWith(".glb")?"model/gltf-binary":"text/html; charset=utf-8"); res.end(fs.readFileSync(f)); });
+await new Promise(r=>server.listen(8792,"127.0.0.1",r));
+const results=[]; const check=(n,ok,d)=>{ results.push(ok); console.log((ok?"PASS ":"FAIL ")+n+(d?"  -> "+d:"")); };
+const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]});
+const page=await browser.newPage({viewport:{width:960,height:600}}); const errors=[]; page.on("pageerror",e=>errors.push(String(e))); page.on("console",m=>{ if(m.type()==="error") errors.push(m.text()); });
+await page.goto("http://127.0.0.1:8792/?silent"); await page.waitForFunction(()=>window.__dd&&window.__dd.heroModel&&window.__dd.heroModel(),null,{timeout:30000});
+const hm=await page.evaluate(async()=>{ const d=window.__dd; const buf=await (await fetch("/gnome.glb")).arrayBuffer(); d.loadHeroGLB(buf,"gnome.glb"); await new Promise(r=>setTimeout(r,1500)); d.resetGear(); d.start(); d.setHero(0,6,Math.PI); d.step(1/60,10); return d.heroModel(); });
+check("Meshy gnome loaded as hero", hm.label==="gnome.glb"&&hm.useGLB, JSON.stringify(hm));
+check("all six clips mapped", ["idle","walk","run","attack","jump","death"].every(k=>hm.clips.includes(k)), hm.clips.join(","));
+check("scaled up to hero height (2.6/1.19)", Math.abs(hm.scale-2.6/1.19)<0.05, String(hm.scale));
+const cur=k=>page.evaluate(k=>{ const d=window.__dd; if(k) d.setKeys(k); d.step(1/60,20); return d.heroModel().cur; },k);
+check("walk", await cur({w:1})==="Walk"); check("run", await cur({shift:1})==="Run"); check("idle", await cur({w:0,shift:0})==="Idle");
+const shot=async(name,fn)=>{ await page.evaluate(fn); await page.waitForTimeout(150); await page.screenshot({path:SP+"/meshy/"+name+".png"}); };
+// camera in front, looking at him, well away from the crystal shards
+await shot("mg-idle",()=>{ const d=window.__dd; d.setHero(0,14,Math.PI); d.setKeys({w:0,shift:0}); d.setCam(0,.2,5); d.cam.x=0; d.cam.y=2.4; d.cam.z=9.5; d.step(1/60,60); });
+await shot("mg-attack",()=>{ const d=window.__dd; d.swing(); d.step(1/60,13); });
+await shot("mg-run",()=>{ const d=window.__dd; d.step(1/60,40); d.setKeys({s:1,shift:1}); d.step(1/60,12); d.setKeys({s:0,shift:0}); });
+await shot("mg-death",()=>{ const d=window.__dd; d.step(1/60,30); d.setHero(0,14,Math.PI); d.hero.hp=1; d.hero.hurtT=99; const e=d.spawn("goblin","N"); e.x=d.hero.x+0.8; e.z=d.hero.z; let g=0; while(d.hero.dead<=0&&g++<300) d.step(1/60,1); d.step(1/60,50); });
+const perf=await page.evaluate(()=>{ const d=window.__dd; d.step(1/60,300); const t0=performance.now(); for(let i=0;i<30;i++){ d.step(1/60,1); d.r.render(window.__dd_scene||d.r.scene||null, null); } return 0; }).catch(()=>-1);
+check("no errors", errors.length===0, errors.join(" | ").slice(0,300));
+await browser.close(); server.close();
+const failed=results.filter(x=>!x).length; console.log(`${results.length-failed}/${results.length} in-game checks passed`); process.exit(failed?1:0);

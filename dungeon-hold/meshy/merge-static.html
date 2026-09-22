@@ -1,0 +1,22 @@
+<!doctype html><html><body>
+<script src="three.min.js"></script><script src="GLTFLoader.js"></script><script src="GLTFExporter.js"></script>
+<script>
+// Static prop pipeline: ?in=ballista/t1.glb&yaw=90&tex=512  -> lighter GLB (small texture, no metal/rough maps, facing +Z, feet at y=0, centred)
+const q=new URLSearchParams(location.search); const PI=Math.PI;
+const load=url=>fetch(url).then(r=>r.arrayBuffer()).then(buf=>new Promise((res,rej)=>new THREE.GLTFLoader().parse(buf,'',res,rej)));
+window.build=async()=>{
+  const g=await load(q.get('in')); const scene=g.scene; scene.updateMatrixWorld(true);
+  const yaw=(+q.get('yaw')||0)*PI/180, texSize=+q.get('tex')||512;
+  const meshes=[]; scene.traverse(o=>{ if(o.isMesh) meshes.push(o); });
+  const shrink=(tex,size)=>{ if(!tex||!tex.image) return null; const c=document.createElement('canvas'); c.width=c.height=size; c.getContext('2d').drawImage(tex.image,0,0,size,size); const t=new THREE.CanvasTexture(c); t.flipY=false; t.encoding=tex.encoding; t.wrapS=tex.wrapS; t.wrapT=tex.wrapT; return t; };
+  let srcTex=0, verts=0; const seen=new Set();
+  for(const m of meshes){ verts+=m.geometry.attributes.position.count; m.geometry.deleteAttribute('tangent'); const mats=Array.isArray(m.material)?m.material:[m.material];
+    for(const mt of mats){ if(seen.has(mt)) continue; seen.add(mt); if(mt.map&&mt.map.image) srcTex=Math.max(srcTex,mt.map.image.width); mt.map=shrink(mt.map,texSize); mt.metalnessMap=null; mt.roughnessMap=null; mt.normalMap=null; mt.emissiveMap=null; mt.emissive=new THREE.Color(0,0,0); mt.metalness=0; mt.roughness=.9; mt.side=THREE.FrontSide; mt.needsUpdate=true; } }
+  // face +Z, stand on y=0, centred on the footprint
+  const wrap=new THREE.Group(); wrap.add(scene); scene.rotation.y=yaw; wrap.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(wrap); const size=box.getSize(new THREE.Vector3());
+  scene.position.set(-(box.min.x+box.max.x)/2,-box.min.y,-(box.min.z+box.max.z)/2); wrap.updateMatrixWorld(true);
+  const box2=new THREE.Box3().setFromObject(wrap);
+  return new Promise(res=>new THREE.GLTFExporter().parse(wrap,buf=>{ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); res({b64:btoa(s),srcTex,texSize,verts,meshes:meshes.length,size:size.toArray().map(v=>+v.toFixed(3)),min:box2.min.toArray().map(v=>+v.toFixed(3)),max:box2.max.toArray().map(v=>+v.toFixed(3))}); },{binary:true,onlyVisible:false,truncateDrawRange:false}));
+};
+</script></body></html>

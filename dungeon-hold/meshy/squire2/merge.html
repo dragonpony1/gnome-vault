@@ -1,0 +1,96 @@
+<!doctype html><html><body>
+<script src="three.min.js"></script><script src="GLTFLoader.js"></script><script src="GLTFExporter.js"></script>
+<script>
+// Mob (goblin / orc / ...): Meshy character + Walking / Running / attack clips (all on the same 22-bone rig) -> one goblin.glb
+// with Idle, Walk, Run, Attack (trimmed slash), Death.
+const PI=Math.PI;
+const load=url=>fetch(url).then(r=>r.arrayBuffer()).then(buf=>new Promise((res,rej)=>new THREE.GLTFLoader().parse(buf,'',res,rej)));
+window.build=async()=>{
+  const ch=await load('char.glb'), walk=await load('walk.glb'), run=await load('run.glb'), slash=await load('slash.glb'); let shoutG=null; try{ shoutG=await load('shout.glb'); }catch(e){}
+  const scene=ch.scene; scene.updateMatrixWorld(true);
+  const bone=n=>scene.getObjectByName(n);
+  const need=['Hips','Spine','Spine02','neck','Head','LeftArm','RightArm','LeftForeArm','RightForeArm','LeftHand','RightHand','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftFoot','RightFoot','LeftToeBase','RightToeBase'];
+  for(const n of need) if(!bone(n)) throw new Error('missing bone '+n);
+  let skinned=null; scene.traverse(o=>{ if(o.isSkinnedMesh) skinned=o; });
+  // world position of a skinned vertex in the current pose (same maths as the skinning shader)
+  const skinPos=(mesh,i,out)=>{ const g=mesh.geometry, pos=g.attributes.position, si=g.attributes.skinIndex, sw=g.attributes.skinWeight; const bm=mesh.skeleton.boneMatrices; const v=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(mesh.bindMatrix); out.set(0,0,0); const idx=[si.getX(i),si.getY(i),si.getZ(i),si.getW(i)], w=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)]; const m4=new THREE.Matrix4(); for(let k=0;k<4;k++){ if(!w[k]) continue; m4.fromArray(bm,idx[k]*16); out.addScaledVector(v.clone().applyMatrix4(m4),w[k]); } return out.applyMatrix4(mesh.bindMatrixInverse).applyMatrix4(mesh.matrixWorld); };
+  const footFacing=()=>{ scene.updateMatrixWorld(true); skinned.skeleton.update(); const pts=[]; const v=new THREE.Vector3(); let miny=1e9,maxy=-1e9; const n=skinned.geometry.attributes.position.count; for(let i=0;i<n;i+=2){ skinPos(skinned,i,v); miny=Math.min(miny,v.y); maxy=Math.max(maxy,v.y); pts.push(v.clone()); }
+    const H=maxy-miny; const a=bone('LeftFoot').getWorldPosition(new THREE.Vector3()), b=bone('RightFoot').getWorldPosition(new THREE.Vector3()); const ank=a.add(b).multiplyScalar(.5); const d=new THREE.Vector3(); for(const p of pts){ if(p.y>miny+.08*H) continue; const dx=p.x-ank.x, dz=p.z-ank.z; const l=Math.hypot(dx,dz); d.x+=dx*l; d.z+=dz*l; } window.__meshH=H; return d.normalize(); };
+  // --- facing: the direction the walk cycle drifts in (Meshy walks forward, not in place); toes as a fallback ---
+  const W=walk.animations[0], Rn=run.animations[0], SL=slash.animations[0];
+  const hipsTrack=W.tracks.find(t=>/Hips\.position$/.test(t.name)); let fwd0=null;
+  if(hipsTrack){ const v=hipsTrack.values, n=v.length; const d=new THREE.Vector3(v[n-3]-v[0],0,v[n-1]-v[2]); const hips=bone('Hips'); hips.parent.getWorldQuaternion(new THREE.Quaternion()); const q=hips.parent.getWorldQuaternion(new THREE.Quaternion()); d.applyQuaternion(q); d.y=0; if(d.length()>1e-4) fwd0=d.normalize(); }
+  let driftUsed=!!fwd0;
+  if(!fwd0){ const a=bone('LeftFoot').getWorldPosition(new THREE.Vector3()), b=bone('LeftToeBase').getWorldPosition(new THREE.Vector3()), c=bone('RightFoot').getWorldPosition(new THREE.Vector3()), d=bone('RightToeBase').getWorldPosition(new THREE.Vector3()); fwd0=new THREE.Vector3(b.x-a.x+d.x-c.x,0,b.z-a.z+d.z-c.z).normalize(); }
+  const toeDir=(()=>{ const a=bone('LeftFoot').getWorldPosition(new THREE.Vector3()), b=bone('LeftToeBase').getWorldPosition(new THREE.Vector3()), c=bone('RightFoot').getWorldPosition(new THREE.Vector3()), d=bone('RightToeBase').getWorldPosition(new THREE.Vector3()); return new THREE.Vector3(b.x-a.x+d.x-c.x,0,b.z-a.z+d.z-c.z).normalize(); })();
+  const footDir=footFacing(); const driftDir=fwd0.clone();
+  // facing from the body's symmetry: the widest horizontal axis of the head (ear to ear) is sideways; forward is
+  // perpendicular to it, on the side the toe bones point to
+  const symFacing=()=>{ scene.updateMatrixWorld(true); skinned.skeleton.update(); const v=new THREE.Vector3(); const n=skinned.geometry.attributes.position.count; const pts=[]; let miny=1e9,maxy=-1e9; for(let i=0;i<n;i+=2){ skinPos(skinned,i,v); miny=Math.min(miny,v.y); maxy=Math.max(maxy,v.y); pts.push(v.clone()); } const H=maxy-miny; const head=pts.filter(p=>p.y>miny+.72*H);
+    let bestA=0, bestS=-1; for(let a=0;a<180;a+=3){ const r=a*PI/180, cx=Math.cos(r), sz=Math.sin(r); let lo=1e9, hi=-1e9; for(const p of head){ const d=p.x*cx+p.z*sz; lo=Math.min(lo,d); hi=Math.max(hi,d); } if(hi-lo>bestS){ bestS=hi-lo; bestA=r; } }
+    const lat=new THREE.Vector3(Math.cos(bestA),0,Math.sin(bestA)); const f=new THREE.Vector3(-lat.z,0,lat.x); if(f.dot(toeDir)<0) f.negate(); return f; };
+  fwd0=symFacing(); if(bone('headfront')&&bone('Head')){ const hp=bone('Head').getWorldPosition(new THREE.Vector3()), fp=bone('headfront').getWorldPosition(new THREE.Vector3()); const hf=new THREE.Vector3(fp.x-hp.x,0,fp.z-hp.z); if(hf.length()>1e-4) fwd0=hf.normalize(); }
+  const yaw=Math.atan2(fwd0.x,fwd0.z); scene.rotation.y=-yaw; scene.updateMatrixWorld(true);
+  // --- material: plain textured, no emissive trick, smaller texture ---
+  skinned.geometry.deleteAttribute('tangent');
+  const m=skinned.material; const shrink=(tex,size)=>{ if(!tex||!tex.image) return null; const c=document.createElement('canvas'); c.width=c.height=size; c.getContext('2d').drawImage(tex.image,0,0,size,size); const t=new THREE.CanvasTexture(c); t.flipY=false; t.encoding=tex.encoding; t.wrapS=tex.wrapS; t.wrapT=tex.wrapT; return t; };
+  const srcSize=m.map&&m.map.image?m.map.image.width:0; m.map=shrink(m.map,512); m.emissiveMap=null; m.emissive=new THREE.Color(0,0,0); m.metalnessMap=null; m.roughnessMap=null; m.metalness=0; m.roughness=.9; m.side=THREE.FrontSide; m.needsUpdate=true;
+  // --- bones / pose tools ---
+  const bones=[]; scene.traverse(o=>{ if(o.isBone) bones.push(o); });
+  const rest=new Map(bones.map(b=>[b,{q:b.quaternion.clone(),p:b.position.clone()}]));
+  const resetAll=()=>{ for(const b of bones){ const r=rest.get(b); b.quaternion.copy(r.q); b.position.copy(r.p); } scene.updateMatrixWorld(true); };
+  const X=new THREE.Vector3(1,0,0), Y=new THREE.Vector3(0,1,0), Z=new THREE.Vector3(0,0,1);
+  const pq=new THREE.Quaternion(), rq=new THREE.Quaternion(), tmp=new THREE.Quaternion();
+  const rot=(name,axis,deg)=>{ const b=bone(name); scene.updateMatrixWorld(true); b.parent.getWorldQuaternion(pq); rq.setFromAxisAngle(axis,deg*PI/180); tmp.copy(pq).invert().multiply(rq).multiply(pq); b.quaternion.premultiply(tmp); b.updateMatrixWorld(true); };
+  const hips=bone('Hips'); const hipsRest=rest.get(hips).p.clone();
+  const record=()=>{ const out={}; for(const b of bones) out[b.name]=b.quaternion.toArray(); out.__hipsPos=hips.position.toArray(); return out; };
+  const clipFrom=(name,times,poses)=>{ const tracks=[]; for(const b of bones){ const vals=[]; for(const p of poses) vals.push(...p[b.name]); tracks.push(new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,vals)); } const pv=[]; for(const p of poses) pv.push(...p.__hipsPos); tracks.push(new THREE.VectorKeyframeTrack(hips.name+'.position',times,pv)); return new THREE.AnimationClip(name,times[times.length-1],tracks); };
+  const S=(a,n,i,ph)=>Math.sin(i/n*2*PI+(ph||0))*a;
+  // --- Meshy cycles: keep rotations, pin the hips in place (no drift), drop static scale tracks ---
+  const fix=(clip,name)=>{ const c=clip.clone(); c.name=name; c.tracks=c.tracks.filter(t=>!/\.scale$/.test(t.name)); for(const t of c.tracks){ if(/Hips\.position$/.test(t.name)){ const v=t.values; for(let i=0;i<v.length;i+=3){ v[i]=v[0]; v[i+2]=v[2]; } } } return c; };
+  const Walk=fix(W,'Walk'), Run=fix(Rn,'Run');
+  // --- Attack: the slash is 3.2 s of wind-up and recovery; keep the window around the fastest arm movement ---
+  let best=0, bt=0; for(const t of SL.tracks){ if(!/(Arm|Hand)\.quaternion$/.test(t.name)) continue; const v=t.values, tm=t.times; for(let i=1;i<tm.length;i++){ const d=Math.abs(v[(i-1)*4]*v[i*4]+v[(i-1)*4+1]*v[i*4+1]+v[(i-1)*4+2]*v[i*4+2]+v[(i-1)*4+3]*v[i*4+3]); const ang=2*Math.acos(Math.min(1,d)); const sp=ang/Math.max(1e-4,tm[i]-tm[i-1]); if(sp>best){ best=sp; bt=tm[i]; } } }
+  const t0=Math.max(0,bt-.34), t1=Math.min(SL.duration,bt+.36);
+  const mixer=new THREE.AnimationMixer(scene); const act=mixer.clipAction(SL); act.play();
+  const sample=(clip,ta,tb,n,name)=>{ const times=[], poses=[]; for(let i=0;i<=n;i++){ const t=ta+(tb-ta)*i/n; mixer.stopAllAction(); const a=mixer.clipAction(clip); a.reset(); a.play(); mixer.setTime(0); mixer.update(t); scene.updateMatrixWorld(true); times.push(t-ta); const p=record(); poses.push(p); } mixer.stopAllAction(); return clipFrom(name,times,poses); };
+  let Attack=sample(SL,t0,t1,14,'Attack');
+  // strip drift from the attack hips too
+  for(const t of Attack.tracks){ if(/Hips\.position$/.test(t.name)){ const v=t.values; for(let i=0;i<v.length;i+=3){ v[i]=hipsRest.x; v[i+2]=hipsRest.z; } } }
+  // --- Idle: breathe, sway ---
+  resetAll();
+  { const n=8, times=[], poses=[]; for(let i=0;i<=n;i++){ times.push(i/n*2.0); resetAll(); rot('Spine',X,S(-3,n,i)); rot('Head',Y,S(8,n,i,1)); rot('Head',X,S(3,n,i)); rot('LeftArm',X,S(3,n,i,.5)); rot('RightArm',X,S(-3,n,i,.5)); hips.position.y=hipsRest.y+S(.4,n,i); poses.push(record()); } window.Idle=clipFrom('Idle',times,poses); }
+  // --- Death: fall on his back, arms out, legs up ---
+  { const keys=[[0,[],0,0],[.28,[['Hips',X,45],['LeftArm',Z,-45],['RightArm',Z,45],['Head',X,-20]],-.05,-.08],[.6,[['Hips',X,85],['LeftArm',Z,-80],['RightArm',Z,80],['Head',X,-30],['LeftLeg',X,25],['RightLeg',X,20]],-.12,-.18],[.85,[['Hips',X,88],['LeftArm',Z,-82],['RightArm',Z,82],['Head',X,-30],['LeftLeg',X,25],['RightLeg',X,20]],-.13,-.2]];
+    // hips are in the rig's own units: measure how tall the rig is in those units to scale the drop
+    const hipsH=hips.getWorldPosition(new THREE.Vector3()).y; const unit=hipsRest.y/Math.max(hipsH,1e-6);
+    const times=[], poses=[]; for(const [t,ops,dy,dz] of keys){ times.push(t); resetAll(); for(const [b,ax,d] of ops) rot(b,ax,d); hips.position.y=hipsRest.y+dy*6*hipsH*unit; hips.position.z=hipsRest.z+dz*unit*hipsH; poses.push(record()); } window.Death=clipFrom('Death',times,poses); }
+  // --- Jump (for heroes): crouch, tuck the legs, arms up, land ---
+  { const keys=[[0,[]],[.18,[['LeftUpLeg',X,-55],['RightUpLeg',X,-45],['LeftLeg',X,80],['RightLeg',X,70],['LeftArm',X,-120],['RightArm',X,-120],['Spine',X,15]]],[.45,[['LeftUpLeg',X,-35],['RightUpLeg',X,-30],['LeftLeg',X,50],['RightLeg',X,45],['LeftArm',X,-90],['RightArm',X,-90]]],[.7,[]]];
+    const times=[], poses=[]; for(const [t,ops] of keys){ times.push(t); resetAll(); for(const [b,ax,d] of ops) rot(b,ax,d); poses.push(record()); } window.Jump=clipFrom('Jump',times,poses); }
+  resetAll();
+  // --- weapon mount: cut the baked sword out of the mesh (Meshy binds it to the upper arm anyway) and record where a
+  // weapon should sit: the fist's position and the blade axis, in the right hand bone's own frame ---
+  let mount=null;
+  { scene.updateMatrixWorld(true); skinned.skeleton.update(); const rh=bone('RightHand'); const hp=rh.getWorldPosition(new THREE.Vector3()); const g=skinned.geometry, pos=g.attributes.position; const v=new THREE.Vector3();
+    // the blade: vertices out past the fist on the sword side and above it; a line fitted through them is the blade's axis
+    const pts=[]; for(let i=0;i<pos.count;i++){ skinPos(skinned,i,v); if(v.x<hp.x-.03&&v.y>hp.y+.15) pts.push(v.clone()); }
+    const mean=new THREE.Vector3(); pts.forEach(p=>mean.add(p)); mean.multiplyScalar(1/pts.length);
+    let cxx=0,cxy=0,cxz=0,cyy=0,cyz=0,czz=0; for(const p of pts){ const d=p.clone().sub(mean); cxx+=d.x*d.x; cxy+=d.x*d.y; cxz+=d.x*d.z; cyy+=d.y*d.y; cyz+=d.y*d.z; czz+=d.z*d.z; }
+    let axis=new THREE.Vector3(0,1,0); for(let k=0;k<30;k++){ axis.set(cxx*axis.x+cxy*axis.y+cxz*axis.z,cxy*axis.x+cyy*axis.y+cyz*axis.z,cxz*axis.x+cyz*axis.y+czz*axis.z).normalize(); } if(axis.y<0) axis.negate();   // power iteration → principal direction, pointing up the blade
+    const tHand=hp.clone().sub(mean).dot(axis); let tTip=-1e9; for(const p of pts){ tTip=Math.max(tTip,p.clone().sub(mean).dot(axis)); }
+    const len=tTip-tHand; const base=mean.clone().addScaledVector(axis,tHand);   // the point on the blade line level with the wrist joint
+    const cut=new Uint8Array(pos.count); let ncut=0; for(let i=0;i<pos.count;i++){ skinPos(skinned,i,v); const rel=v.sub(base); const t=rel.dot(axis); if(t<.07||t>len+.06) continue; const r=rel.addScaledVector(axis,-t).length(); if(r<(t<.3?.15:.1)){ cut[i]=1; ncut++; } }
+    const idx=g.getIndex(); const keep=[]; if(idx){ const a=idx.array; for(let i=0;i<a.length;i+=3){ if(cut[a[i]]||cut[a[i+1]]||cut[a[i+2]]) continue; keep.push(a[i],a[i+1],a[i+2]); } g.setIndex(keep); }
+    const gripW=base.clone().addScaledVector(axis,.03); const gripL=rh.worldToLocal(gripW.clone()); const axisL=rh.worldToLocal(gripW.clone().add(axis)).sub(gripL).normalize();
+    mount={bone:'RightHand',pos:gripL.toArray().map(x=>+x.toFixed(3)),axis:axisL.toArray().map(x=>+x.toFixed(4)),len:+(len*100).toFixed(1),cutVerts:ncut,tris:keep.length/3,bladePts:pts.length,offset:+base.distanceTo(hp).toFixed(3)};
+    // carried in the model as an empty node under the hand bone (extras on the root do not survive the exporter): its
+    // position is the grip, its +Y is the blade axis, and its name carries the blade length in cm
+    const mk=new THREE.Object3D(); mk.name='weaponMount_'+Math.round(len*100); mk.position.copy(gripL); mk.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axisL); rh.add(mk); bones.length=0; scene.traverse(o=>{ if(o.isBone) bones.push(o); }); }
+  const clips=[window.Idle,Walk,Run,Attack,window.Death,window.Jump]; if(shoutG&&shoutG.animations[0]){ const Shout=fix(shoutG.animations[0],'Shout'); for(const t of Shout.tracks){ if(/Hips\.position$/.test(t.name)){ const v=t.values; for(let i=0;i<v.length;i+=3){ v[i]=hipsRest.x; v[i+2]=hipsRest.z; } } } clips.push(Shout); }
+  let miny=1e9,maxy=-1e9; const v=new THREE.Vector3(); scene.traverse(o=>{ if(o.isBone){ o.getWorldPosition(v); miny=Math.min(miny,v.y); maxy=Math.max(maxy,v.y); } });
+  const drift=(clip)=>{ const t=clip.tracks.find(t=>/Hips\.position$/.test(t.name)); if(!t) return 0; const v=t.values, n=v.length; const d=new THREE.Vector3(v[n-3]-v[0],0,v[n-1]-v[2]); const q=hips.parent.getWorldQuaternion(new THREE.Quaternion()); d.applyQuaternion(q); const sc=hips.parent.getWorldScale(new THREE.Vector3()).x; return +(d.length()*sc/clip.duration/window.__meshH).toFixed(3); };
+  const natural={walk:drift(W),run:drift(Rn)};
+  return new Promise(res=>new THREE.GLTFExporter().parse(scene,buf=>{ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); res({b64:btoa(s),mount,yawFixDeg:Math.round(-yaw*180/PI),driftYawDeg:Math.round(Math.atan2(driftDir.x,driftDir.z)*180/PI),meshH:+window.__meshH.toFixed(3),natural,toeYawDeg:Math.round(Math.atan2(toeDir.x,toeDir.z)*180/PI),srcTex:srcSize,boneHeight:+(maxy-miny).toFixed(3),slashPeak:+bt.toFixed(2),attackWindow:[+t0.toFixed(2),+t1.toFixed(2)],clips:clips.map(c=>c.name+':'+c.duration.toFixed(2)+'s/'+c.tracks.length+'tr'),verts:skinned.geometry.attributes.position.count}); },{binary:true,animations:clips,onlyVisible:false,truncateDrawRange:false}));
+};
+</script></body></html>
