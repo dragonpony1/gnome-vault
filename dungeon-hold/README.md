@@ -60,8 +60,8 @@ next `?map`. Difficulty carries across maps through `effWave()` (map 2 wave 1 fi
 wave count. Height: `hgt`/`rampA` per cell, `floorH(x,z)` (stairs are two flat steps per cell), no walking or pathing up a
 ledge taller than a step, no building on stairs; raised tops and stone drops are generated after the walls.
 
-Maps so far: 1 The Gnome Hall (the original), 2 The Throne Room (a vast floor narrowing to three great stairs up to the
-crystal on a raised platform, the throne behind it).
+Maps so far: 1 The Gnome Hall (the original), 2 The Throne Room (a vast marble hall under a 14-high ceiling with arched windows and drapes; the grand stair climbs to a terrace, twin stairs climb on to the
+crystal six up, the throne behind it).
 
 ## Open items
 

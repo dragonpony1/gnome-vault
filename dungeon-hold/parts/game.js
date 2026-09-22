@@ -77,23 +77,26 @@ const MAPS=[
   lights:[[-9,4.4,-9,0xff8a2a,1.5,16],[9,4.4,-9,0xff8a2a,1.5,16],[-9,4.4,9,0xff8a2a,1.5,16],[9,4.4,9,0xff8a2a,1.5,16],
    [0,5,-6,0xffb05a,.8,13],[0,3.2,0,0x4ae6ff,1.3,15],[0,4,-18,0xff8a2a,1.7,15],[0,4,-26,0xff8a2a,1.2,12],[-16,4,0,0xff8a2a,1.7,15],[-24,4,-10,0xff8a2a,1.5,14],[-24,4,-22,0xff8a2a,1.4,13],[18,4,0,0xff8a2a,1.7,15],[28,4,0,0xff8a2a,1.6,15],[-22,4,-26,0xc040ff,.9,10],[0,4,-28,0xc040ff,.9,10],[30,4,0,0xc040ff,.9,10],
    [0,4.2,19,0xffb05a,1.3,13],[-6,3.8,24,0xff8a2a,1.2,12],[6,3.8,22,0xff8a2a,1.2,12],[0,2.2,26.4,0xff7a1a,1.6,9]]},   // the tavern: lamps and the hearth
- {id:'throne',name:'THE THRONE ROOM',sub:'a vast hall, three great stairs · seven waves',gw:46,gh:47,crystal:[23,8],waves:7,
-  build(f,g,h,ramp){ f(14,32,3,11,T.FLOOR); h(14,32,3,11,2); f(21,25,3,11,T.CARPET); f(22,24,7,9,T.DAIS); g(23,8,T.CRYSTAL);   // the throne platform, two units up, the crystal on its dais at the top
-    f(19,27,12,15,T.CARPET); ramp(19,27,12,15,1,0,2); f(14,16,12,15,T.FLOOR); ramp(14,16,12,15,1,0,2); f(30,32,12,15,T.FLOOR); ramp(30,32,12,15,1,0,2);   // the grand stair and two flanking stairs; balustrade walls between
-    for(let z=16;z<=36;z++){ const w=Math.round(8*(36-z)/20); f(4+w,42-w,z,z,T.FLOOR); } f(22,24,16,36,T.CARPET);   // the vast floor: wide at the bottom, narrowing to the stairs
-    f(1,7,25,27,T.FLOOR); g(2,26,T.SPAWN); f(39,45,25,27,T.FLOOR); g(44,26,T.SPAWN); f(22,24,37,41,T.FLOOR); g(23,40,T.SPAWN);   // gates: west, east, south
-    f(34,42,38,44,T.FLOOR); g(38,37,T.FLOOR); f(38,38,38,40,T.CARPET); [[34,39],[35,43],[41,40],[41,41],[41,42],[38,44]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern, south-east, off the bottom row
-    [[12,24],[34,24],[9,32],[37,32],[16,19],[30,19]].forEach(([x,z])=>g(x,z,T.PILLAR)); [[5,36],[41,36],[13,17],[33,17]].forEach(([x,z])=>g(x,z,T.PROP)); },
-  lanes:{W:{cx:2,cz:26,face:PI/2,name:'West'}, E:{cx:44,cz:26,face:-PI/2,name:'East'}, S:{cx:23,cz:40,face:PI,name:'South'}},
-  hall:[4,42,3,36],pillars:[[12,24],[34,24],[9,32],[37,32],[16,19],[30,19]],barrels:[[5,36],[41,36]],crates:[[13,17],[33,17]],chandelier:[0,32],beams:{zs:[22,32,42,52],w:78},tavern:{dx:22,dz:13},throne:[23,4],
-  lights:[{cx:15,cz:4,y:6.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:4,y:6.2,c:0xff8a2a,i:1.5,d:16},{cx:15,cz:10,y:6.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:10,y:6.2,c:0xff8a2a,i:1.5,d:16},[0,5.2,0,0x4ae6ff,1.3,15],[0,5,32,0xffb05a,.8,13],
-   {cx:17,cz:16,y:4,c:0xff8a2a,i:1.6,d:15},{cx:29,cz:16,y:4,c:0xff8a2a,i:1.6,d:15},{cx:9,cz:20,y:4,c:0xff8a2a,i:1.5,d:15},{cx:37,cz:20,y:4,c:0xff8a2a,i:1.5,d:15},{cx:6,cz:28,y:4,c:0xff8a2a,i:1.5,d:15},{cx:40,cz:28,y:4,c:0xff8a2a,i:1.5,d:15},{cx:8,cz:35,y:4,c:0xff8a2a,i:1.5,d:15},{cx:38,cz:35,y:4,c:0xff8a2a,i:1.5,d:15},{cx:23,cz:22,y:4.4,c:0xff8a2a,i:1.2,d:14},
-   {cx:2,cz:26,y:4,c:0xc040ff,i:.9,d:10},{cx:44,cz:26,y:4,c:0xc040ff,i:.9,d:10},{cx:23,cz:40,y:4,c:0xc040ff,i:.9,d:10},
-   {cx:38,cz:37,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:36,cz:39,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:40,cz:43,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:38,cz:44,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]}];
+ {id:'throne',name:'THE THRONE ROOM',sub:'a vast marble hall, the grand stair, the throne six steps above · seven waves',gw:46,gh:55,crystal:[23,7],waves:7,wallH:14,fog:[40,110],style:{marble:true,windows:true},
+  build(f,g,h,ramp){ f(14,32,3,14,T.FLOOR); h(14,32,3,14,6); f(21,25,3,14,T.CARPET); f(22,24,6,8,T.DAIS); g(23,7,T.CRYSTAL);   // the platform, six up: the throne and the crystal
+    f(14,17,11,14,T.CARPET); ramp(14,17,11,14,1,3,6); f(29,32,11,14,T.CARPET); ramp(29,32,11,14,1,3,6);   // twin upper stairs, terrace to platform, either side of a retaining wall
+    f(14,32,15,18,T.FLOOR); h(14,32,15,18,3); f(19,27,15,18,T.CARPET); f(14,18,19,24,T.FLOOR); h(14,18,19,24,3); f(28,32,19,24,T.FLOOR); h(28,32,19,24,3);   // the terrace, three up, with wings flanking the grand stair
+    f(19,27,19,24,T.CARPET); ramp(19,27,19,24,1,0,3);   // the grand stair, floor to terrace
+    for(let z=25;z<=45;z++){ const w=Math.round(8*(45-z)/20); f(4+w,42-w,z,z,T.FLOOR); } f(22,24,25,45,T.CARPET);   // the vast floor: wide at the gates, narrowing to the stair
+    f(1,7,34,36,T.FLOOR); g(2,35,T.SPAWN); f(39,45,34,36,T.FLOOR); g(44,35,T.SPAWN); f(22,24,46,50,T.FLOOR); g(23,49,T.SPAWN);   // gates: west, east, south
+    f(34,42,47,53,T.FLOOR); g(38,46,T.FLOOR); f(38,38,47,49,T.CARPET); [[34,48],[35,52],[41,49],[41,50],[41,51],[38,53]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern, south-east, off the bottom row
+    [[12,33],[34,33],[9,41],[37,41],[16,28],[30,28]].forEach(([x,z])=>g(x,z,T.PILLAR)); [[5,45],[41,45],[13,26],[33,26]].forEach(([x,z])=>g(x,z,T.PROP)); },
+  lanes:{W:{cx:2,cz:35,face:PI/2,name:'West'}, E:{cx:44,cz:35,face:-PI/2,name:'East'}, S:{cx:23,cz:49,face:PI,name:'South'}},
+  hall:[4,42,3,45],pillars:[[12,33],[34,33],[9,41],[37,41],[16,28],[30,28]],barrels:[[5,45],[41,45]],crates:[[13,26],[33,26]],chandeliers:[[0,42],[0,62]],beams:{zs:[40,50,60,70],w:78},tavern:{dx:22,dz:22},throne:[23,4],
+  lights:[{cx:15,cz:4,y:10.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:4,y:10.2,c:0xff8a2a,i:1.5,d:16},{cx:15,cz:12,y:10.2,c:0xff8a2a,i:1.5,d:16},{cx:31,cz:12,y:10.2,c:0xff8a2a,i:1.5,d:16},[0,9.2,0,0x4ae6ff,1.3,15],[0,11,42,0xffb05a,.9,16],[0,11,62,0xffb05a,.9,16],
+   {cx:16,cz:17,y:7.2,c:0xff8a2a,i:1.4,d:14},{cx:30,cz:17,y:7.2,c:0xff8a2a,i:1.4,d:14},{cx:16,cz:24,y:7,c:0xff8a2a,i:1.4,d:14},{cx:30,cz:24,y:7,c:0xff8a2a,i:1.4,d:14},{cx:18,cz:26,y:4,c:0xff8a2a,i:1.6,d:15},{cx:28,cz:26,y:4,c:0xff8a2a,i:1.6,d:15},
+   {cx:9,cz:30,y:4,c:0xff8a2a,i:1.5,d:15},{cx:37,cz:30,y:4,c:0xff8a2a,i:1.5,d:15},{cx:6,cz:38,y:4,c:0xff8a2a,i:1.5,d:15},{cx:40,cz:38,y:4,c:0xff8a2a,i:1.5,d:15},{cx:8,cz:44,y:4,c:0xff8a2a,i:1.5,d:15},{cx:38,cz:44,y:4,c:0xff8a2a,i:1.5,d:15},
+   {cx:2,cz:35,y:4,c:0xc040ff,i:.9,d:10},{cx:44,cz:35,y:4,c:0xc040ff,i:.9,d:10},{cx:23,cz:49,y:4,c:0xc040ff,i:.9,d:10},
+   {cx:38,cz:46,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:36,cz:48,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:40,cz:52,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:38,cz:53,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]}];
 const MAPS_CLEARED=(()=>{ try{ return Math.max(0,Math.min(MAPS.length,parseInt(localStorage.getItem('ddMapsCleared'))||0)); }catch(e){ return 0; } })();
 const MAPI=(()=>{ let i=parseInt(Q.get('map')); if(!(i>=0)){ try{ i=parseInt(localStorage.getItem('ddMap'))||0; }catch(e){ i=0; } } return Math.max(0,Math.min(i,MAPS_CLEARED,MAPS.length-1)); })();   // a map past the last one cleared is locked
 const MAP=MAPS[MAPI]; MAP.wbase=MAPS.slice(0,MAPI).reduce((a,m)=>a+m.waves,0);
-const CELL=2, GW=MAP.gw, GH=MAP.gh, OX=MAP.crystal[0]*CELL+CELL/2, OZ=MAP.crystal[1]*CELL+CELL/2, WALLH=7;   // the crystal stands at world (0,0)
+const CELL=2, GW=MAP.gw, GH=MAP.gh, OX=MAP.crystal[0]*CELL+CELL/2, OZ=MAP.crystal[1]*CELL+CELL/2, WALLH=MAP.wallH||7;   // the crystal stands at world (0,0)
 const T={WALL:0,FLOOR:1,CARPET:2,DAIS:3,PILLAR:4,SPAWN:5,CRYSTAL:6,PROP:7};
 const grid=new Uint8Array(GW*GH);
 const idx=(cx,cz)=>cz*GW+cx;
@@ -135,7 +138,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
 const scene=new THREE.Scene();
-scene.background=C(0x0b0712); scene.fog=new THREE.Fog(C(0x0b0712),24,62);
+scene.background=C(0x0b0712); scene.fog=new THREE.Fog(C(0x0b0712),(MAP.fog||[24,62])[0],(MAP.fog||[24,62])[1]);   // a big hall needs to be seen end to end from the top of its stairs
 const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,140);
 function onResize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); ov.width=innerWidth; ov.height=innerHeight; }
 addEventListener('resize',onResize); onResize();
@@ -186,9 +189,9 @@ function paintFloor(){
       g.strokeStyle='#e8b94a'; g.lineWidth=2.5; g.beginPath(); const D=v=>v!==T.DAIS&&v!==T.CRYSTAL;
       if(D(gat(x,z-1))){ g.moveTo(px,pz+1.5); g.lineTo(px+S,pz+1.5);} if(D(gat(x,z+1))){ g.moveTo(px,pz+S-1.5); g.lineTo(px+S,pz+S-1.5);} if(D(gat(x-1,z))){ g.moveTo(px+1.5,pz); g.lineTo(px+1.5,pz+S);} if(D(gat(x+1,z))){ g.moveTo(px+S-1.5,pz); g.lineTo(px+S-1.5,pz+S);} g.stroke();
     } else if(t===T.SPAWN){ g.fillStyle='#1d1430'; g.fillRect(px,pz,S,S); for(let i=0;i<10;i++) splat(g,px+rnd()*S,pz+rnd()*S,R(2,5),'#6a2fb0',.18);
-    } else { g.fillStyle='#1c1626'; g.fillRect(px,pz,S,S);
-      for(let sx=0;sx<2;sx++) for(let sz=0;sz<2;sz++){ const L=R(30,41), H=R(246,262); g.fillStyle=hsl(H,17,L); g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,13);
-        g.fillStyle=hsl(H,20,L+12); g.globalAlpha=.35; g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,2); g.globalAlpha=1;
+    } else { const mar=!!(MAP.style&&MAP.style.marble); g.fillStyle=mar?'#a89c88':'#1c1626'; g.fillRect(px,pz,S,S);
+      for(let sx=0;sx<2;sx++) for(let sz=0;sz<2;sz++){ const L=mar?R(58,70)-((x+z)%2?7:0):R(30,41), H=mar?R(34,46):R(246,262), SA=mar?14:17; g.fillStyle=hsl(H,SA,L); g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,13);
+        g.fillStyle=hsl(H,SA+3,L+12); g.globalAlpha=.35; g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,2); g.globalAlpha=1;
         for(let i=0;i<3;i++) splat(g,px+sx*16+2+rnd()*12,pz+sz*16+2+rnd()*12,R(1,3.5),rnd()<.5?hsl(H,15,L-10):hsl(H,22,L+10),.22); }
       if(rnd()<.12){ g.strokeStyle='#120c18'; g.lineWidth=1; g.globalAlpha=.6; g.beginPath(); g.moveTo(px+rnd()*S,pz+rnd()*S); g.lineTo(px+rnd()*S,pz+rnd()*S); g.stroke(); g.globalAlpha=1; }
     }
@@ -197,10 +200,10 @@ function paintFloor(){
   const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding; tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); return tex;
 }
 function paintWall(){
-  const c=cv(256,256), g=c.getContext('2d'); g.fillStyle='#1a1322'; g.fillRect(0,0,256,256);
-  for(let r=0;r<4;r++){ const y0=r*64, off=(r%2)*64; for(let b=-1;b<3;b++){ const x0=b*128+off; const L=R(33,43), H=R(246,258);
-      g.fillStyle=hsl(H,15,L); g.fillRect(x0+3,y0+3,122,58);
-      g.globalAlpha=.5; g.fillStyle=hsl(H,18,L+16); g.fillRect(x0+3,y0+3,122,4); g.fillRect(x0+3,y0+3,4,58); g.globalAlpha=.4; g.fillStyle='#0d0912'; g.fillRect(x0+3,y0+56,122,5); g.fillRect(x0+121,y0+3,4,58); g.globalAlpha=1;
+  const mar=!!(MAP.style&&MAP.style.marble); const c=cv(256,256), g=c.getContext('2d'); g.fillStyle=mar?'#8a7c6a':'#1a1322'; g.fillRect(0,0,256,256);
+  for(let r=0;r<4;r++){ const y0=r*64, off=(r%2)*64; for(let b=-1;b<3;b++){ const x0=b*128+off; const L=mar?R(60,70):R(33,43), H=mar?R(34,44):R(246,258), SA=mar?16:15;
+      g.fillStyle=hsl(H,SA,L); g.fillRect(x0+3,y0+3,122,58);
+      g.globalAlpha=.5; g.fillStyle=hsl(H,SA+3,L+16); g.fillRect(x0+3,y0+3,122,4); g.fillRect(x0+3,y0+3,4,58); g.globalAlpha=.4; g.fillStyle=mar?'#6a5d4e':'#0d0912'; g.fillRect(x0+3,y0+56,122,5); g.fillRect(x0+121,y0+3,4,58); g.globalAlpha=1;
       for(let i=0;i<9;i++) splat(g,x0+6+rnd()*116,y0+6+rnd()*52,R(2,7),rnd()<.5?hsl(H,12,L-12):hsl(H,20,L+12),.2); } }
   for(let i=0;i<1800;i++) splat(g,rnd()*256,rnd()*256,R(1,5),rnd()<.5?'#000':'#fff',.05);
   const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.encoding=THREE.sRGBEncoding; tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); return tex;
@@ -215,7 +218,15 @@ function paintBanner(){
   g.fillStyle='#e8b94a'; g.fillRect(28,150,72,8); g.fillRect(28,170,72,8);
   const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding; return tex;
 }
-const FLOORTEX=paintFloor(), WALLTEX=paintWall(), BANNERTEX=paintBanner();
+function paintWindow(){ const c=cv(128,320), g=c.getContext('2d'); g.clearRect(0,0,128,320); const arch=()=>{ g.beginPath(); g.moveTo(10,312); g.lineTo(10,110); g.quadraticCurveTo(10,28,64,10); g.quadraticCurveTo(118,28,118,110); g.lineTo(118,312); g.closePath(); };
+  arch(); const gr=g.createLinearGradient(0,0,0,320); gr.addColorStop(0,'#1a2a6a'); gr.addColorStop(.6,'#2a3f9a'); gr.addColorStop(1,'#141a44'); g.fillStyle=gr; g.fill();
+  g.save(); arch(); g.clip(); for(let i=0;i<40;i++) splat(g,rnd()*128,rnd()*320,R(.6,1.8),'#dfe8ff',.7); g.globalAlpha=.35; g.fillStyle='#8fb8ff'; g.beginPath(); g.arc(88,72,30,0,TAU); g.fill(); g.globalAlpha=.95; g.fillStyle='#f4efd8'; g.beginPath(); g.arc(88,72,15,0,TAU); g.fill(); g.globalAlpha=1;
+  g.strokeStyle='#e8b94a'; g.lineWidth=4; g.beginPath(); g.moveTo(64,10); g.lineTo(64,312); g.moveTo(10,150); g.lineTo(118,150); g.moveTo(10,230); g.lineTo(118,230); g.stroke(); g.restore();
+  arch(); g.strokeStyle='#e8b94a'; g.lineWidth=9; g.stroke(); arch(); g.strokeStyle='#5a4220'; g.lineWidth=3; g.stroke(); const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding; return tex; }
+function paintDrape(){ const c=cv(64,256), g=c.getContext('2d'); g.fillStyle='#8c1d24'; g.fillRect(0,0,64,256); for(let x=0;x<64;x+=8){ g.fillStyle=(x/8)%2?'#6a1219':'#a3282f'; g.fillRect(x,0,8,256); g.globalAlpha=.5; g.fillStyle='#b8383f'; g.fillRect(x+2,0,2,256); g.globalAlpha=1; }
+  for(let i=0;i<60;i++) splat(g,rnd()*64,rnd()*256,R(1,4),rnd()<.5?'#5a0f14':'#c04048',.15); g.fillStyle='#e8b94a'; g.fillRect(0,0,64,9); g.fillRect(0,247,64,9); g.beginPath(); g.moveTo(0,150); g.quadraticCurveTo(32,172,64,150); g.lineTo(64,162); g.quadraticCurveTo(32,184,0,162); g.closePath(); g.fill();
+  const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding; return tex; }
+const FLOORTEX=paintFloor(), WALLTEX=paintWall(), BANNERTEX=paintBanner(); const WINDOWTEX=(MAP.style&&MAP.style.windows)?paintWindow():null, DRAPETEX=WINDOWTEX?paintDrape():null;
 
 // ================= BUILD THE HALL =================
 const world=new THREE.Group(); scene.add(world);
@@ -274,7 +285,13 @@ function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(
   MAP.crates.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); const cm=mat(0x8a5e34);
     g.add(M(G.box(1.1,1.1,1.1),cm,-.35,.55,.2)); g.add(M(G.box(.9,.9,.9),cm,.5,.45,-.3)); g.add(M(G.box(.8,.8,.8),cm,-.2,1.5,.2)); g.add(M(G.box(1.14,.08,.08),mat(0x3a2a20),-.35,.55,.76)); world.add(outline(g)); });
   // torches + banners along the walls
-  let i=0; const [hx0,hx1,hz0,hz1]=MAP.hall; wallFaces.forEach(f=>{ const inHall=f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1; i++;
+  const [hx0,hx1,hz0,hz1]=MAP.hall; const WIN=new Set(); let nWin=0;
+  if(WINDOWTEX){ let k=0; wallFaces.forEach(f=>{ if(!(f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1)) return; k++; if(k%6!==2) return; WIN.add(f); nWin++; const yaw=Math.atan2(f.nx,f.nz), tx=f.nz, tz=-f.nx;   // tall arched windows with crimson drapes, every sixth hall face
+      const w=new THREE.Mesh(new THREE.PlaneGeometry(2.4,6),new THREE.MeshBasicMaterial({map:WINDOWTEX,transparent:true,alphaTest:.5,side:THREE.DoubleSide})); w.position.set(f.x+f.nx*.1,WALLH*.56,f.z+f.nz*.1); w.rotation.y=yaw; w.userData.noOL=true; w.userData.window=true; world.add(w);
+      const dh=WALLH*.62; for(const sd of [-1,1]){ const d=new THREE.Mesh(new THREE.PlaneGeometry(1.0,dh),new THREE.MeshToonMaterial({map:DRAPETEX,gradientMap:GRAD,color:C(0xffffff),side:THREE.DoubleSide})); d.position.set(f.x+f.nx*.16+tx*sd*1.75,WALLH*.5,f.z+f.nz*.16+tz*sd*1.75); d.rotation.y=yaw; d.userData.noOL=true; world.add(d); }
+      const rod=M(G.cyl(.06,.06,4.9,6),mat(0xe0b040),f.x+f.nx*.2,WALLH*.5+dh/2+.12,f.z+f.nz*.2); rod.rotation.set(0,yaw,PI/2); world.add(rod); for(const sd of [-1,1]) world.add(M(G.sph(.14,7,6),mat(0xe0b040),f.x+f.nx*.2+tx*sd*2.45,WALLH*.5+dh/2+.12,f.z+f.nz*.2+tz*sd*2.45)); }); }
+  world.userData.windows=nWin;
+  let i=0; wallFaces.forEach(f=>{ const inHall=f.cx>=hx0&&f.cx<=hx1&&f.cz>=hz0&&f.cz<=hz1; i++; if(WIN.has(f)) return;
     const yaw=Math.atan2(f.nx,f.nz);
     if(i%4===1){ const t=makeTorch(); t.position.set(f.x,3.1,f.z); t.rotation.y=yaw; world.add(t); }
     else if(inHall&&i%4===3){ const b=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.6),new THREE.MeshToonMaterial({map:BANNERTEX,gradientMap:GRAD,color:C(0xffffff),transparent:true,side:THREE.DoubleSide,alphaTest:.5})); b.position.set(f.x+f.nx*.12,4.2,f.z+f.nz*.12); b.rotation.y=yaw; world.add(b); const rod=M(G.cyl(.05,.05,1.7,6),mat(0xe0b040),f.x+f.nx*.12,5.5,f.z+f.nz*.12); rod.rotation.y=yaw; rod.rotation.z=PI/2; world.add(rod); } });
@@ -283,8 +300,8 @@ function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(
     for(const sx of [-1,1]){ g.add(M(G.box(.4,.7,1.9),dk,sx*1.5,1.55,-.1)); g.add(M(G.box(.5,.12,2.0),gd,sx*1.5,1.95,-.1)); g.add(M(G.sph(.28,8,6),gd,sx*1.4,4.7,-1.15)); g.add(M(G.cyl(.16,.2,.9,7),gd,sx*1.45,.8,.9)); }
     world.add(outline(g)); }
   // chandelier over the north half of the hall
-  const ch=new THREE.Group(); ch.position.set(MAP.chandelier[0],5.2,MAP.chandelier[1]); const ring=M(new THREE.TorusGeometry(1.6,.09,6,18),mat(0x2b2540)); ring.rotation.x=PI/2; ch.add(ring); ch.add(M(G.cyl(.03,.03,1.8,5),mat(0x2b2540),0,.9,0));
-  for(let k=0;k<6;k++){ const a=k/6*TAU; ch.add(M(G.cyl(.06,.06,.32,6),mat(0xf4ead0),Math.cos(a)*1.6,.2,Math.sin(a)*1.6)); const f=M(G.cone(.08,.24,6),basic(0xffd060),Math.cos(a)*1.6,.48,Math.sin(a)*1.6); f.userData.noOL=true; ch.add(f); flames.push({f,f2:f,p:k}); } const cg=glow(0xffb05a,3,.5); cg.position.y=.4; ch.add(cg); world.add(ch);
+  for(const [chx,chz] of (MAP.chandeliers||[MAP.chandelier])){ const ch=new THREE.Group(); ch.position.set(chx,WALLH-1.8,chz); const ring=M(new THREE.TorusGeometry(1.6,.09,6,18),mat(0x2b2540)); ring.rotation.x=PI/2; ch.add(ring); ch.add(M(G.cyl(.03,.03,1.8,5),mat(0x2b2540),0,.9,0));
+  for(let k=0;k<6;k++){ const a=k/6*TAU; ch.add(M(G.cyl(.06,.06,.32,6),mat(0xf4ead0),Math.cos(a)*1.6,.2,Math.sin(a)*1.6)); const f=M(G.cone(.08,.24,6),basic(0xffd060),Math.cos(a)*1.6,.48,Math.sin(a)*1.6); f.userData.noOL=true; ch.add(f); flames.push({f,f2:f,p:k}); } const cg=glow(0xffb05a,3,.5); cg.position.y=.4; ch.add(cg); world.add(ch); }
   // beams
   MAP.beams.zs.forEach(z=>world.add(M(G.box(MAP.beams.w,.5,.5),mat(0x2a1f2c),0,WALLH-.25,z)));
 }
@@ -798,8 +815,8 @@ function updateGhost(){ if(!placing) return; const [px,pz]=placeStage===1?anchor
   const yaw=placeStage===1?anchorYaw:cam.yaw+ghostRot; const cells=footprintCells(placing,px,pz,yaw); const heroCell=idx(wc(hero.x),wcz(hero.z));
   if(!(t===T.FLOOR||t===T.CARPET)||cells.some(i=>!walk(grid[i])||rampA[i])) reason="Can't build there"; else if(cells.some(i=>defAt[i])) reason='Already occupied'; else if(cells.includes(heroCell)||Math.hypot(px-hero.x,pz-hero.z)<1.1) reason="You're standing there"; else if(S.du+cfg.du>DU_CAP) reason='Not enough Defense Units'; else if(S.mana<cfg.mana) reason='Not enough mana'; else if(enemies.some(e=>!e.dead&&Math.hypot(e.x-px,e.z-pz)<2.2)) reason='Enemy too close';
   ghostOk=!reason; ghostReason=reason; ghostCell=[cx,cz]; ghostPos=[px,pz]; ghostYaw=yaw;
-  ghost.position.set(px,0,pz); ghost.rotation.y=ghostYaw; const m=ghostOk?GHOST_OK:GHOST_BAD; ghost.traverse(o=>{ if(o.isMesh) o.material=m; });
-  if(ghostSector){ ghostSector.position.set(px,0,pz); ghostSector.rotation.y=ghostYaw; tintSector(ghostSector,ghostOk?0x40ff80:0xff3030); } }
+  ghost.position.set(px,baseFloor(px,pz),pz); ghost.rotation.y=ghostYaw; const m=ghostOk?GHOST_OK:GHOST_BAD; ghost.traverse(o=>{ if(o.isMesh) o.material=m; });
+  if(ghostSector){ ghostSector.position.set(px,baseFloor(px,pz),pz); ghostSector.rotation.y=ghostYaw; tintSector(ghostSector,ghostOk?0x40ff80:0xff3030); } }
 function confirmPlace(){ if(!placing) return; if(!ghostOk){ toast(ghostReason); return; }
   if(placeStage===0){ anchorPos=[ghostPos[0],ghostPos[1]]; anchorYaw=ghostYaw; placeStage=1; SFX.hit(); updateGhost(); return; }   // first click: set it down
   placeDefAt(placing,ghostPos[0],ghostPos[1],ghostYaw); floatText(ghostPos[0],2.2,ghostPos[1],DEFS[placing].name,'#e8b94a'); cancelPlace(); }
@@ -884,6 +901,6 @@ window.__dd={S,hero,cam,enemies,defs,projs,orbs,loot,grid,DEFS,MOBS,gear:()=>gea
   setHero:(x,z,yaw)=>{ hero.x=x; hero.z=z; if(yaw!==undefined) hero.yaw=yaw; }, setCam:(yaw,pitch,dist)=>{ cam.yaw=yaw; cam.pitch=pitch; cam.dist=dist; cam.d=dist; },
   status:()=>({phase:S.phase,wave:S.wave,mana:S.mana,du:S.du,crystal:S.crystal,heroHp:Math.round(hero.hp),enemies:enemies.filter(e=>!e.dead).length,defs:defs.length,projs:projs.length,orbs:orbs.length,queue:spawnQ.length,kills:S.kills,loot:loot.length,t:+S.t.toFixed(1)}),
   addMana:n=>{ S.mana+=n; }, mute:()=>setSound(false), reflow, flow:()=>flowDef,
-  map:()=>({index:MAPI,id:MAP.id,name:MAP.name,waves:MAP.waves,wbase:MAP.wbase,total:MAPS.length,cleared:MAPS_CLEARED,gw:GW,gh:GH}), maps:()=>MAPS.map(m=>({id:m.id,name:m.name,waves:m.waves})), effWave, winMap, lanes:()=>LANES, pathLen:(cx,cz)=>flowFree.dist[idx(cx,cz)], cellAt:(cx,cz)=>gat(cx,cz), cw, cwz, floorH, baseFloor, hgtAt:(cx,cz)=>hgt[idx(cx,cz)] };
+  map:()=>({index:MAPI,id:MAP.id,name:MAP.name,waves:MAP.waves,wbase:MAP.wbase,total:MAPS.length,cleared:MAPS_CLEARED,gw:GW,gh:GH,wallH:WALLH,windows:world.userData.windows|0,style:MAP.style||null}), maps:()=>MAPS.map(m=>({id:m.id,name:m.name,waves:m.waves})), effWave, winMap, lanes:()=>LANES, pathLen:(cx,cz)=>flowFree.dist[idx(cx,cz)], cellAt:(cx,cz)=>gat(cx,cz), cw, cwz, floorH, baseFloor, hgtAt:(cx,cz)=>hgt[idx(cx,cz)] };
 })();
 
