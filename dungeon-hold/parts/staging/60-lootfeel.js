@@ -38,7 +38,7 @@ const V={host:null,weapon:null,charm:null,amulet:null,ids:''}; const ORB_GEO=new
 function heroHand(){ if(useGLB&&GLBH&&GLBH.root){ let b=GLBH.root.getObjectByName('mixamorigRightHand'); if(!b) GLBH.root.traverse(o=>{ if(!b&&o.isBone&&/RightHand$/i.test(o.name)) b=o; }); return b||null; } return H.armR||null; }
 function rebuildVisuals(){ if(V.weapon&&V.weapon.parent) V.weapon.parent.remove(V.weapon); if(V.charm) scene.remove(V.charm); if(V.amulet) scene.remove(V.amulet); V.weapon=V.charm=V.amulet=null;
   const host=heroHand(); V.host=host; const w=gear.weapon;
-  if(w&&w.rarity>=1&&host){ const s=glow(RCOL[w.rarity],1,.45+.12*w.rarity); let at=host, y=0; if(useGLB&&GLBH){ let mn=null; host.traverse(o=>{ if(!mn&&/^weaponMount_\d+/.test(o.name)) mn=o; }); if(mn){ at=mn; y=(+mn.name.split('_')[1])*.4; } }   // on the weapon mount when the rig has one, 40% up the blade
+  if(w&&w.rarity>=1&&host){ const s=glow(RCOL[w.rarity],1,.45+.12*w.rarity); let at=host, y=0; if(useGLB&&GLBH){ let mn=null; host.traverse(o=>{ if(!mn&&/^(weapon|whip)Mount_\d+/.test(o.name)) mn=o; }); if(mn){ at=mn; y=(+mn.name.split('_')[1])*.4; } }   // on the weapon mount when the rig has one, 40% up the blade
     at.updateWorldMatrix(true,false); const k=(useGLB&&GLBH)?1/at.getWorldScale(new THREE.Vector3()).x:1;   // sprite size in world units whatever the rig's own scale
     s.scale.set(.85*k,.85*k,1); s.position.y=(useGLB&&GLBH)?y:-.42; s.userData.base=s.material.opacity; at.add(s); V.weapon=s; }
   const c=gear.charm; if(c){ const g=new THREE.Group(); const orb=new THREE.Mesh(ORB_GEO,basic(RCOL[c.rarity])); orb.userData.noOL=true; g.add(orb); g.add(glow(RCOL[c.rarity],.9,.55)); g.userData.orb=orb; scene.add(g); V.charm=g; }

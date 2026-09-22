@@ -61,10 +61,29 @@ wave count. Height: `hgt`/`rampA` per cell, `floorH(x,z)` (stairs are two flat s
 ledge taller than a step, no building on stairs; raised tops and stone drops are generated after the walls.
 
 Maps so far: 1 The Gnome Hall (the original), 2 The Throne Room (a vast marble hall under a 14-high ceiling with arched windows and drapes; the grand stair climbs to a terrace, twin stairs climb on to the
-crystal six up, the throne behind it).
+crystal six up, the throne behind it), 3 The Cloister Court (outdoors under a night sky: a sunken court, a covered
+colonnade a step and a half up with four flights down, trees, three corner gates), 4 The Great Feast Hall (three long
+tables with benches and candles, four hearths, the crystal on the high-table dais, doors east, north and south).
+Map styles: `wallH`, `fog`, `style.marble` / `style.moss` (floor and wall painters), `style.windows` (arched windows with
+drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (slabs over colonnades), `trees`, `tables` +
+`tableGaps`, `hearths`, `throne`, `chandeliers`, `pillarH`.
+
+## Heroes, weapons, sets
+
+- `70-hero2.js` holds `HEROES` (Gnome Warden with a sword, Fae Battle Witch with a whip and reach 3.6); the start screen
+  picks one (saved as `ddHero`); a pick swaps the model live. The start screen also has a testing line: unlock all maps,
+  auto-mana (orbs fly to you from anywhere), +1000 gold.
+- `80-weapons.js` mounts sword models on a `weaponMount_<cm>` node and whip models on a `whipMount_<cm>` node; a whip
+  model is cut into a handle and five chained lash segments (`rigWhip`) that sway at rest and crack on a swing.
+  The witch currently ships with her own baked vine whip and no mount: cutting the baked whip out of her mesh could not be
+  done cleanly (it coils across her boots). A whip-less export of her (same rig, empty hands) run through
+  `meshy/witch/merge.mjs` with `merge.html?mountHand=LeftHand` turns the seven whips on.
+- `92-sets.js`: items whose names end in "of the Hall / Deep / Crystal / Tower" form sets; three pieces give the small
+  bonus, five the big one (defense damage and area, health/armor/regen, mana and crystal mending, defense attack speed).
+  Suffixes now roll from Uncommon up. The sheet lists active and partial sets; stat lines say "Deep set 3/5".
 
 ## Open items
 
-- More maps (the seven-door hall in `parts/MAP.md` now has the height layer it needed).
+- The witch's mounted whips need a whip-less export of her model (see above).
 - Meshy art still wanted: turnip trebuchet, hobgoblin archer.
 - Upgraded gear raises gear score, which nudges mob health up a little (rubber band); revisit if it feels punishing.

@@ -5,7 +5,7 @@ const browser=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftsh
 const ready=()=>page.waitForFunction(()=>window.__dd&&window.__dd.map&&window.__campaign&&window.__dd.heroModel()&&window.__dd.mobModel("goblin")&&window.__room,null,{timeout:90000});
 await page.goto("http://127.0.0.1:8869/?silent"); await ready();
 const r0=await page.evaluate(()=>{ const d=window.__dd; localStorage.removeItem("ddMapsCleared"); return {map:d.map(),line:window.__campaign.line(),lanes:Object.keys(d.lanes())}; });
-check("map 1 by default: The Gnome Hall, 7 waves, 2 maps, nothing cleared, start screen names it",r0.map.index===0&&r0.map.waves===7&&r0.map.total===2&&/MAP 1 OF 2/.test(r0.line)&&/GNOME HALL/.test(r0.line)&&r0.lanes.join()==="N,W,E",JSON.stringify(r0));
+check("map 1 by default: The Gnome Hall, 7 waves, 4 maps, nothing cleared, start screen names it",r0.map.index===0&&r0.map.waves===7&&r0.map.total===4&&/MAP 1 OF 4/.test(r0.line)&&/GNOME HALL/.test(r0.line)&&r0.lanes.join()==="N,W,E",JSON.stringify(r0));
 // a locked map falls back to map 1
 await page.goto("http://127.0.0.1:8869/?silent&map=1"); await ready();
 const r1=await page.evaluate(()=>window.__dd.map());
@@ -16,7 +16,7 @@ check("wave 7 held → phase won, HALL HELD tally with NEXT MAP, map 1 marked cl
 // NEXT MAP → the throne room
 await page.click("#tv-nextmap"); await page.waitForURL(/map=1/); await ready();
 const r3=await page.evaluate(()=>{ const d=window.__dd; const L=d.lanes(); const paths=Object.fromEntries(Object.keys(L).map(k=>[k,d.pathLen(L[k].cx,L[k].cz)])); return {map:d.map(),lanes:Object.keys(L),paths,crystalH:d.hgtAt(23,7),terrace:d.hgtAt(23,16),stairTop:+d.floorH(0,24.2).toFixed(2),stairBottom:+d.floorH(0,33.9).toFixed(2),upperStair:+d.floorH(-15,10).toFixed(2),floorBelow:d.hgtAt(23,30),door:window.__room.door,stations:window.__room.stations().length,line:window.__campaign.line(),wbase:d.map().wbase}; });
-check("map 2 is the throne room: 46×55 under a 14-high ceiling with windows, three gates with long paths (≥30), crystal six up, terrace three up, grand and upper stairs step between them, tavern re-homed",r3.map.index===1&&r3.map.gw===46&&r3.map.wallH===14&&r3.map.windows>=6&&r3.lanes.join()==="W,E,S"&&Object.values(r3.paths).every(p=>p>=30)&&r3.crystalH===6&&r3.terrace===3&&r3.stairTop>=2.5&&r3.stairBottom<=.5&&r3.upperStair>3&&r3.upperStair<6&&r3.floorBelow===0&&r3.stations===4&&/MAP 2 OF 2/.test(r3.line)&&r3.wbase===7,JSON.stringify(r3));
+check("map 2 is the throne room: 46×55 under a 14-high ceiling with windows, three gates with long paths (≥30), crystal six up, terrace three up, grand and upper stairs step between them, tavern re-homed",r3.map.index===1&&r3.map.gw===46&&r3.map.wallH===14&&r3.map.windows>=6&&r3.lanes.join()==="W,E,S"&&Object.values(r3.paths).every(p=>p>=30)&&r3.crystalH===6&&r3.terrace===3&&r3.stairTop>=2.5&&r3.stairBottom<=.5&&r3.upperStair>3&&r3.upperStair<6&&r3.floorBelow===0&&r3.stations===4&&/MAP 2 OF 4/.test(r3.line)&&r3.wbase===7,JSON.stringify(r3));
 // difficulty carries on: map 2 wave 1 is the eighth wave
 const r4=await page.evaluate(()=>{ const d=window.__dd; window.__meta.reset(); d.resetGear(); d.start(); d.setHero(0,6,Math.PI); d.step(1/60,3); const heroY=+d.hero.y.toFixed(2); d.startWave(); const banner=document.getElementById("banner").textContent; const q=d.status(); const e=d.spawn("goblin","W"); const hp=e.hp; d.kill(e); return {eff:d.effWave(),banner,hp,heroY,wave:d.S.wave}; });
 check("map 2 wave 1 fights like wave 8 (goblin hp scaled, banner says WAVE 1 OF 7), hero stands on the platform six up",r4.eff===8&&r4.wave===1&&/WAVE 1 OF 7/.test(r4.banner)&&r4.hp>=24&&r4.heroY>=5.9,JSON.stringify(r4));
@@ -27,7 +27,7 @@ check("goblin climbs both stairs to the crystal (y reaches 6); the hero climbs t
 // start-screen map switch and the ◀ button
 await page.goto("http://127.0.0.1:8869/?silent&map=1"); await ready();
 const r6=await page.evaluate(()=>({line:window.__campaign.line(),prevOn:!document.getElementById("mapprev").disabled,nextOn:!document.getElementById("mapnext").disabled}));
-check("start screen on map 2: ◀ enabled, ▶ disabled (no map 3)",/MAP 2 OF 2/.test(r6.line)&&r6.prevOn&&!r6.nextOn,JSON.stringify(r6));
+check("start screen on map 2: ◀ enabled, ▶ disabled (map 3 locked)",/MAP 2 OF 4/.test(r6.line)&&r6.prevOn&&!r6.nextOn,JSON.stringify(r6));
 await page.click("#mapprev"); await page.waitForURL(/map=0/); await ready();
 const r7=await page.evaluate(()=>window.__dd.map());
 check("◀ goes back to map 1",r7.index===0,JSON.stringify(r7));

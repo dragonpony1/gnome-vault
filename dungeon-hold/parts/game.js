@@ -92,7 +92,31 @@ const MAPS=[
    {cx:16,cz:17,y:7.2,c:0xff8a2a,i:1.4,d:14},{cx:30,cz:17,y:7.2,c:0xff8a2a,i:1.4,d:14},{cx:16,cz:24,y:7,c:0xff8a2a,i:1.4,d:14},{cx:30,cz:24,y:7,c:0xff8a2a,i:1.4,d:14},{cx:18,cz:26,y:4,c:0xff8a2a,i:1.6,d:15},{cx:28,cz:26,y:4,c:0xff8a2a,i:1.6,d:15},
    {cx:9,cz:30,y:4,c:0xff8a2a,i:1.5,d:15},{cx:37,cz:30,y:4,c:0xff8a2a,i:1.5,d:15},{cx:6,cz:38,y:4,c:0xff8a2a,i:1.5,d:15},{cx:40,cz:38,y:4,c:0xff8a2a,i:1.5,d:15},{cx:8,cz:44,y:4,c:0xff8a2a,i:1.5,d:15},{cx:38,cz:44,y:4,c:0xff8a2a,i:1.5,d:15},
    {cx:2,cz:35,y:4,c:0xc040ff,i:.9,d:10},{cx:44,cz:35,y:4,c:0xc040ff,i:.9,d:10},{cx:23,cz:49,y:4,c:0xc040ff,i:.9,d:10},
-   {cx:38,cz:46,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:36,cz:48,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:40,cz:52,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:38,cz:53,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]}];
+   {cx:38,cz:46,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:36,cz:48,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:40,cz:52,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:38,cz:53,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]},
+ {id:'court',name:'THE CLOISTER COURT',sub:'open sky, a sunken court, covered walkways all round · seven waves',gw:44,gh:52,crystal:[22,21],waves:7,wallH:9,fog:[34,110],style:{outdoor:true,moss:true},
+  build(f,g,h,ramp){ f(2,41,2,41,T.FLOOR); h(2,41,2,41,1.5); h(5,38,5,38,0); f(21,23,19,23,T.CARPET); f(21,23,20,22,T.DAIS); g(22,21,T.CRYSTAL);   // the cloister walkway a step and a half up, the court sunken, the crystal in the middle
+    f(21,23,5,6,T.FLOOR); ramp(21,23,5,6,1,0,1.5); f(21,23,37,38,T.FLOOR); ramp(21,23,37,38,2,0,1.5); f(5,6,20,22,T.FLOOR); ramp(5,6,20,22,4,0,1.5); f(37,38,20,22,T.FLOOR); ramp(37,38,20,22,3,0,1.5);   // four flights down into the court
+    f(2,4,1,1,T.FLOOR); h(2,4,1,1,1.5); g(3,1,T.SPAWN); f(39,41,1,1,T.FLOOR); h(39,41,1,1,1.5); g(40,1,T.SPAWN); f(1,1,39,41,T.FLOOR); h(1,1,39,41,1.5); g(1,40,T.SPAWN);   // gates in three corners: the horde walks the cloister to a stair
+    f(17,25,44,50,T.FLOOR); f(21,21,42,43,T.FLOOR); h(21,21,42,43,1.5); h(17,25,44,50,1.5); f(21,21,44,46,T.CARPET); [[17,45],[18,49],[24,46],[24,47],[24,48],[21,50]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern through the south wall, on the walkway's level
+    for(let x=6;x<=38;x+=8){ g(x,4,T.PILLAR); g(x,39,T.PILLAR); } for(let z=6;z<=38;z+=8){ g(4,z,T.PILLAR); g(39,z,T.PILLAR); }   // the colonnade along the inner edge of the walkway
+    [[9,9],[34,9],[9,34],[34,34]].forEach(([x,z])=>g(x,z,T.PROP)); [[14,14],[29,29]].forEach(([x,z])=>g(x,z,T.PROP)); },   // trees, and two barrels
+  lanes:{NW:{cx:3,cz:1,face:0,name:'North-west'}, NE:{cx:40,cz:1,face:0,name:'North-east'}, SW:{cx:1,cz:40,face:PI/2,name:'South-west'}},
+  hall:[2,41,2,41],pillars:(()=>{ const p=[]; for(let x=6;x<=38;x+=8){ p.push([x,4],[x,39]); } for(let z=6;z<=38;z+=8){ p.push([4,z],[39,z]); } return p; })(),pillarH:4.4,barrels:[[14,14],[29,29]],crates:[],chandeliers:[],beams:{zs:[],w:0},tavern:{dx:5,dz:19},
+  roofs:[[2,41,2,4],[2,41,39,41],[2,4,5,38],[39,41,5,38],[16,26,42,51]],trees:[[9,9],[34,9],[9,34],[34,34]],
+  lights:[[0,4.2,0,0x4ae6ff,1.3,15],{cx:6,cz:3,y:4,c:0xff8a2a,i:1.4,d:13},{cx:22,cz:3,y:4,c:0xff8a2a,i:1.4,d:13},{cx:38,cz:3,y:4,c:0xff8a2a,i:1.4,d:13},{cx:6,cz:40,y:4,c:0xff8a2a,i:1.4,d:13},{cx:38,cz:40,y:4,c:0xff8a2a,i:1.4,d:13},{cx:3,cz:14,y:4,c:0xff8a2a,i:1.4,d:13},{cx:3,cz:30,y:4,c:0xff8a2a,i:1.4,d:13},{cx:40,cz:14,y:4,c:0xff8a2a,i:1.4,d:13},{cx:40,cz:30,y:4,c:0xff8a2a,i:1.4,d:13},
+   {cx:3,cz:1,y:4,c:0xc040ff,i:.9,d:10},{cx:40,cz:1,y:4,c:0xc040ff,i:.9,d:10},{cx:1,cz:40,y:4,c:0xc040ff,i:.9,d:10},{cx:21,cz:43,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:19,cz:45,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:23,cz:49,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:21,cz:50,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]},
+ {id:'feast',name:'THE GREAT FEAST HALL',sub:'three long tables, three doors, the crystal at the high table · seven waves',gw:52,gh:35,crystal:[5,13],waves:7,wallH:10,fog:[30,100],style:{windows:true},
+  build(f,g,h,ramp){ f(3,46,3,24,T.FLOOR); f(3,8,10,17,T.FLOOR); h(3,8,10,17,1); f(9,10,10,17,T.FLOOR); ramp(9,10,10,17,4,0,1); f(4,6,12,14,T.DAIS); g(5,13,T.CRYSTAL); f(11,46,13,14,T.CARPET);   // the hall, the high table's dais a step up at the west end, a runner down the middle
+    for(const [z0,z1] of [[8,9],[13,14],[18,19]]) for(let x=14;x<=40;x++){ if(x===22||x===23||x===30||x===31||x===38||x===39) continue; g(x,z0,T.PROP); g(x,z1,T.PROP); }   // three long tables with benches; gaps to cross between the aisles
+    f(47,50,12,14,T.FLOOR); g(50,13,T.SPAWN); f(23,25,1,2,T.FLOOR); g(24,1,T.SPAWN); f(31,33,25,27,T.FLOOR); g(32,27,T.SPAWN);   // gates: the east doors at the far end, a door in each long wall
+    f(42,50,27,33,T.FLOOR); f(46,46,25,26,T.FLOOR); f(46,46,27,29,T.CARPET); [[42,28],[43,32],[49,29],[49,30],[49,31],[46,33]].forEach(([x,z])=>g(x,z,T.PROP));   // the tavern off the south-east corner
+    [[3,3],[46,3],[3,24],[46,24]].forEach(([x,z])=>g(x,z,T.PROP)); },
+  lanes:{E:{cx:50,cz:13,face:-PI/2,name:'East'}, N:{cx:24,cz:1,face:0,name:'North'}, S:{cx:32,cz:27,face:PI,name:'South'}},
+  hall:[3,46,3,24],pillars:[],barrels:[[3,3],[46,3]],crates:[[3,24],[46,24]],chandeliers:[[14,0],[30,0],[46,0]],beams:{zs:[-14,-6,2,10],w:90},tavern:{dx:30,dz:2},
+  tables:[[14,40,8,9],[14,40,13,14],[14,40,18,19]],tableGaps:[22,23,30,31,38,39],hearths:[[20,2,0],[34,2,0],[20,25,PI],[34,25,PI]],
+  lights:[[0,4.2,0,0x4ae6ff,1.3,15],[14,7,0,0xffb05a,.9,15],[30,7,0,0xffb05a,.9,15],[46,7,0,0xffb05a,.9,15],{cx:20,cz:3,y:2.4,c:0xff7a1a,i:1.8,d:12},{cx:34,cz:3,y:2.4,c:0xff7a1a,i:1.8,d:12},{cx:20,cz:24,y:2.4,c:0xff7a1a,i:1.8,d:12},{cx:34,cz:24,y:2.4,c:0xff7a1a,i:1.8,d:12},
+   {cx:6,cz:11,y:4.4,c:0xff8a2a,i:1.4,d:13},{cx:6,cz:16,y:4.4,c:0xff8a2a,i:1.4,d:13},{cx:12,cz:4,y:4,c:0xff8a2a,i:1.4,d:13},{cx:12,cz:23,y:4,c:0xff8a2a,i:1.4,d:13},{cx:42,cz:4,y:4,c:0xff8a2a,i:1.4,d:13},{cx:42,cz:23,y:4,c:0xff8a2a,i:1.4,d:13},
+   {cx:50,cz:13,y:4,c:0xc040ff,i:.9,d:10},{cx:24,cz:1,y:4,c:0xc040ff,i:.9,d:10},{cx:32,cz:27,y:4,c:0xc040ff,i:.9,d:10},{cx:46,cz:26,y:4.2,c:0xffb05a,i:1.3,d:13},{cx:44,cz:28,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:48,cz:32,y:3.8,c:0xff8a2a,i:1.2,d:12},{cx:46,cz:33,y:2.2,c:0xff7a1a,i:1.6,d:9,oz:.4}]}];
 const MAPS_CLEARED=(()=>{ try{ return Math.max(0,Math.min(MAPS.length,parseInt(localStorage.getItem('ddMapsCleared'))||0)); }catch(e){ return 0; } })();
 const MAPI=(()=>{ let i=parseInt(Q.get('map')); if(!(i>=0)){ try{ i=parseInt(localStorage.getItem('ddMap'))||0; }catch(e){ i=0; } } return Math.max(0,Math.min(i,MAPS_CLEARED,MAPS.length-1)); })();   // a map past the last one cleared is locked
 const MAP=MAPS[MAPI]; MAP.wbase=MAPS.slice(0,MAPI).reduce((a,m)=>a+m.waves,0);
@@ -138,14 +162,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
 const scene=new THREE.Scene();
-scene.background=C(0x0b0712); scene.fog=new THREE.Fog(C(0x0b0712),(MAP.fog||[24,62])[0],(MAP.fog||[24,62])[1]);   // a big hall needs to be seen end to end from the top of its stairs
+const OUT=!!(MAP.style&&MAP.style.outdoor); scene.background=C(OUT?0x0c1230:0x0b0712); scene.fog=new THREE.Fog(C(OUT?0x0c1230:0x0b0712),(MAP.fog||[24,62])[0],(MAP.fog||[24,62])[1]);   // a big hall needs to be seen end to end; a courtyard sees the night sky
 const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,140);
 function onResize(){ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); ov.width=innerWidth; ov.height=innerHeight; }
 addEventListener('resize',onResize); onResize();
 
 // lights: cool ambient, warm torches, cyan crystal
-scene.add(new THREE.HemisphereLight(C(0x5a4a8a),C(0x130d1a),0.62));
-const sun=new THREE.DirectionalLight(C(0x8a7ab0),0.22); sun.position.set(6,14,4); scene.add(sun);
+scene.add(new THREE.HemisphereLight(C(OUT?0x7a86c8:0x5a4a8a),C(OUT?0x1a2418:0x130d1a),OUT?.8:0.62));
+const sun=new THREE.DirectionalLight(C(OUT?0xa8b8ff:0x8a7ab0),OUT?.45:0.22); sun.position.set(6,14,4); scene.add(sun);
 const LIGHTS=MAP.lights.map(l=>Array.isArray(l)?l:[cw(l.cx)+(l.ox||0),l.y,cwz(l.cz)+(l.oz||0),l.c,l.i,l.d]);   // world coords, or {cx,cz} grid cells
 const torchLights=[];
 // sconces burn brighter and reach further than the crystal / portal glows (the hall was too dark)
@@ -189,8 +213,8 @@ function paintFloor(){
       g.strokeStyle='#e8b94a'; g.lineWidth=2.5; g.beginPath(); const D=v=>v!==T.DAIS&&v!==T.CRYSTAL;
       if(D(gat(x,z-1))){ g.moveTo(px,pz+1.5); g.lineTo(px+S,pz+1.5);} if(D(gat(x,z+1))){ g.moveTo(px,pz+S-1.5); g.lineTo(px+S,pz+S-1.5);} if(D(gat(x-1,z))){ g.moveTo(px+1.5,pz); g.lineTo(px+1.5,pz+S);} if(D(gat(x+1,z))){ g.moveTo(px+S-1.5,pz); g.lineTo(px+S-1.5,pz+S);} g.stroke();
     } else if(t===T.SPAWN){ g.fillStyle='#1d1430'; g.fillRect(px,pz,S,S); for(let i=0;i<10;i++) splat(g,px+rnd()*S,pz+rnd()*S,R(2,5),'#6a2fb0',.18);
-    } else { const mar=!!(MAP.style&&MAP.style.marble); g.fillStyle=mar?'#a89c88':'#1c1626'; g.fillRect(px,pz,S,S);
-      for(let sx=0;sx<2;sx++) for(let sz=0;sz<2;sz++){ const L=mar?R(58,70)-((x+z)%2?7:0):R(30,41), H=mar?R(34,46):R(246,262), SA=mar?14:17; g.fillStyle=hsl(H,SA,L); g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,13);
+    } else { const mar=!!(MAP.style&&MAP.style.marble), moss=!!(MAP.style&&MAP.style.moss); g.fillStyle=mar?'#a89c88':moss?'#1a2418':'#1c1626'; g.fillRect(px,pz,S,S);
+      for(let sx=0;sx<2;sx++) for(let sz=0;sz<2;sz++){ const L=mar?R(58,70)-((x+z)%2?7:0):moss?R(30,40):R(30,41), H=mar?R(34,46):moss?R(95,140):R(246,262), SA=mar?14:moss?12:17; g.fillStyle=hsl(H,SA,L); g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,13);
         g.fillStyle=hsl(H,SA+3,L+12); g.globalAlpha=.35; g.fillRect(px+sx*16+1.5,pz+sz*16+1.5,13,2); g.globalAlpha=1;
         for(let i=0;i<3;i++) splat(g,px+sx*16+2+rnd()*12,pz+sz*16+2+rnd()*12,R(1,3.5),rnd()<.5?hsl(H,15,L-10):hsl(H,22,L+10),.22); }
       if(rnd()<.12){ g.strokeStyle='#120c18'; g.lineWidth=1; g.globalAlpha=.6; g.beginPath(); g.moveTo(px+rnd()*S,pz+rnd()*S); g.lineTo(px+rnd()*S,pz+rnd()*S); g.stroke(); g.globalAlpha=1; }
@@ -236,7 +260,9 @@ const world=new THREE.Group(); scene.add(world);
   dais.rotation.x=-PI/2; dais.position.set(0,0.5+hgt[GOAL],0); world.add(dais);
   const daisSide=new THREE.Mesh(G.box(6,0.5,6),mat(0x4e4236)); daisSide.position.set(0,0.25+hgt[GOAL],0); world.add(daisSide);
   [[0,-3.05],[0,3.05]].forEach(([x,z])=>world.add(M(G.box(6.2,.1,.12),mat(0xe0b040),x,.5,z))); [[-3.05,0],[3.05,0]].forEach(([x,z])=>world.add(M(G.box(.12,.1,6.2),mat(0xe0b040),x,.5,z)));
-  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(GW*CELL,GH*CELL),mat(0x120c1a)); ceil.rotation.x=PI/2; ceil.position.set(GW*CELL/2-OX,WALLH,GH*CELL/2-OZ); world.add(ceil);
+  if(!OUT){ const ceil=new THREE.Mesh(new THREE.PlaneGeometry(GW*CELL,GH*CELL),mat(0x120c1a)); ceil.rotation.x=PI/2; ceil.position.set(GW*CELL/2-OX,WALLH,GH*CELL/2-OZ); world.add(ceil); }
+  else { const st=new THREE.BufferGeometry(); const pts=[]; for(let i=0;i<400;i++){ const a=rnd()*TAU, e=.15+rnd()*1.2, r=120; pts.push(Math.cos(a)*Math.cos(e)*r,Math.sin(e)*r,Math.sin(a)*Math.cos(e)*r); } st.setAttribute('position',new THREE.Float32BufferAttribute(pts,3)); scene.add(new THREE.Points(st,new THREE.PointsMaterial({color:C(0xdfe8ff),size:1.1,sizeAttenuation:true,transparent:true,opacity:.85,fog:false})));
+    const moon=glow(0xf4efd8,22,.95); moon.material.fog=false; moon.position.set(40,70,-70); scene.add(moon); const halo=glow(0x8fb8ff,60,.25); halo.material.fog=false; halo.position.copy(moon.position); scene.add(halo); }   // stars and a moon
 }
 const wallFaces=[];
 { const pos=[],nrm=[],uv=[],ind=[]; let vi=0;
@@ -277,8 +303,8 @@ function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(
   g.add(M(G.cyl(.09,.07,.14,7),mat(0x3a3348),0,.56,.45));
   const f=M(G.cone(.17,.5,7),basic(0xff7a1a),0,.85,.46); f.userData.noOL=true; const f2=M(G.cone(.09,.34,7),basic(0xffd060),0,.82,.46); f2.userData.noOL=true; g.add(f,f2); const gl=glow(0xff8a2a,2.6,.7); gl.position.set(0,.9,.46); g.add(gl); flames.push({f,f2,p:rnd()*9}); return g; }
 { // pillars
-  MAP.pillars.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z));
-    g.add(M(G.box(2,.5,2),mat(0x4a4262),0,.25,0)); g.add(M(G.cyl(.62,.7,6,12),mat(0x5a5276),0,3.5,0)); g.add(M(G.box(2,.5,2),mat(0x4a4262),0,6.75,0)); g.add(M(G.box(1.6,.2,1.6),mat(0xe0b040),0,.6,0)); world.add(g); });
+  const PH=MAP.pillarH||6; MAP.pillars.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),hgt[idx(x,z)]||0,cwz(z));
+    g.add(M(G.box(2,.5,2),mat(0x4a4262),0,.25,0)); g.add(M(G.cyl(.62,.7,PH,12),mat(0x5a5276),0,.5+PH/2,0)); g.add(M(G.box(2,.5,2),mat(0x4a4262),0,PH+.75,0)); g.add(M(G.box(1.6,.2,1.6),mat(0xe0b040),0,.6,0)); world.add(g); });
   // props: barrels & crates in the hall corners
   MAP.barrels.forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); const bm=mat(0x7a4f2c), band=mat(0x2b2540);
     [[-.4,0,-.3],[.45,0,.35],[0,1.1,0]].forEach(([bx,by,bz])=>{ const b=new THREE.Group(); b.position.set(bx,by+.55,bz); b.add(M(G.cyl(.42,.42,1.1,10),bm)); b.add(M(G.cyl(.45,.45,.1,10),band,0,.35,0)); b.add(M(G.cyl(.45,.45,.1,10),band,0,-.35,0)); g.add(b); }); world.add(outline(g)); });
@@ -295,6 +321,14 @@ function makeTorch(){ const g=new THREE.Group(); g.add(M(G.box(.14,.14,.34),mat(
     const yaw=Math.atan2(f.nx,f.nz);
     if(i%4===1){ const t=makeTorch(); t.position.set(f.x,3.1,f.z); t.rotation.y=yaw; world.add(t); }
     else if(inHall&&i%4===3){ const b=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.6),new THREE.MeshToonMaterial({map:BANNERTEX,gradientMap:GRAD,color:C(0xffffff),transparent:true,side:THREE.DoubleSide,alphaTest:.5})); b.position.set(f.x+f.nx*.12,4.2,f.z+f.nz*.12); b.rotation.y=yaw; world.add(b); const rod=M(G.cyl(.05,.05,1.7,6),mat(0xe0b040),f.x+f.nx*.12,5.5,f.z+f.nz*.12); rod.rotation.y=yaw; rod.rotation.z=PI/2; world.add(rod); } });
+  (MAP.roofs||[]).forEach(([x0,x1,z0,z1])=>{ const y=(MAP.pillarH||6)+1.0; const w=(x1-x0+1)*CELL, d=(z1-z0+1)*CELL; const r=M(G.box(w,.45,d),mat(0x2a1f2c),(cw(x0)+cw(x1))/2,y,(cwz(z0)+cwz(z1))/2); world.add(r); world.add(M(G.box(w,.12,d),mat(0x4a4262),(cw(x0)+cw(x1))/2,y+.28,(cwz(z0)+cwz(z1))/2)); });   // covered walkways: a slab on the colonnade
+  (MAP.trees||[]).forEach(([x,z])=>{ const g=new THREE.Group(); g.position.set(cw(x),hgt[idx(x,z)]||0,cwz(z)); g.add(M(G.cyl(.22,.3,2.2,7),mat(0x5a3a22),0,1.1,0)); [[0,2.6,0,1.5],[.7,2.2,.4,1.0],[-.6,2.3,-.5,1.0],[0,3.5,0,1.1]].forEach(([ox,oy,oz,r])=>g.add(M(G.sph(r,8,6),mat(0x2f6a2a),ox,oy,oz))); world.add(outline(g)); });   // trees in the court
+  (MAP.tables||[]).forEach(([x0,x1,z0,z1])=>{ const gaps=MAP.tableGaps||[]; let run=null; const flush=()=>{ if(!run) return; const [a,b]=run; const w=(b-a+1)*CELL-.3, cx0=(cw(a)+cw(b))/2, cz0=(cwz(z0)+cwz(z1))/2; const g=new THREE.Group(); g.position.set(cx0,0,cz0); const wood=mat(0x6b4a2a), plank=mat(0x8a5e34), cream=mat(0xf1e6d0);
+      g.add(M(G.box(w,.14,1.6),plank,0,1.0,0)); for(const sx of [-1,1]) g.add(M(G.box(.3,.9,1.3),wood,sx*(w/2-.5),.45,0)); for(const sz of [-1,1]){ g.add(M(G.box(w-.4,.1,.5),plank,0,.55,sz*1.35)); for(const sx of [-1,1]) g.add(M(G.box(.2,.5,.45),wood,sx*(w/2-.8),.25,sz*1.35)); }
+      for(let u=-w/2+1;u<w/2-.5;u+=2.2){ g.add(M(G.cyl(.28,.28,.05,10),cream,u,1.1,(u/2.2%2?1:-1)*.35)); g.add(M(G.cyl(.11,.09,.24,7),cream,u+.7,1.19,.1)); if(((u+w)/2.2|0)%2===0){ const cd=M(G.cyl(.05,.05,.35,6),cream,u+.3,1.25,-.2); g.add(cd); const f=M(G.cone(.07,.18,6),basic(0xffd060),u+.3,1.5,-.2); f.userData.noOL=true; g.add(f); flames.push({f,f2:f,p:1.2+rnd()}); const gl=glow(0xffb05a,1.1,.55); gl.position.set(u+.3,1.5,-.2); g.add(gl); } }
+      world.add(outline(g)); run=null; }; for(let x=x0;x<=x1;x++){ if(gaps.includes(x)){ flush(); continue; } if(!run) run=[x,x]; else run[1]=x; } flush(); });   // feast tables: planks, benches, plates, mugs and candles
+  (MAP.hearths||[]).forEach(([x,z,yaw])=>{ const g=new THREE.Group(); g.position.set(cw(x),0,cwz(z)); g.rotation.y=yaw; const stone=mat(0x4a4262); g.add(M(G.box(4.2,3.4,1.2),stone,0,1.7,-.4)); g.add(M(G.box(4.6,.3,1.5),mat(0x5a5276),0,3.5,-.4)); g.add(M(G.box(2.4,2.0,.8),mat(0x1a1420),0,1.0,0));
+    const f=M(G.cone(.6,1.3,7),basic(0xff7a1a),0,.8,.1); f.userData.noOL=true; const f2=M(G.cone(.32,.9,7),basic(0xffd060),0,.75,.12); f2.userData.noOL=true; g.add(f,f2); flames.push({f,f2,p:1.7}); const gl=glow(0xff8a2a,5,.7); gl.position.set(0,1.2,.2); g.add(gl); [[-.7,.3,.1],[.6,.3,.15]].forEach(([lx,ly,lz])=>{ const lg=M(G.cyl(.12,.12,1.2,6),mat(0x5a3a22),lx,ly,lz); lg.rotation.z=PI/2; g.add(lg); }); world.add(outline(g)); });   // great hearths
   if(MAP.throne){ const [tx,tz]=MAP.throne; const g=new THREE.Group(); g.position.set(cw(tx),hgt[idx(tx,tz)],cwz(tz)); const st=mat(0x4a4262), gd=mat(0xe0b040), rd=mat(0xa01c28), dk=mat(0x2b2540);   // the throne: a wide stone seat, tall back, gold trim, red cushion, facing the hall
     g.add(M(G.box(4.2,.35,3.2),st,0,.17,.2)); g.add(M(G.box(2.6,1.0,1.9),dk,0,.85,-.1)); g.add(M(G.box(2.4,.28,1.6),rd,0,1.45,0)); g.add(M(G.box(3.0,3.6,.5),dk,0,2.6,-1.15)); g.add(M(G.box(2.6,3.2,.12),rd,0,2.7,-.85)); g.add(M(G.box(3.2,.2,.6),gd,0,4.45,-1.15));
     for(const sx of [-1,1]){ g.add(M(G.box(.4,.7,1.9),dk,sx*1.5,1.55,-.1)); g.add(M(G.box(.5,.12,2.0),gd,sx*1.5,1.95,-.1)); g.add(M(G.sph(.28,8,6),gd,sx*1.4,4.7,-1.15)); g.add(M(G.cyl(.16,.2,.9,7),gd,sx*1.45,.8,.9)); }
@@ -442,7 +476,7 @@ const MOBS={goblin:{hp:10,spd:3.4,dmg:3,cd:1.0,mana:1,detour:3}, orc:{hp:45,spd:
 const DU_CAP=40, SENS=0.0042;
 const S={mana:260,du:0,crystal:100,wave:0,phase:'start',t:0,waveT:0,kills:0};
 function effWave(w){ return MAP.wbase+(w===undefined?S.wave:w); }   // map 2 wave 1 is the eighth wave of the campaign: mobs, loot and pay scale with this
-const hero={x:0,y:0,z:6,vy:0,yaw:PI,hp:100,max:100,swingT:-1,hitDone:false,dead:0,ph:0,moving:false,hurtT:0,grounded:true};
+const hero={x:0,y:0,z:6,vy:0,yaw:PI,hp:100,max:100,swingT:-1,hitDone:false,dead:0,ph:0,moving:false,hurtT:0,grounded:true,reach:2.4};   // reach: how far the swing lands (a whip reaches further than a sword)
 const H=makeHero(); scene.add(H.g); const heroShadow=blob(.5); scene.add(heroShadow);
 const cam={yaw:PI,pitch:.42,dist:8,d:8,x:0,y:5,z:14};
 const enemies=[], defs=[], projs=[], orbs=[], floats=[], loot=[];
@@ -498,7 +532,7 @@ function heroUpdate(dt){
 function jump(){ if(hero.grounded&&hero.dead<=0&&S.phase!=='start'){ hero.vy=10.6; hero.grounded=false; SFX.jump(); } }
 function swing(){ if(hero.swingT>=0||hero.dead>0||S.phase==='start'||S.phase==='dead'||S.phase==='won') return; hero.swingT=0; hero.hitDone=false; SFX.swing(); if(!hero.moving) hero.yaw=cam.yaw;
   if(useGLB&&GLBH&&GLBH.actions.attack) playHero('attack',{restart:true,fade:.05,speed:GLBH.map.attack.duration/swingDur()}); }
-function hitCone(){ const fx=Math.sin(hero.yaw), fz=Math.cos(hero.yaw); let n=0; for(const e of enemies){ if(e.dead) continue; const dx=e.x-hero.x, dz=e.z-hero.z, d=Math.hypot(dx,dz); if(d<2.4+e.r&&(dx*fx+dz*fz)/Math.max(d,.01)>.4){ hurt(e,heroDmg(),fx*1.4,fz*1.4); n++; } } if(n) SFX.hit(); }
+function hitCone(){ const fx=Math.sin(hero.yaw), fz=Math.cos(hero.yaw); let n=0; for(const e of enemies){ if(e.dead) continue; const dx=e.x-hero.x, dz=e.z-hero.z, d=Math.hypot(dx,dz); if(d<(hero.reach||2.4)+e.r&&(dx*fx+dz*fz)/Math.max(d,.01)>.4){ hurt(e,heroDmg(),fx*1.4,fz*1.4); n++; } } if(n) SFX.hit(); }
 function hurtHero(dmg){ if(hero.dead>0) return; dmg=Math.max(1,Math.round(dmg*(1-Math.min(75,heroStat('def'))/100))); hero.hp-=dmg; hero.hurtT=3; flashDmg(); SFX.hurt(); if(hero.hp<=0){ hero.hp=0; hero.dead=4; toast('You fell! Back in 4 seconds…'); H.g.visible=false; heroShadow.visible=false; } }
 function hurtCrystal(dmg){ if(S.phase==='dead'||S.phase==='won') return; S.crystal-=dmg; flashDmg(); SFX.crystal(); crystalShake=.4; if(S.crystal<=0){ S.crystal=0; S.phase='dead'; droneOff(); setMusic('none'); sting(); if(document.exitPointerLock) document.exitPointerLock(); document.body.classList.remove('play'); if(!Meta.onRunEnd(S.wave)){ $('deadwave').textContent=S.wave; $('dead').classList.remove('hide'); } } }
 
@@ -725,7 +759,7 @@ function updateProj(dt){
 function spawnOrbs(x,z,n){ for(let k=0;k<n;k++){ const a=rnd()*TAU; const o={x,y:.8,z,vx:Math.cos(a)*2.5,vy:4+rnd()*2.5,vz:Math.sin(a)*2.5,mesh:orbMesh(),t:0}; o.mesh.position.set(x,.8,z); scene.add(o.mesh); orbs.push(o); } }
 function updateOrbs(dt){
   for(let i=orbs.length-1;i>=0;i--){ const o=orbs[i]; o.t+=dt; const hd=Math.hypot(hero.x-o.x,hero.z-o.z);
-    if(hero.dead<=0&&hd<3.6){ const tx=hero.x, ty=hero.y+1, tz=hero.z; const dx=tx-o.x, dy=ty-o.y, dz=tz-o.z, d=Math.hypot(dx,dy,dz); if(d<.7){ const v=Math.round(5*(1+heroStat('mana')/100)*heroMult('mana')*10)/10; S.mana=Math.round((S.mana+v)*10)/10; SFX.mana(); floatText(o.x,o.y+.4,o.z,'+'+v,'#5ee9ff'); scene.remove(o.mesh); orbs.splice(i,1); continue; } const sp=11*dt/d; o.x+=dx*sp; o.y+=dy*sp; o.z+=dz*sp; }
+    if(hero.dead<=0&&hd<(window.__autoMana?1e9:3.6)){ const tx=hero.x, ty=hero.y+1, tz=hero.z; const dx=tx-o.x, dy=ty-o.y, dz=tz-o.z, d=Math.hypot(dx,dy,dz); if(d<.7){ const v=Math.round(5*(1+heroStat('mana')/100)*heroMult('mana')*10)/10; S.mana=Math.round((S.mana+v)*10)/10; SFX.mana(); floatText(o.x,o.y+.4,o.z,'+'+v,'#5ee9ff'); scene.remove(o.mesh); orbs.splice(i,1); continue; } const sp=11*dt/d; o.x+=dx*sp; o.y+=dy*sp; o.z+=dz*sp; }
     else { o.vy-=14*dt; const nx=o.x+o.vx*dt, nz=o.z+o.vz*dt; if(!solidAt(nx,nz,0,true)){ o.x=nx; o.z=nz; } else { o.vx=-o.vx*.5; o.vz=-o.vz*.5; } o.y+=o.vy*dt; const fl=baseFloor(o.x,o.z)+.3; if(o.y<fl){ o.y=fl; o.vy=-o.vy*.4; o.vx*=.7; o.vz*=.7; } }
     o.mesh.position.set(o.x,o.y+Math.sin(o.t*4)*.05,o.z); o.mesh.userData.o.rotation.y+=dt*3; }
 }
@@ -756,7 +790,7 @@ function rollItem(minR,slot,lvl){ slot=slot||SLOTS[(LR()*SLOTS.length)|0]; const
   const pools={weapon:['dmg','spd'],armor:['hp','def','regen'],charm:['tow','mana','move'],amulet:['hp','regen','def','spd'],familiar:['fdmg','frate']}; const keys=pools[slot].slice(0,1+Math.min(r,pools[slot].length-1));
   if(r===4){ const others=Object.keys(STATW).filter(k=>!keys.includes(k)); keys.push(others[(LR()*others.length)|0]); }
   const stats={}; keys.forEach(k=>{ stats[k]=rollStat(k,L,r); });
-  const name=PREFIX[r][(LR()*PREFIX[r].length)|0]+' '+BASES[slot][Math.min(BASES[slot].length-1,(r+((LR()*2)|0)))]+(r>=2?' '+SUFFIX[(LR()*SUFFIX.length)|0]:'');
+  const name=PREFIX[r][(LR()*PREFIX[r].length)|0]+' '+BASES[slot][Math.min(BASES[slot].length-1,(r+((LR()*2)|0)))]+(r>=1?' '+SUFFIX[(LR()*SUFFIX.length)|0]:'');
   let score=0; for(const k in stats) score+=stats[k]*STATW[k];
   const value=Math.round(10*(1+L*.5)*[1,2,4,8,16][r]);
   return {slot,rarity:r,lvl:L,tier:tierOf(L),name,stats,score:Math.round(score*10)/10,value,id:Math.floor(LR()*1e9).toString(36)+L.toString(36)}; }
