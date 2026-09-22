@@ -113,6 +113,13 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   wave to 15%, worth ×3, drops with a low bell under a rising shimmer and a violet column, glows violet on the floor and in
   the hand; 3 pieces +15% hero damage and +20% familiar damage; 5 pieces VOID RIFT (every hit deals 40% of the blow to all
   within 3 units and slows them 2 s). `window.__void` and `void-test.mjs` cover it.
+- Card art: a set entry's `art` map names a picture per slot (`item-void-sword.png`, `-whip` for the witch's weapon,
+  `-armor`, `-charm`, `-amulet`, in assets/); `Meta.packs.artHtml(it)` renders it wherever gear is drawn — the sheet's
+  slot boxes and inventory grid, the tavern's bag and shop cards — with the slot's emoji shown instead when the file is
+  missing. The Void pictures are still to be dropped in (the concept shots exist; they need uploading as PNG files).
+- Full-set aura: with all five pieces of a set worn, the hero's own model wears a thin shell in the set's colour (an
+  additive back-face shell a hair wider than the ink outline, `userData.setGlow`, rebuilt on a model swap, pulsing faintly)
+  in the hall and on the sheet's portrait. Off again the moment a piece comes off.
 
 - `97-pause.js`: Escape in the hall (or the mouse leaving pointer lock) opens PAUSED — RESUME, or RETURN TO TITLE SCREEN
   (a reload; gold, gear, skills and map progress are saved as they happen, the run is forfeited). Escape while placing
