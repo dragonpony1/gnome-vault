@@ -72,7 +72,8 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
 
 - `70-hero2.js` holds `HEROES` (Gnome Warden with a sword, Fae Battle Witch with a whip and reach 3.6); the start screen
   picks one (saved as `ddHero`); a pick swaps the model live. The start screen also has a testing line: unlock all maps,
-  auto-mana (orbs fly to you from anywhere), +1000 gold.
+  auto-mana (orbs fly to you from anywhere), +1000 gold, ↻ fresh reload (the same page under a new query, past any
+  cached copy; saves kept) and wipe saves (two clicks: forgets every `dd*` key, then reloads fresh).
 - `80-weapons.js` mounts sword models on a `weaponMount_<cm>` node and whip models on a `whipMount_<cm>` node; a whip
   model is cut into a handle and five chained lash segments (`rigWhip`). The lash is a small rope simulation
   (`whipAnim`): five points hang from the handle under gravity, keep their lengths, trail the fist on a swing and snap round
