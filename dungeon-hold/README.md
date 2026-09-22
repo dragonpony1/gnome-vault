@@ -120,6 +120,13 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
 - The crystal stands on its own carved base, level with the floor: no raised dais (the DAIS cells remain an inlaid floor
   marking with a gold border, and `baseFloor` no longer steps up on them).
 
+- Frost Totem (key 6, `DEFS.totem`, Meshy art `totem-1..4.glb` by mark, procedural fallback): a runed pillar with a ring of
+  7 (+1 a mark). Every other defense standing in a ring hits harder and faster by the strongest ring it stands in (+15%,
+  +5% a mark, `d.buff` set each frame in `updateDefs` and read by `stat` for dmg and cd; totems never buff totems and never
+  stack); mobs in the ring are chilled (`e.chillT`, 70% speed, half a second after they leave). The ring is drawn on the
+  floor at its reach with a small spinner and a plume of light at the top (`mdl.userData.aura`, added at runtime so a model
+  swap keeps it). `totem-test.mjs` covers it.
+
 ## Open items
 
 - Void set models: the concept art (runed blade, chain whip, shard charm, galaxy amulet, starless robe) is waiting on Meshy
