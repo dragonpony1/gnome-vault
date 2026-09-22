@@ -9,7 +9,7 @@ const tpl={}, loading={};                 // name -> template root (bounds in us
 // which model an item shows: its name decides (cleavers are the goblin blade, embers burn, storms and the deep are ice,
 // crystal and myth are holy), then the base weapon, then rarity — so a new find usually looks new in the hand
 const BASE_SWORD=[['shortsword','rusty'],['broadsword','rusty'],['cleaver','venom'],['warhammer','flame'],['halberd','frost'],['gnome blade','holy']];
-function swordFor(it){ if(!it) return 'rusty'; const n=(it.name||'').toLowerCase(), r=Math.max(0,Math.min(4,it.rarity|0));
+function swordFor(it){ if(!it) return 'rusty'; const n=(it.name||'').toLowerCase(), r=Math.max(0,Math.min(4,it.rarity|0)); const pk=Meta.packs&&Meta.packs.of(it); if(pk&&pk.models&&pk.models.sword) return pk.models.sword;   // a great set's stand-in blade until its own model lands
   if(/cleaver|goblin|venom|serpent/.test(n)) return 'venom';
   if(/ember|flame|fire|dragon|blaze/.test(n)) return 'flame';
   if(/frost|\bice\b|deep|storm|moon|silver/.test(n)) return 'frost';
@@ -17,7 +17,7 @@ function swordFor(it){ if(!it) return 'rusty'; const n=(it.name||'').toLowerCase
   for(const [k,v] of BASE_SWORD) if(n.includes(k)) return v;
   return ['rusty','rusty','frost','flame','holy'][r]; }
 // the witch's whip for an item: crystal and holy by name, bone for goblin-bane, barbed iron for embers and heavy hafts, thornvine for the deep and the moon, chain for the broad blades, rope otherwise; rarity decides the rest
-function whipFor(it){ if(!it) return 'whip-rope'; const n=(it.name||'').toLowerCase(), r=Math.max(0,Math.min(4,it.rarity|0));
+function whipFor(it){ if(!it) return 'whip-rope'; const n=(it.name||'').toLowerCase(), r=Math.max(0,Math.min(4,it.rarity|0)); const pk=Meta.packs&&Meta.packs.of(it); if(pk&&pk.models&&pk.models.whip) return pk.models.whip;
   if(/crystal/.test(n)) return 'whip-crystal'; if(/holy|eternal|mythic|sacred|radiant/.test(n)) return 'whip-holy'; if(/goblin|bone|venom|skull/.test(n)) return 'whip-bone';
   if(/ember|flame|fire|iron|warhammer|halberd|storm/.test(n)) return 'whip-barbed'; if(/thorn|vine|deep|moon|silver|frost/.test(n)) return 'whip-thorn'; if(/chain|broadsword|cleaver/.test(n)) return 'whip-chain';
   return ['whip-rope','whip-chain','whip-thorn','whip-barbed','whip-holy'][r]; }
@@ -36,6 +36,7 @@ function loadSword(name,cb){ if(tpl[name]) return cb(tpl[name]); if(loading[name
   fetchBytes(ASSET(MODELS[name])).then(buf=>new THREE.GLTFLoader().parse(buf,'',gltf=>{ let root=gltf.scene||gltf.scenes[0]; if(/^whip-/.test(name)) root=rigWhip(root); root.traverse(m=>{ if(m.isMesh) m.frustumCulled=false; }); root.updateMatrixWorld(true); if(!root.userData.box) root.userData.box=new THREE.Box3().setFromObject(root);   // the model's own frame: pommel at box.min.y, tip at box.max.y (static props stand on y=0)
     tpl[name]=root; const cbs=loading[name]; delete loading[name]; cbs.forEach(f=>f(root)); },e=>{ console.warn('sword '+name,e); delete loading[name]; })).catch(e=>{ console.warn('sword '+name,e); delete loading[name]; }); }
 const W={key:'',obj:null,hand:null,tier:1};
+function setTint(obj,pk){ obj.traverse(m=>{ if(m.isMesh&&!m.userData.isOL&&m.material&&m.material.emissive){ m.material=m.material.clone(); m.material.color.multiplyScalar(.45); m.material.emissive.set(pk.emissive); m.material.emissiveIntensity=.8; } }); obj.userData.void=true; obj.userData.set=pk.name; }   // a great set's piece: the stand-in model darkens and burns with the set's colour from within
 function heroMount(){ if(!(useGLB&&GLBH&&GLBH.root)) return null; if(GLBH.mountNode===undefined){ let n=null; GLBH.root.traverse(o=>{ if(!n&&/^(weapon|whip)Mount_\d+/.test(o.name)) n=o; }); GLBH.mountNode=n; }   // an empty node under the hand bone: position = grip, +Y = blade axis (or the way a whip hangs), name = length in cm
   const n=GLBH.mountNode; return n?{node:n,len:+n.name.split('_')[1],whip:/^whip/.test(n.name)}:null; }
 function unmount(){ if(W.obj&&W.obj.parent) W.obj.parent.remove(W.obj); W.obj=null; W.hand=null; }
@@ -44,7 +45,7 @@ function mountSword(name,tier,key){ const hm=heroMount(); if(!hm) return; loadSw
     if(whip){ gripY=box.max.y; tipY=box.min.y; s=(len*lenMul(tier))/L; obj.rotation.z=PI; obj.scale.setScalar(s); obj.position.set(0,box.max.y*s,0); }   // the handle (top of the model) in the fist, the lash hanging down the mount's +Y
     else { gripY=box.min.y+GRIP_F*L; tipY=box.max.y; s=(len*lenMul(tier))/(box.max.y-gripY); obj.scale.setScalar(s); obj.position.set(0,-gripY*s,0); }   // the grip point sits on the mount (in the fist); the blade runs up the mount's +Y
     // ink outline + toon shading like everything else; the outline thickness accounts for the mount scale and the hero's fit
-    node.updateWorldMatrix(true,false); const worldPerUnit=s*node.getWorldScale(new THREE.Vector3()).x; toonify(obj,worldPerUnit);
+    node.updateWorldMatrix(true,false); const worldPerUnit=s*node.getWorldScale(new THREE.Vector3()).x; toonify(obj,worldPerUnit); { const m=/\|set:(.+)$/.exec(key); const pk=m&&Meta.packs&&Meta.packs.get(m[1]); if(pk) setTint(obj,pk); }
     obj.userData.sword={name,tier,scale:s,gripY,tipY,len:L,whip:!!whip}; if(whip){ const segs=[]; obj.traverse(o=>{ if(/^lash\d/.test(o.name)) segs.push(o); }); segs.sort((a,b)=>a.name.localeCompare(b.name)); obj.userData.segs=segs; }
     node.add(obj); W.obj=obj; W.hand=node.parent; W.tier=tier; }); }
 // the lash is a rope: five points hang from the end of the handle, fall under gravity, keep their lengths and trail the fist
@@ -63,12 +64,12 @@ function whipAnim(dt){ const o=W.obj; if(!(o&&o.userData.segs)) return; const se
   for(let k=1;k<=n;k++){ const p=pts[k], fl=(typeof floorH==='function'?floorH(p.x,p.z):0)+.03; if(p.y<fl) p.y=fl; }
   for(let k=0;k<n;k++){ const sg=segs[k]; sg.parent.getWorldQuaternion(_wq); _wd.copy(pts[k+1]).sub(pts[k]).normalize().applyQuaternion(_wq.invert()); sg.quaternion.setFromUnitVectors(LASH_DOWN,_wd); } }
 function weaponsUpdate(dt){ const hm=heroMount(); if(!hm){ if(W.obj) unmount(); W.key=''; return; } if(W.obj&&W.obj.parent&&W.obj.parent!==hm.node) unmount();   // the hero model changed: drop the old weapon at once, the new one follows when its model is ready
-  whipAnim(dt); const it=gear.weapon, name=hm.whip?whipFor(it):swordFor(it), tier=swordTier(it); const key=name+'|'+tier+'|'+GLBH.label; if(key===W.key&&W.obj&&W.obj.parent===hm.node) return; W.key=key; mountSword(name,tier,key); }
+  whipAnim(dt); const it=gear.weapon, name=hm.whip?whipFor(it):swordFor(it), tier=swordTier(it); const pk=Meta.packs&&Meta.packs.of(it); const key=name+'|'+tier+'|'+GLBH.label+(pk&&pk.emissive?'|set:'+pk.name:''); if(key===W.key&&W.obj&&W.obj.parent===hm.node) return; W.key=key; mountSword(name,tier,key); }
 { const prev=Meta.update; Meta.update=dt=>{ prev(dt); weaponsUpdate(dt); }; }
 // preload the plain sword so the hero is never empty-handed for long
 loadSword('rusty',()=>{});
 // where the blade is right now, in world units (tests, and anything that wants to hang an effect on the sword)
 function bladeWorld(){ if(!(W.obj&&W.obj.parent)) return null; const sd=W.obj.userData.sword, box=tpl[sd.name].userData.box; W.obj.updateWorldMatrix(true,false); const p=v=>W.obj.localToWorld(v.clone()).toArray().map(x=>+x.toFixed(3));
   const cx=(box.min.x+box.max.x)/2, cz=(box.min.z+box.max.z)/2; return {pommel:p(new THREE.Vector3(cx,sd.whip?box.max.y:box.min.y,cz)),grip:p(new THREE.Vector3(cx,sd.gripY,cz)),tip:p(new THREE.Vector3(cx,sd.tipY,cz)),mount:W.obj.parent.getWorldPosition(new THREE.Vector3()).toArray().map(x=>+x.toFixed(3)),hand:W.hand.getWorldPosition(new THREE.Vector3()).toArray().map(x=>+x.toFixed(3))}; }
-window.__weapons={state:()=>({key:W.key,mounted:!!(W.obj&&W.obj.parent),whip:!!(W.obj&&W.obj.userData.sword&&W.obj.userData.sword.whip),segs:W.obj&&W.obj.userData.segs?W.obj.userData.segs.length:0,segRot:W.obj&&W.obj.userData.segs?W.obj.userData.segs.map(s=>+s.rotation.x.toFixed(2)):null,segBend:W.obj&&W.obj.userData.segs?W.obj.userData.segs.map(s=>+(2*Math.acos(Math.min(1,Math.abs(s.quaternion.w)))).toFixed(2)):null,lash:W.obj&&W.obj.userData.whip?W.obj.userData.whip.pts.map(p=>p.toArray().map(x=>+x.toFixed(2))):null,hand:W.hand?W.hand.name:null,tier:W.tier,loaded:Object.keys(tpl),mount:GLBH&&GLBH.mountNode?{bone:GLBH.mountNode.parent.name,len:+GLBH.mountNode.name.split('_')[1]}:null,label:GLBH&&GLBH.label}),swordFor,whipFor,swordTier,blade:bladeWorld,testWhip:name=>new Promise(res=>loadSword(name,root=>res({segs:root.userData.nseg|0,box:root.userData.box?root.userData.box.max.y-root.userData.box.min.y:0})))};
+window.__weapons={tick:dt=>weaponsUpdate(dt),state:()=>({key:W.key,void:!!(W.obj&&W.obj.userData.void),mounted:!!(W.obj&&W.obj.parent),whip:!!(W.obj&&W.obj.userData.sword&&W.obj.userData.sword.whip),segs:W.obj&&W.obj.userData.segs?W.obj.userData.segs.length:0,segRot:W.obj&&W.obj.userData.segs?W.obj.userData.segs.map(s=>+s.rotation.x.toFixed(2)):null,segBend:W.obj&&W.obj.userData.segs?W.obj.userData.segs.map(s=>+(2*Math.acos(Math.min(1,Math.abs(s.quaternion.w)))).toFixed(2)):null,lash:W.obj&&W.obj.userData.whip?W.obj.userData.whip.pts.map(p=>p.toArray().map(x=>+x.toFixed(2))):null,hand:W.hand?W.hand.name:null,tier:W.tier,loaded:Object.keys(tpl),mount:GLBH&&GLBH.mountNode?{bone:GLBH.mountNode.parent.name,len:+GLBH.mountNode.name.split('_')[1]}:null,label:GLBH&&GLBH.label}),swordFor,whipFor,swordTier,blade:bladeWorld,testWhip:name=>new Promise(res=>loadSword(name,root=>res({segs:root.userData.nseg|0,box:root.userData.box?root.userData.box.max.y-root.userData.box.min.y:0})))};
 })();

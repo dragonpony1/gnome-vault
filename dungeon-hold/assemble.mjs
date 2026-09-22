@@ -8,6 +8,8 @@ for(const dir of dirs){ if(!fs.existsSync(dir)) continue; for(const f of fs.read
 const mark="window.__dd={"; const k=game.lastIndexOf(mark); if(k<0) throw new Error("hook marker not found");
 const out=head+game.slice(0,k)+mods+game.slice(k)+tail;
 let page=out; if(process.env.DIST) page=page.replace("const HAS_ASSETS=/*ASSETS*/false;","const HAS_ASSETS=/*ASSETS*/true;");
+// every asset gets a short content stamp; the page appends it as ?v= so a re-exported model is never served from an old cache
+if(process.env.DIST){ const crypto=await import("crypto"); const st={}; for(const f of fs.readdirSync(P+"/assets")) st[f]=crypto.createHash("sha1").update(fs.readFileSync(P+"/assets/"+f)).digest("hex").slice(0,8); page=page.replace("const ASSET_STAMPS=/*STAMPS*/{};","const ASSET_STAMPS=/*STAMPS*/"+JSON.stringify(st)+";"); }
 // NOEMBED: the big models are not baked into the page; the game fetches them from assets/ instead (see the typeof guards in game.js)
 if(process.env.NOEMBED) page=page.replace(/<script>const (SQUIRE|GOBLIN)_GLB_B64="[^"]*";<\/script>\n?/g,"");
 let outPath=process.env.OUT||(SP+"/dungeon.html");

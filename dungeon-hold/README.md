@@ -74,16 +74,35 @@ drapes), `style.outdoor` (no ceiling, night sky, stars and a moon), `roofs` (sla
   picks one (saved as `ddHero`); a pick swaps the model live. The start screen also has a testing line: unlock all maps,
   auto-mana (orbs fly to you from anywhere), +1000 gold.
 - `80-weapons.js` mounts sword models on a `weaponMount_<cm>` node and whip models on a `whipMount_<cm>` node; a whip
-  model is cut into a handle and five chained lash segments (`rigWhip`) that sway at rest and crack on a swing.
-  The witch currently ships with her own baked vine whip and no mount: cutting the baked whip out of her mesh could not be
-  done cleanly (it coils across her boots). A whip-less export of her (same rig, empty hands) run through
-  `meshy/witch/merge.mjs` with `merge.html?mountHand=LeftHand` turns the seven whips on.
+  model is cut into a handle and five chained lash segments (`rigWhip`). The lash is a small rope simulation
+  (`whipAnim`): five points hang from the handle under gravity, keep their lengths, trail the fist on a swing and snap round
+  after it; each segment points at the next point. `window.__weapons.tick(dt)` runs it while the sheet is open.
+- The witch's baked vine whip is cut off her mesh by `meshy/witch/merge.mjs` (`merge.html?whip=1&noreskin=1&axis=forearm`):
+  vertices are welded by position, the vine is seeded by its green texture colour and grown through connected triangles that
+  sit away from the bones, and a `whipMount_100` is added under LeftHand with its axis along the forearm (the vine's own
+  direction pointed through her leg — that was "she whips her leg").
+- Assets carry a content stamp (`assets/x.glb.txt?v=<sha1[0:8]>`, filled in by `assemble.mjs` for the folder build) so a
+  re-exported model is never served from an old browser cache; `fetchBytes` falls back to the plain path if a host refuses
+  the query.
+- `68-paperdoll.js` is the Tab character sheet in the ashen style: the live hero (the hall's own model, turning on a stone
+  pedestal under an arch, rendered by a second camera that sees only layer 1 and copied into the sheet), the five slot
+  plaques with the forge rows, HP / mana / attack / defense, seven medallions, an INVENTORY grid (click a piece to read,
+  equip or sell it) and the item card. `window.__doll.select(id,from)` picks an item for the card.
 - `92-sets.js`: items whose names end in "of the Hall / Deep / Crystal / Tower" form sets; three pieces give the small
   bonus, five the big one (defense damage and area, health/armor/regen, mana and crystal mending, defense attack speed).
   Suffixes now roll from Uncommon up. The sheet lists active and partial sets; stat lines say "Deep set 3/5".
+- `93-gearsets.js` is the registry for the great sets (ten planned; the arcane **Void** set is the first). An entry gives
+  the suffix, icon and colour, the lowest rarity that can carry it and the chance per drop by wave, the value multiplier,
+  the drop sound, the three- and five-piece percentages (on `Meta.mult`) and an optional five-piece `onHit` power, plus
+  stand-in weapon models until Meshy art lands. Of the Void: Rare+ only, from wave 4 at 5% of such drops rising a point a
+  wave to 15%, worth ×3, drops with a low bell under a rising shimmer and a violet column, glows violet on the floor and in
+  the hand; 3 pieces +15% hero damage and +20% familiar damage; 5 pieces VOID RIFT (every hit deals 40% of the blow to all
+  within 3 units and slows them 2 s). `window.__void` and `void-test.mjs` cover it.
 
 ## Open items
 
-- The witch's mounted whips need a whip-less export of her model (see above).
+- Void set models: the concept art (runed blade, chain whip, shard charm, galaxy amulet, starless robe) is waiting on Meshy
+  exports; until then Void weapons use the holy sword / crystal whip darkened and burning violet.
+- Nine more great sets to design (suffix, drop rule, buffs, sound); each is one `addSet` entry.
 - Meshy art still wanted: turnip trebuchet, hobgoblin archer.
 - Upgraded gear raises gear score, which nudges mob health up a little (rubber band); revisit if it feels punishing.

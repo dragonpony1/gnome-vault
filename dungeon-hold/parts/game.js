@@ -538,7 +538,7 @@ function hurtCrystal(dmg){ if(S.phase==='dead'||S.phase==='won') return; S.cryst
 
 // ================= GLB HERO (built-in squire, or drop any .glb on the page) =================
 let GLBH=null, useGLB=false, heroYawOff=0, heroLoadError='';
-const BUILD=20;
+const BUILD=21;
 function heroStatus(msg){ const el=$('buildline'); if(el) el.textContent='build '+BUILD+' · '+msg; }
 const OLSKIN=new THREE.ShaderMaterial({side:THREE.BackSide,fog:true,skinning:true,
   uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{t:{value:0.028},col:{value:C(0x160c1e)}}]),
@@ -602,8 +602,9 @@ addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer&&e.dataT
 // HAS_ASSETS is stamped by the assembler: true for the folder build (index.html + assets/), false for the single file,
 // where every asset fetch simply never resolves and the baked-in models / procedural music stay in use.
 const HAS_ASSETS=/*ASSETS*/false;
-const ASSET=n=>'assets/'+n+(/\.glb$/.test(n)?'.txt':'');
-function fetchBytes(url){ if(!HAS_ASSETS) return new Promise(()=>{}); return fetch(url).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status+' '+url); if(!/\.txt$/.test(url)) return r.arrayBuffer(); return r.text().then(t=>{ const b=atob(t.replace(/\s+/g,'')); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }); }); }
+const ASSET_STAMPS=/*STAMPS*/{};   // per-file content stamps, filled in by the assembler for the folder build: a changed model gets a new URL, so no browser keeps serving the old one
+const ASSET=n=>'assets/'+n+(/\.glb$/.test(n)?'.txt':'')+(ASSET_STAMPS[n]?'?v='+ASSET_STAMPS[n]:'');
+function fetchBytes(url){ if(!HAS_ASSETS) return new Promise(()=>{}); const plain=url.replace(/\?v=[^?]*$/,''); return fetch(url).then(r=>r.ok||plain===url?r:fetch(plain)).catch(()=>fetch(plain)).then(r=>{   /* a host that dislikes the ?v= stamp still serves the plain path */ if(!r.ok) throw new Error('HTTP '+r.status+' '+url); if(!/\.txt(\?|$)/.test(url)) return r.arrayBuffer(); return r.text().then(t=>{ const b=atob(t.replace(/\s+/g,'')); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }); }); }
 // the hero model is either baked into the page (SQUIRE_GLB_B64) or fetched from assets/ next to it
 if(typeof SQUIRE_GLB_B64!=='undefined'){ try{ const u=Uint8Array.from(atob(SQUIRE_GLB_B64),c=>c.charCodeAt(0)); loadHeroGLB(u.buffer,'Gnome Warden (Meshy)',true); }catch(e){} }
 else fetchBytes(ASSET('gnome.glb')).then(buf=>loadHeroGLB(buf,'Gnome Warden (Meshy)',true)).catch(e=>{ heroLoadError=String(e&&e.message||e); heroStatus('hero model failed: '+heroLoadError); });
