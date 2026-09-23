@@ -136,7 +136,7 @@ test("pasted hand lines turn into hands, with errors per line", () => {
     "no bar here",
   ].join("\n"));
   assert.equal(hands.length, 3);
-  assert.deepEqual(hands[0], { category: "2468", pattern: "FF 2222a 44b 66b 8888a", name: "Evens two suits", points: 25, concealed: false, slide: false });
+  assert.deepEqual(hands[0], { category: "2468", pattern: "FF 2222a 44b 66b 8888a", name: "Evens two suits", points: 25, concealed: false, slide: false, step: 1 });
   assert.equal(hands[1].slide, true);
   assert.equal(hands[2].concealed, true);
   assert.deepEqual(errors.map(e => e.line), [6, 7]);
@@ -176,4 +176,20 @@ test("pasting survives the ways phones mangle copied text", () => {
     assert.deepEqual(errors, []);
     assert.deepEqual(hands, ref);
   }
+});
+
+test("odd and even like numbers only slide to the same kind of number", () => {
+  const odd = { ...hand("NN 111b 1111a 111c SS"), slide: true, step: 2 };
+  const shifts = [...new Set(M.variants(odd).map(v => v.shift))];
+  assert.deepEqual(shifts, [0, 2, 4, 6, 8]);
+  const { hands } = M.parseHandLines("Winds | NN 111b 1111a 111c SS | C 30 odd\nWinds | EE 222b 2222a 222c WW | C 30 even");
+  assert.equal(hands[0].step, 2); assert.equal(hands[0].slide, true);
+  assert.deepEqual([...new Set(M.variants({ ...hands[1], groups: M.parsePattern(hands[1].pattern) }).map(v => v.shift))], [0, 2, 4, 6]);
+  assert.match(M.formatHandLine(hands[0]), /C 30 odd$/);
+  assert.match(M.formatHandLine(hands[1]), /C 30 even$/);
+  // A rack of 5s fits the odd hand, a rack of 4s doesn't.
+  const fives = ["N", "N", "c5", "c5", "c5", "b5", "b5", "b5", "b5", "d5", "d5", "d5", "S", "S"];
+  assert.equal(M.bestFor({ ...hands[0], groups: M.parsePattern(hands[0].pattern) }, fives).away, 0);
+  const fours = fives.map(t => t.replace("5", "4"));
+  assert.ok(M.bestFor({ ...hands[0], groups: M.parsePattern(hands[0].pattern) }, fours).away > 0);
 });
