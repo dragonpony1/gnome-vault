@@ -475,7 +475,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -757,7 +757,25 @@ function renderResults() {
   if (!ranked.length) {
     const c = el("div", "card");
     c.append(el("h2", null, "No hands fit your locked tiles"));
-    c.append(el("p", "muted", "None of your hands include the tiles you locked. Check the group is right (tap it to unlock), or add the hand from your card."));
+    // Say which locked group is the problem: one that fits nothing by itself, or a mix that no hand has together.
+    const groupName = g => {
+      const t = M.exposureTile(g);
+      const count = ["", "", "", "three", "four", "five"][g.length];
+      return `${count} ${t === "F" ? "flowers" : t === "WD" ? "Soaps" : tileName(t) + "s"}`;
+    };
+    const alone = state.locked.map(g => M.rankHands(hands, [], [g]).length);
+    const lonely = state.locked.filter((g, i) => !alone[i]);
+    let msg;
+    if (lonely.length) {
+      msg = `No hand on your list has room for your locked ${lonely.map(groupName).join(" or ")}. Check that group is right (tap it to unlock), or add the hand it's for on My card.`;
+    } else if (state.locked.length > 1) {
+      const parts = state.locked.map((g, i) => `your ${groupName(g)} fit ${alone[i]} hand${alone[i] > 1 ? "s" : ""}`);
+      msg = `Each group fits on its own (${parts.join(", ")}), but no hand on your list has all of them together. One of them may be locked by mistake: tap it to unlock.`;
+    } else {
+      msg = "None of your hands include the tiles you locked. Check the group is right (tap it to unlock), or add the hand from your card.";
+    }
+    if (!hands.some(h => !h.practice)) msg += " Right now only the practice hands are on your list. Add your card's hands on My card.";
+    c.append(el("p", null, msg));
     box.append(c);
     return;
   }
