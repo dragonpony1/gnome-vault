@@ -22,6 +22,7 @@
     --tile:#FBF8EE; --tile-edge:#D9D1B8; --tile-back:#C9BE9C;
     --bam:#2C7A45; --crak:#B5302A; --dot:#2458A6; --wind:#2A2F2D; --flower:#A63E82; --joker:#8A5A00;
     --good:#2C7A45; --good-soft:#DCEFE1; --near:#8A5A00; --near-soft:#F6EACB;
+    --card-red:#B5302A; --card-green:#2C7A45;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -31,6 +32,7 @@
       --shadow:0 1px 3px rgba(0,0,0,.45);
       --tile:#EDE7D6; --tile-edge:#A69C80; --tile-back:#7E755C;
       --good:#7CC98F; --good-soft:#1F3526; --near:#E2B54F; --near-soft:#3A3120;
+      --card-red:#F08A7E; --card-green:#7CC98F;
     }
   }
   :root[data-theme="dark"]{
@@ -40,6 +42,7 @@
     --shadow:0 1px 3px rgba(0,0,0,.45);
     --tile:#EDE7D6; --tile-edge:#A69C80; --tile-back:#7E755C;
     --good:#7CC98F; --good-soft:#1F3526; --near:#E2B54F; --near-soft:#3A3120;
+    --card-red:#F08A7E; --card-green:#7CC98F;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
@@ -169,7 +172,8 @@
 
   /* ---- card screen ---- */
   .pat{display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; font:700 18px/1.2 Georgia,"Times New Roman",serif; letter-spacing:.06em}
-  .pat .va{color:var(--bam)} .pat .vb{color:var(--crak)} .pat .vc{color:var(--dot)} .pat .vn{color:var(--wind)}
+  /* Card colors: a = black, b = red, c = green, the way most cards print them. */
+  .pat .va{color:var(--ink)} .pat .vb{color:var(--card-red)} .pat .vc{color:var(--card-green)} .pat .vn{color:var(--ink)}
   .hand-row{padding:12px 0; border-top:1px solid var(--line)}
   .hand-row:first-of-type{border-top:none}
   .err{color:var(--danger); font-size:14px; margin-top:6px}
@@ -289,7 +293,7 @@
 
     <section class="card hidden" id="handForm">
       <h2 id="formTitle">Add a hand</h2>
-      <p class="small muted">Copy a line from your card. Use a, b, c after a group to show its suit: same letter, same suit. See <a href="#" id="toNotation">how to type a hand</a>.</p>
+      <p class="small muted">Copy a line from your card. After each group, add its card color: <strong>a</strong> for black, <strong>b</strong> for red, <strong>c</strong> for green. See <a href="#" id="toNotation">how to type a hand</a>.</p>
       <label class="field" for="fPattern">Hand</label>
       <input type="text" id="fPattern" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="FF 1111a 2222b 3333c">
       <div class="preview" id="fPreview"></div>
@@ -313,7 +317,7 @@
 
     <section class="card">
       <div class="spread"><h2>Your hands</h2><span class="muted small" id="handCount"></span></div>
-      <p class="small muted" style="margin-top:0">On the card, colors only mean "different suits". Green, red and blue here can be any three suits.</p>
+      <p class="small muted" style="margin-top:0">Colors work like your card: <strong>a</strong> is black, <strong>b</strong> is red, <strong>c</strong> is green. They only mean "different suits", so each can be any suit.</p>
       <div id="handList"></div>
     </section>
   </main>
@@ -374,7 +378,7 @@
       <p>Type each group from the card with a space between groups.</p>
       <table class="key">
         <tr><td><code>1</code>–<code>9</code></td><td>Number tiles</td></tr>
-        <tr><td><code>a</code> <code>b</code> <code>c</code></td><td>After a group: its suit. Same letter = same suit, different letters = different suits. Like the colors on the card.</td></tr>
+        <tr><td><code>a</code> <code>b</code> <code>c</code></td><td>After a group: its suit. Same letter = same suit, different letters = different suits. Use <code>a</code> for black groups on the card, <code>b</code> for red, <code>c</code> for green.</td></tr>
         <tr><td><code>F</code></td><td>Flower</td></tr>
         <tr><td><code>N</code> <code>E</code> <code>W</code> <code>S</code></td><td>Winds</td></tr>
         <tr><td><code>D</code></td><td>The dragon that matches the group's suit (<code>DDDa</code>)</td></tr>
@@ -408,7 +412,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -758,8 +762,9 @@ function renderHandList() {
     const row = el("div", "hand-row");
     const top = el("div", "spread");
     const title = el("div");
-    title.append(el("strong", null, h.name || h.pattern));
-    title.append(el("div", "meta", handMeta(h) + (h.slide ? " · Any numbers" : "")));
+    title.append(el("strong", null, h.name || h.category || "Hand from my card"));
+    const meta = h.name ? handMeta(h) : handMeta(h).split(" · ").slice(1).join(" · ");
+    title.append(el("div", "meta", meta + (h.slide ? " · Any numbers" : "")));
     top.append(title);
     if (h.custom) {
       const btns = el("div", "row");
