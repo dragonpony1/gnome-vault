@@ -164,14 +164,35 @@
   details summary{cursor:pointer; font-weight:600}
   .learn p,.learn li{font-size:15px}
   .learn ul{padding-left:20px; margin:6px 0}
+  button.share{display:inline-flex; align-items:center; gap:6px; flex-shrink:0; font-weight:600}
+  #toast{
+    position:fixed; left:50%; bottom:calc(28px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
+    background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px;
+    font-size:14.5px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:99;
+    max-width:88vw; text-align:center;
+  }
+  #toast.show{opacity:1}
+  @media (prefers-reduced-motion: reduce){ #toast{transition:none} }
+  .key-line{display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; font-size:13px; color:var(--muted); margin-top:10px}
+  .key-line span{display:inline-flex; align-items:center; gap:5px}
+  .more{margin-top:8px; font-size:14px; padding:6px 0; color:var(--accent); font-weight:600}
+  .details{margin-top:4px; padding-top:10px; border-top:1px solid var(--line)}
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 class="display">Mahj Helper</h1>
-    <p class="sub">Put in your tiles. See which hands you're closest to.</p>
+    <div class="spread">
+      <div>
+        <h1 class="display">Mahj Helper</h1>
+        <p class="sub">Put in your tiles. See which hands you're closest to.</p>
+      </div>
+      <button class="small share" id="shareApp" aria-label="Share this app">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Share
+      </button>
+    </div>
     <div class="tabs" role="tablist">
       <button role="tab" id="tab-hand" aria-selected="true" data-tab="hand">My tiles</button>
       <button role="tab" id="tab-card" aria-selected="false" data-tab="card">My card</button>
@@ -316,6 +337,7 @@
   </main>
 </div>
 
+<div id="toast" role="status" aria-live="polite"></div>
 <script src="engine.js"></script>
 <script src="hands.js"></script>
 <script>
@@ -328,7 +350,8 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
+const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
 // A first visit opens with example tiles so the helper shows what it does right away.
 const EXAMPLE_RACK = ["F", "F", "b2", "b2", "b4", "c6", "c6", "b8", "b8", "b8", "J", "N", "RD"];
 const savedRack = load("mahj.rack", null);
@@ -449,12 +472,12 @@ function handMeta(h) {
   if (h.practice) bits.push("Practice");
   return bits.join(" · ");
 }
-function resultCard(r) {
+function resultCard(r, open) {
   const { hand, best } = r;
   const c = el("article", "card result");
   const top = el("div", "spread");
-  top.append(el("span", "meta", handMeta(hand)), awayBadge(best.away));
-  c.append(top, el("h2", null, hand.name || hand.pattern));
+  top.append(el("h2", null, hand.name || hand.pattern), awayBadge(best.away));
+  c.append(top);
   const tiles = el("div", "hand-tiles");
   best.variant.groups.forEach((g, gi) => {
     const grp = el("div", "grp");
@@ -462,23 +485,43 @@ function resultCard(r) {
     tiles.append(grp);
   });
   c.append(tiles);
+  // The extras stay folded away until asked for, so each hand reads as a name, a count and its tiles.
+  const details = el("div", "details" + (open ? "" : " hidden"));
   const needs = Object.entries(best.need).sort((a, b) => M.TILES.findIndex(t => t.id === a[0]) - M.TILES.findIndex(t => t.id === b[0]));
-  if (needs.length || best.jokers) {
+  if (needs.length) {
     const nl = el("div", "need-list");
-    if (needs.length) {
-      nl.append(el("span", "muted", "Still need:"));
-      for (const [t, n] of needs) {
-        const it = el("span", "need-item");
-        it.append(tileEl(t, { small: true }));
-        if (n > 1) it.append(el("span", null, "×" + n));
-        nl.append(it);
-      }
+    nl.style.marginTop = "0";
+    nl.append(el("span", "muted", "You still need:"));
+    for (const [t, n] of needs) {
+      const it = el("span", "need-item");
+      it.append(tileEl(t, { small: true }));
+      if (n > 1) it.append(el("span", null, "×" + n));
+      nl.append(it);
     }
-    if (best.jokers) nl.append(el("span", "muted", `Uses ${best.jokers} joker${best.jokers > 1 ? "s" : ""}.`));
-    c.append(nl);
+    details.append(nl);
   }
-  if (hand.concealed && best.away > 0) c.append(el("p", "meta", "Concealed: you can only call a discard for your winning tile."));
+  if (best.jokers) details.append(el("p", "small", `Your joker${best.jokers > 1 ? "s fill" : " fills"} ${best.jokers} spot${best.jokers > 1 ? "s" : ""} (marked J).`));
+  details.append(el("p", "small muted", handMeta(hand)));
+  details.append(el("p", "small muted", hand.concealed
+    ? "Concealed: you can't take other players' discards for this hand, except the one that wins."
+    : "Exposed: you can take a discard to finish a group of 3 or more, then show that group."));
+  c.append(details);
+  const more = el("button", "ghost more", open ? "Less" : "More about this hand");
+  more.setAttribute("aria-expanded", String(!!open));
+  more.addEventListener("click", () => {
+    const show = details.classList.contains("hidden");
+    details.classList.toggle("hidden", !show);
+    more.textContent = show ? "Less" : "More about this hand";
+    more.setAttribute("aria-expanded", String(show));
+  });
+  c.append(more);
   return c;
+}
+function keyLine() {
+  const k = el("div", "key-line");
+  const item = (mark, text) => { const s = el("span"); s.append(tileEl("b3", { small: true, mark }), document.createTextNode(text)); return s; };
+  k.append(item(null, "you have it"), item("need", "you need it"), item("joker", "a joker fills in"));
+  return k;
 }
 function renderResults() {
   const box = $("results");
@@ -500,26 +543,27 @@ function renderResults() {
   const ranked = M.rankHands(hands, state.rack);
   const best = ranked[0].best.away;
   const head = el("div", "card");
-  head.append(el("h2", null, best === 0 ? "You have Mahjong!" : "Closest hands"));
-  let msg;
-  if (best === 0) msg = "Check your tiles against the card, then call it!";
-  else if (state.rack.length < 13) msg = `You have ${state.rack.length} tiles. A full rack is 13 (14 for East), so these will get closer as you add more.`;
-  else msg = `Your best hand is ${best} tile${best > 1 ? "s" : ""} away. “Away” counts the tiles you still need.`;
-  head.append(el("p", "small muted", msg));
-  // Tiles that none of the top hands use
-  const top = ranked.slice(0, 3);
-  const spare = M.spareTiles(state.rack, top);
-  if (spare.length && best > 0) {
-    const sp = el("div", "need-list");
-    sp.append(el("span", null, "Not used by your top 3 hands:"));
-    for (const t of spare) sp.append(tileEl(t, { small: true }));
-    head.append(sp, el("p", "meta", "Good tiles to pass in the Charleston or to discard. Never pass a joker."));
+  if (best === 0) {
+    head.append(el("h2", null, "You have Mahjong!"), el("p", "small muted", "Check your tiles against the card, then call it."));
+  } else {
+    head.append(el("h2", null, "Your best hands"));
+    head.append(el("p", "small muted", state.rack.length < 13
+      ? `You have ${state.rack.length} tiles. Add the rest (13 in all) for a better match.`
+      : `“${best} away” means you need ${best} more of the right tile${best > 1 ? "s" : ""}.`));
+    head.append(keyLine());
+    const spare = M.spareTiles(state.rack, ranked.slice(0, 3));
+    if (spare.length) {
+      const sp = el("div", "need-list");
+      sp.append(el("span", null, "Tiles you can let go:"));
+      for (const t of spare) sp.append(tileEl(t, { small: true }));
+      head.append(sp);
+    }
   }
   box.append(head);
-  const n = state.showAll ? ranked.length : Math.min(6, ranked.length);
-  ranked.slice(0, n).forEach(r => box.append(resultCard(r)));
-  if (ranked.length > 6) {
-    const more = el("button", "small", state.showAll ? "Show fewer" : `Show all ${ranked.length} hands`);
+  const n = state.showAll ? ranked.length : Math.min(3, ranked.length);
+  ranked.slice(0, n).forEach(r => box.append(resultCard(r, false)));
+  if (ranked.length > 3) {
+    const more = el("button", "small", state.showAll ? "Show only the top 3" : `See ${ranked.length - 3} more hands`);
     more.style.marginTop = "14px";
     more.addEventListener("click", () => { state.showAll = !state.showAll; renderResults(); });
     box.append(more);
@@ -636,7 +680,34 @@ function showTab(name) {
 
 function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); }
 
+// ---- share ----
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  toast(msg);
+}
+async function shareApp() {
+  const text = "Mahj Helper: put in your mahjong tiles and it shows which hands you're closest to. " +
+    "Made for beginners. Open it here, then tap \"Add to Home Screen\":\n" + SHARE_URL;
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  await copyText(text, "Link copied. Paste it into a text message.");
+}
+
 // ---- wire up ----
+$("shareApp").addEventListener("click", shareApp);
 buildPicker();
 $("appVersion").textContent = "Mahj Helper v" + APP_VERSION;
 const learn = $("learnTiles");
