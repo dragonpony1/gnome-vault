@@ -1,0 +1,86 @@
+// Run with: node --test mahjong/test/*.test.js
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const M = require("../engine.js");
+const PRACTICE = require("../hands.js");
+
+const hand = (pattern, extra = {}) => ({ pattern, groups: M.parsePattern(pattern), ...extra });
+
+test("every practice hand parses to 14 tiles", () => {
+  for (const h of PRACTICE) assert.doesNotThrow(() => M.parsePattern(h.pattern), h.name);
+});
+
+test("practice hands never need more of a tile than the set has, except with jokers", () => {
+  for (const h of PRACTICE) {
+    const v = M.variants(hand(h.pattern, h))[0];
+    const need = M.tally(v.groups.flatMap(g => g.tiles));
+    for (const [t, n] of Object.entries(need)) {
+      if (n > M.TILE[t].max) assert.ok(v.groups.some(g => g.jokerable && g.tiles[0] === t && g.tiles.length === n), `${h.name}: ${t}`);
+    }
+  }
+});
+
+test("parse errors are friendly", () => {
+  assert.throws(() => M.parsePattern("FF 1111a"), /6 tiles/);
+  assert.throws(() => M.parsePattern("FF 11x1a 2222b 3333c 4"), /isn't a group/);
+  assert.throws(() => M.parsePattern("FFa 1111a 2222b 3333c 44a"), /suit letter/);
+});
+
+test("a complete hand is 0 away", () => {
+  const h = hand("FF 1111a 2222b 3333c", { slide: true });
+  const rack = ["F", "F", "b4", "b4", "b4", "b4", "c5", "c5", "c5", "c5", "d6", "d6", "d6", "d6"];
+  assert.equal(M.bestFor(h, rack).away, 0);
+});
+
+test("jokers fill kongs but not pairs", () => {
+  const h = hand("FF 1111a 2222b 3333c", { slide: true });
+  const rack = ["J", "J", "b1", "b1", "b1", "b1", "c2", "c2", "c2", "c2", "d3", "d3", "d3", "d3"];
+  const best = M.bestFor(h, rack);
+  assert.equal(best.away, 2);
+  assert.equal(best.jokers, 0);
+  assert.deepEqual(best.need, { F: 2 });
+  const rack2 = ["F", "F", "J", "J", "b1", "b1", "c2", "c2", "c2", "c2", "d3", "d3", "d3", "d3"];
+  const best2 = M.bestFor(h, rack2);
+  assert.equal(best2.away, 0);
+  assert.equal(best2.jokers, 2);
+});
+
+test("NEWS and 2026 can't use jokers", () => {
+  const h = hand("2026a 2026b NNN SSS");
+  const rack = ["J", "J", "J", "J", "J", "J", "J", "J", "N", "N", "N", "S", "S", "S"];
+  assert.equal(M.bestFor(h, rack).away, 8);
+});
+
+test("natural tiles go to pairs before kongs", () => {
+  // The lone 5 must cover the pair of 5s (jokers can't), so jokers go to the kong.
+  const h = hand("11a 222a 3333a 444a 55a");
+  const rack = ["c1", "c1", "c2", "c2", "c2", "J", "J", "J", "J", "c4", "c4", "c4", "c5"];
+  const best = M.bestFor(h, rack);
+  assert.equal(best.away, 1);
+  assert.deepEqual(best.need, { c5: 1 });
+});
+
+test("sliding finds the right numbers and suits", () => {
+  const h = hand("11a 222a 3333a 444a 55a", { slide: true });
+  const rack = ["d5", "d5", "d6", "d6", "d6", "d7", "d7", "d7", "d7", "d8", "d8", "d8", "d9"];
+  const best = M.bestFor(h, rack);
+  assert.equal(best.away, 1);
+  assert.equal(best.variant.shift, 4);
+  assert.equal(best.variant.suits.a, "dot");
+});
+
+test("D follows its group's suit, 0 is always Soap", () => {
+  const v = M.variants(hand("1111a DDDa 1111b DDDb")).find(v => v.suits.a === "crak" && v.suits.b === "bam");
+  assert.deepEqual(v.groups.map(g => g.tiles[0]), ["c1", "RD", "b1", "GD"]);
+  const y = M.variants(hand("222a 0000 2222b 666a"))[0];
+  assert.equal(y.groups[1].tiles[0], "WD");
+});
+
+test("ranking puts the closest hand first, spare tiles skip jokers", () => {
+  const hands = PRACTICE.map(h => ({ ...h, groups: M.parsePattern(h.pattern) }));
+  const rack = ["N", "N", "N", "N", "E", "E", "E", "W", "W", "S", "S", "S", "J", "b5"];
+  const ranked = M.rankHands(hands, rack);
+  assert.equal(ranked[0].hand.id, "p-ws1");
+  assert.equal(ranked[0].best.away, 1);
+  assert.deepEqual(M.spareTiles(rack, ranked.slice(0, 1)), ["b5"]);
+});

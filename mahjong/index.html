@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mahj Helper</title>
+<meta name="description" content="Put in the mahjong tiles you're holding and see which hands you're closest to. For American mahjong beginners.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Mahj Helper">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d4a45">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<style>
+  :root{
+    --bg:#F2F1EA; --card:#FFFFFF; --ink:#1F2624; --muted:#63706C;
+    --line:#DCDDD3; --accent:#1D5E57; --accent-ink:#F4F3EC; --accent-soft:#DDEBE7;
+    --soft:#E9E9E0; --focus:#1D5E5766; --danger:#A4432F;
+    --shadow:0 1px 2px rgba(31,38,36,.07),0 6px 18px rgba(31,38,36,.06);
+    --tile:#FBF8EE; --tile-edge:#D9D1B8; --tile-back:#C9BE9C;
+    --bam:#2C7A45; --crak:#B5302A; --dot:#2458A6; --wind:#2A2F2D; --flower:#A63E82; --joker:#8A5A00;
+    --good:#2C7A45; --good-soft:#DCEFE1; --near:#8A5A00; --near-soft:#F6EACB;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#131816; --card:#1D2421; --ink:#E4EAE6; --muted:#98A5A0;
+      --line:#303A36; --accent:#7CC1B5; --accent-ink:#0F211E; --accent-soft:#233532;
+      --soft:#27302C; --focus:#7CC1B566; --danger:#DE8168;
+      --shadow:0 1px 3px rgba(0,0,0,.45);
+      --tile:#EDE7D6; --tile-edge:#A69C80; --tile-back:#7E755C;
+      --good:#7CC98F; --good-soft:#1F3526; --near:#E2B54F; --near-soft:#3A3120;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#131816; --card:#1D2421; --ink:#E4EAE6; --muted:#98A5A0;
+    --line:#303A36; --accent:#7CC1B5; --accent-ink:#0F211E; --accent-soft:#233532;
+    --soft:#27302C; --focus:#7CC1B566; --danger:#DE8168;
+    --shadow:0 1px 3px rgba(0,0,0,.45);
+    --tile:#EDE7D6; --tile-edge:#A69C80; --tile-back:#7E755C;
+    --good:#7CC98F; --good-soft:#1F3526; --near:#E2B54F; --near-soft:#3A3120;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.45; min-height:100vh;
+  }
+  .display{font-family:Fraunces,Georgia,"Times New Roman",serif}
+  .wrap{max-width:680px; margin:0 auto; padding:0 16px 90px}
+  h1{font-size:24px; margin:0; font-weight:700}
+  h2{font-size:18px; margin:0 0 4px}
+  h3{font-size:15px; margin:18px 0 6px}
+  p{margin:6px 0}
+  .sub{color:var(--muted); font-size:13.5px; margin:0}
+  .muted{color:var(--muted)}
+  .small{font-size:13.5px}
+  .hidden{display:none !important}
+  a{color:var(--accent)}
+  button{
+    font:inherit; cursor:pointer; border:none; border-radius:11px;
+    padding:10px 15px; background:var(--soft); color:var(--ink);
+  }
+  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--focus); outline-offset:1px}
+  button.primary{background:var(--accent); color:var(--accent-ink); font-weight:600}
+  button.ghost{background:transparent; color:var(--muted)}
+  button.small{padding:7px 11px; font-size:14px; border-radius:9px}
+  button.danger{background:transparent; color:var(--danger)}
+  button:disabled{opacity:.45; cursor:default}
+  input[type=text],input[type=number]{
+    width:100%; font:inherit; color:var(--ink); background:var(--card);
+    border:1px solid var(--line); border-radius:11px; padding:11px 12px;
+  }
+  label.field{display:block; font-size:13px; color:var(--muted); margin:14px 0 4px; font-weight:600}
+  label.check{display:flex; gap:10px; align-items:flex-start; margin:12px 0 0; font-size:15px}
+  label.check input{width:20px; height:20px; margin:1px 0 0; accent-color:var(--accent); flex-shrink:0}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-top:14px}
+  .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .spread{display:flex; align-items:center; justify-content:space-between; gap:10px}
+
+  /* ---- header + tabs ---- */
+  header{padding:18px 0 0}
+  .tabs{display:flex; gap:4px; margin-top:12px; background:var(--soft); border-radius:12px; padding:4px}
+  .tabs button{flex:1; padding:8px 6px; background:transparent; color:var(--muted); font-weight:600; font-size:15px; border-radius:9px}
+  .tabs button[aria-selected="true"]{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
+
+  /* ---- tiles ---- */
+  .tile{
+    --c:var(--wind);
+    display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+    width:34px; height:46px; border-radius:6px; flex-shrink:0; position:relative;
+    background:var(--tile); color:var(--c);
+    border:1px solid var(--tile-edge); box-shadow:0 2px 0 var(--tile-back);
+    line-height:1; user-select:none; -webkit-user-select:none;
+  }
+  .tile b{font-size:20px; font-weight:700; font-family:Georgia,"Times New Roman",serif}
+  .tile i{font-style:normal; font-size:8.5px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; margin-top:3px}
+  .tile.bam{--c:var(--bam)} .tile.crak{--c:var(--crak)} .tile.dot{--c:var(--dot)}
+  .tile.flower{--c:var(--flower)} .tile.joker{--c:var(--joker)}
+  .tile.RD{--c:var(--crak)} .tile.GD{--c:var(--bam)} .tile.WD{--c:var(--dot)}
+  .tile.WD b{border:2px solid currentColor; border-radius:3px; width:18px; height:18px; font-size:13px; display:flex; align-items:center; justify-content:center}
+  .tile.joker b{font-size:18px}
+  .tile.need{background:transparent; border:1.5px dashed var(--muted); box-shadow:none; opacity:.55}
+  .tile.jk::after{
+    content:"J"; position:absolute; top:-6px; right:-6px; width:16px; height:16px; border-radius:50%;
+    background:var(--joker); color:#fff; font:700 10px/16px -apple-system,Roboto,sans-serif; text-align:center;
+  }
+  .tile.sm{width:28px; height:38px}
+  .tile.sm b{font-size:16px}
+  .tile.sm i{font-size:7px; margin-top:2px}
+  .tile.flower i,.tile.wind i{font-size:7.5px; letter-spacing:0}
+  .tile.sm.flower i,.tile.sm.wind i{font-size:5.8px}
+  .tile.sm.WD b{width:15px; height:15px; font-size:11px}
+
+  /* ---- rack ---- */
+  .rack-card{position:sticky; top:0; z-index:5; margin-top:14px; background:var(--bg); padding:8px 0 10px}
+  .rack-card .card{margin:0}
+  .rack{display:flex; flex-wrap:wrap; gap:6px 4px; min-height:48px; margin-top:10px; align-items:center}
+  .rack button.tile{padding:0; cursor:pointer}
+  .rack .empty{color:var(--muted); font-size:14px}
+  .example-note{margin:8px 0 0; padding:6px 10px; border-radius:9px; background:var(--near-soft); color:var(--ink)}
+  .count{font-weight:700; font-variant-numeric:tabular-nums}
+
+  /* ---- picker ---- */
+  .pick-sec{margin-top:12px}
+  .pick-sec h3{margin:0 0 6px; font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted)}
+  .pick-grid{display:grid; grid-template-columns:repeat(9,1fr); gap:5px}
+  .pick-grid.few{grid-template-columns:repeat(auto-fill,minmax(40px,48px))}
+  .pick{padding:0; background:transparent; border-radius:8px; display:flex; flex-direction:column; align-items:center; gap:3px; position:relative}
+  .pick .tile{width:100%; max-width:44px; height:52px}
+  .pick .tile b{font-size:21px}
+  .pick .n{
+    position:absolute; top:-5px; right:-3px; min-width:18px; height:18px; padding:0 4px; border-radius:9px;
+    background:var(--accent); color:var(--accent-ink); font-size:11px; font-weight:700; line-height:18px; text-align:center;
+  }
+  .pick:disabled{opacity:.35}
+
+  /* ---- results ---- */
+  .result{padding:14px 14px 12px}
+  .badge{display:inline-block; border-radius:999px; padding:2px 10px; font-size:12.5px; font-weight:700; white-space:nowrap}
+  .badge.away{background:var(--soft); color:var(--ink)}
+  .badge.close{background:var(--near-soft); color:var(--near)}
+  .badge.win{background:var(--good-soft); color:var(--good)}
+  .chip{display:inline-block; border:1px solid var(--line); border-radius:999px; padding:1px 8px; font-size:12px; color:var(--muted)}
+  .hand-tiles{display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:10px}
+  .grp{display:flex; gap:2px}
+  .need-list{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-top:10px; font-size:14px}
+  .need-item{display:inline-flex; align-items:center; gap:3px}
+  .result h2{font-size:16px; margin:6px 0 0}
+  .meta{font-size:12.5px; color:var(--muted)}
+
+  /* ---- card screen ---- */
+  .pat{display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; font:700 18px/1.2 Georgia,"Times New Roman",serif; letter-spacing:.06em}
+  .pat .va{color:var(--bam)} .pat .vb{color:var(--crak)} .pat .vc{color:var(--dot)} .pat .vn{color:var(--wind)}
+  .hand-row{padding:12px 0; border-top:1px solid var(--line)}
+  .hand-row:first-of-type{border-top:none}
+  .err{color:var(--danger); font-size:14px; margin-top:6px}
+  .preview{margin-top:10px; min-height:20px}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace; background:var(--soft); border-radius:5px; padding:1px 5px; font-size:.92em}
+  table.key{border-collapse:collapse; font-size:14px; margin-top:6px}
+  table.key td{padding:4px 10px 4px 0; vertical-align:middle}
+  details summary{cursor:pointer; font-weight:600}
+  .learn p,.learn li{font-size:15px}
+  .learn ul{padding-left:20px; margin:6px 0}
+  .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="display">Mahj Helper</h1>
+    <p class="sub">Put in your tiles. See which hands you're closest to.</p>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-hand" aria-selected="true" data-tab="hand">My tiles</button>
+      <button role="tab" id="tab-card" aria-selected="false" data-tab="card">My card</button>
+      <button role="tab" id="tab-learn" aria-selected="false" data-tab="learn">Learn</button>
+    </div>
+  </header>
+
+  <!-- ======== MY TILES ======== -->
+  <main id="view-hand">
+    <div class="rack-card">
+      <div class="card">
+        <div class="spread">
+          <div><strong>Your tiles</strong> <span class="muted small">· <span class="count" id="rackCount">0</span> of 14</span></div>
+          <div class="row">
+            <button class="small" id="togglePicker">Hide tiles</button>
+            <button class="small ghost" id="clearRack">Clear</button>
+          </div>
+        </div>
+        <p class="small example-note hidden" id="exampleNote">These are example tiles. Tap <strong>Clear</strong> to put in your own.</p>
+        <div class="rack" id="rack" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <section class="card" id="picker" aria-label="Add a tile">
+      <p class="small muted" style="margin:0">Tap a tile to add it. Tap a tile in your rack to take it out.</p>
+      <div id="pickSections"></div>
+    </section>
+
+    <section id="results"></section>
+  </main>
+
+  <!-- ======== MY CARD ======== -->
+  <main id="view-card" class="hidden">
+    <section class="card">
+      <h2>Hands to check</h2>
+      <p class="small muted">The helper compares your tiles with every hand on this list.</p>
+      <label class="check"><input type="checkbox" id="usePractice">
+        <span>Include the practice hands<br><span class="small muted">24 made-up hands in the style of a real card, for learning. They are not the official NMJL card.</span></span>
+      </label>
+      <div class="row" style="margin-top:14px"><button class="primary" id="addHandBtn">Add a hand from your card</button></div>
+    </section>
+
+    <section class="card hidden" id="handForm">
+      <h2 id="formTitle">Add a hand</h2>
+      <p class="small muted">Copy a line from your card. Use a, b, c after a group to show its suit: same letter, same suit. See <a href="#" id="toNotation">how to type a hand</a>.</p>
+      <label class="field" for="fPattern">Hand</label>
+      <input type="text" id="fPattern" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="FF 1111a 2222b 3333c">
+      <div class="preview" id="fPreview"></div>
+      <label class="field" for="fName">Name <span style="font-weight:400">(optional)</span></label>
+      <input type="text" id="fName" placeholder="e.g. Like numbers, line 2">
+      <label class="field" for="fCategory">Section of the card <span style="font-weight:400">(optional)</span></label>
+      <input type="text" id="fCategory" placeholder="e.g. 2468, Quints, Winds-Dragons">
+      <label class="field" for="fPoints">Points <span style="font-weight:400">(optional)</span></label>
+      <input type="number" id="fPoints" inputmode="numeric" min="0" max="999" placeholder="25" style="max-width:120px">
+      <label class="check"><input type="checkbox" id="fSlide">
+        <span>The numbers can be any numbers<br><span class="small muted">For "any like numbers" or "any consecutive numbers" hands. Type them starting from 1, and the helper tries every spot.</span></span>
+      </label>
+      <label class="check"><input type="checkbox" id="fConcealed">
+        <span>Concealed (C on the card)<br><span class="small muted">You can't call discards for this hand, except the one that wins.</span></span>
+      </label>
+      <div class="row" style="margin-top:16px">
+        <button class="primary" id="saveHand">Save hand</button>
+        <button class="ghost" id="cancelHand">Cancel</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="spread"><h2>Your hands</h2><span class="muted small" id="handCount"></span></div>
+      <p class="small muted" style="margin-top:0">On the card, colors only mean "different suits". Green, red and blue here can be any three suits.</p>
+      <div id="handList"></div>
+    </section>
+  </main>
+
+  <!-- ======== LEARN ======== -->
+  <main id="view-learn" class="hidden learn">
+    <section class="card">
+      <h2>The tiles</h2>
+      <p>An American mahjong set has 152 tiles.</p>
+      <ul>
+        <li><strong>Three suits</strong>, numbered 1 to 9, four of each: Bams, Craks and Dots.</li>
+        <li><strong>Winds</strong>: North, East, West, South. Four of each.</li>
+        <li><strong>Dragons</strong>: Red goes with Craks, Green goes with Bams, and White goes with Dots. White is called Soap, and it also stands for 0 in year hands like 2026.</li>
+        <li><strong>Flowers</strong>: 8 of them. Any flower matches any other.</li>
+        <li><strong>Jokers</strong>: 8 of them.</li>
+      </ul>
+      <div id="learnTiles" class="row" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card">
+      <h2>How you win</h2>
+      <p>You win by making <em>exactly</em> one of the hands on the card, all 14 tiles. You hold 13 tiles, and you win on the 14th. The card changes every year, so buy the new one from the National Mah Jongg League each spring.</p>
+      <p>Hands are built from groups:</p>
+      <ul>
+        <li><strong>Pair</strong>: 2 of the same tile.</li>
+        <li><strong>Pung</strong>: 3 of the same. <strong>Kong</strong>: 4 of the same. <strong>Quint</strong>: 5 of the same.</li>
+        <li><strong>Singles</strong>: groups like <code>NEWS</code> or <code>2026</code>, one of each tile.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Jokers</h2>
+      <p>A joker can stand in for any tile in a pung, kong or quint. A joker can <strong>never</strong> be used in a pair or in singles. Jokers can't be passed in the Charleston.</p>
+      <p>In this app, a tile with a <span class="tiles-inline"><span class="tile sm jk bam"><b>3</b><i>Bam</i></span></span> badge is a spot where one of your jokers fills in.</p>
+    </section>
+
+    <section class="card">
+      <h2>Exposed or concealed</h2>
+      <p>Hands marked <strong>X</strong> (exposed) let you call other players' discards to finish a pung or kong. You put that group face up on your rack.</p>
+      <p>Hands marked <strong>C</strong> (concealed) must be built from tiles you pick yourself. The only discard you can take is the one that wins.</p>
+    </section>
+
+    <section class="card">
+      <h2>Using this helper</h2>
+      <ul>
+        <li>On <strong>My tiles</strong>, tap each tile you're holding.</li>
+        <li>The helper shows the hands you are closest to. <em>“3 away”</em> means you need 3 more of the right tiles.</li>
+        <li>Faded dashed tiles are ones you still need. Plan to keep tiles that fit your top hands.</li>
+        <li>Tiles that none of your best hands use are listed as good to pass in the Charleston, or to discard.</li>
+        <li>On <strong>My card</strong>, add the hands from your own card. It only takes a minute per hand, and they stay on this device.</li>
+      </ul>
+      <p class="small muted">Early in a game, keep two or three hands in mind. Pick one once you see which tiles come to you.</p>
+    </section>
+
+    <section class="card" id="notation">
+      <h2>How to type a hand</h2>
+      <p>Type each group from the card with a space between groups.</p>
+      <table class="key">
+        <tr><td><code>1</code>–<code>9</code></td><td>Number tiles</td></tr>
+        <tr><td><code>a</code> <code>b</code> <code>c</code></td><td>After a group: its suit. Same letter = same suit, different letters = different suits. Like the colors on the card.</td></tr>
+        <tr><td><code>F</code></td><td>Flower</td></tr>
+        <tr><td><code>N</code> <code>E</code> <code>W</code> <code>S</code></td><td>Winds</td></tr>
+        <tr><td><code>D</code></td><td>The dragon that matches the group's suit (<code>DDDa</code>)</td></tr>
+        <tr><td><code>R</code> <code>G</code> <code>0</code></td><td>Red dragon, Green dragon, Soap (white dragon)</td></tr>
+      </table>
+      <h3>Examples</h3>
+      <p><code>FF 2222a 44b 66b 8888a</code><br><span class="small muted">Two flowers, then 2s and 8s in one suit, 4s and 6s in another.</span></p>
+      <p><code>222a 0000 2222b 666a</code><br><span class="small muted">A year hand. <code>0</code> is Soap.</span></p>
+      <p><code>FF 1111a 2222b 3333c</code> with "any numbers" ticked<br><span class="small muted">Any three numbers in a row, one in each suit.</span></p>
+    </section>
+
+    <p class="small muted" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.<br><span id="appVersion"></span></p>
+  </main>
+</div>
+
+<script src="engine.js"></script>
+<script src="hands.js"></script>
+<script>
+"use strict";
+const M = window.Mahj;
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// ---- storage (per-device conveniences; the page works without it) ----
+function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
+function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
+
+const APP_VERSION = "1.0";
+// A first visit opens with example tiles so the helper shows what it does right away.
+const EXAMPLE_RACK = ["F", "F", "b2", "b2", "b4", "c6", "c6", "b8", "b8", "b8", "J", "N", "RD"];
+const savedRack = load("mahj.rack", null);
+const state = {
+  rack: (savedRack || EXAMPLE_RACK).filter(t => M.TILE[t]),
+  example: !savedRack,
+  custom: load("mahj.hands", []),
+  usePractice: load("mahj.usePractice", true),
+  showAll: false,
+  pickerOpen: true,
+  editing: null,
+};
+
+// ---- tile faces ----
+const SUIT_WORD = { bam: "Bam", crak: "Crak", dot: "Dot" };
+const FACE = { N: ["N", "North"], E: ["E", "East"], W: ["W", "West"], S: ["S", "South"],
+  RD: ["R", "Red"], GD: ["G", "Green"], WD: ["0", "Soap"], F: ["✿", "Flower"], J: ["J", "Joker"] };
+function tileName(id) {
+  const t = M.TILE[id];
+  if (t.kind === "num") return `${t.num} ${SUIT_WORD[t.suit]}`;
+  if (t.kind === "wind") return FACE[id][1] + " wind";
+  if (t.kind === "dragon") return id === "WD" ? "Soap (white dragon)" : FACE[id][1] + " dragon";
+  return FACE[id][1];
+}
+function tileEl(id, opts = {}) {
+  const t = M.TILE[id];
+  const e = el(opts.button ? "button" : "span", "tile");
+  if (t.kind === "num") { e.classList.add(t.suit); e.append(el("b", null, String(t.num)), el("i", null, SUIT_WORD[t.suit])); }
+  else {
+    e.classList.add(t.kind === "dragon" ? id : t.kind);
+    const [big, small] = FACE[id];
+    e.append(el("b", null, big), el("i", null, small));
+  }
+  if (opts.small) e.classList.add("sm");
+  if (opts.mark === "need") e.classList.add("need");
+  if (opts.mark === "joker") e.classList.add("jk");
+  const label = tileName(id) + (opts.mark === "need" ? ", still needed" : opts.mark === "joker" ? ", filled by a joker" : "");
+  if (opts.button) e.setAttribute("aria-label", label); else { e.setAttribute("role", "img"); e.setAttribute("aria-label", label); }
+  return e;
+}
+
+// ---- hands ----
+function allHands() {
+  const list = [];
+  if (state.usePractice) for (const h of PRACTICE_HANDS) list.push({ ...h, practice: true });
+  for (const h of state.custom) list.push(h);
+  const ok = [];
+  for (const h of list) { try { ok.push({ ...h, groups: M.parsePattern(h.pattern) }); } catch {} }
+  return ok;
+}
+
+// ---- rack + picker ----
+function renderRack() {
+  const rack = $("rack");
+  rack.replaceChildren();
+  $("rackCount").textContent = state.rack.length;
+  $("exampleNote").classList.toggle("hidden", !state.example);
+  if (!state.rack.length) { rack.append(el("span", "empty", "No tiles yet. Tap tiles below to add the ones you're holding.")); return; }
+  M.sortRack(state.rack).forEach(id => {
+    const b = tileEl(id, { button: true });
+    b.title = "Take out " + tileName(id);
+    b.setAttribute("aria-label", "Take out " + tileName(id));
+    b.addEventListener("click", () => { state.rack.splice(state.rack.indexOf(id), 1); changed(); });
+    rack.append(b);
+  });
+}
+
+const PICK_SECTIONS = [
+  { title: "Bams", ids: M.TILES.filter(t => t.suit === "bam").map(t => t.id) },
+  { title: "Craks", ids: M.TILES.filter(t => t.suit === "crak").map(t => t.id) },
+  { title: "Dots", ids: M.TILES.filter(t => t.suit === "dot").map(t => t.id) },
+  { title: "Winds, dragons, flowers, jokers", ids: ["N", "E", "W", "S", "RD", "GD", "WD", "F", "J"] },
+];
+const pickButtons = {};
+function buildPicker() {
+  const box = $("pickSections");
+  for (const sec of PICK_SECTIONS) {
+    const s = el("div", "pick-sec");
+    s.append(el("h3", null, sec.title));
+    const grid = el("div", "pick-grid");
+    for (const id of sec.ids) {
+      const b = el("button", "pick");
+      b.append(tileEl(id));
+      const n = el("span", "n hidden");
+      b.append(n);
+      b.setAttribute("aria-label", "Add " + tileName(id));
+      b.addEventListener("click", () => { if (canAdd(id)) { state.rack.push(id); changed(); } });
+      pickButtons[id] = { b, n };
+      grid.append(b);
+    }
+    s.append(grid);
+    box.append(s);
+  }
+}
+function canAdd(id) {
+  return state.rack.length < M.HAND_SIZE && state.rack.filter(t => t === id).length < M.TILE[id].max;
+}
+function renderPicker() {
+  const counts = M.tally(state.rack);
+  for (const [id, { b, n }] of Object.entries(pickButtons)) {
+    n.textContent = counts[id] || "";
+    n.classList.toggle("hidden", !counts[id]);
+    b.disabled = !canAdd(id);
+  }
+  $("picker").classList.toggle("hidden", !state.pickerOpen);
+  $("togglePicker").textContent = state.pickerOpen ? "Hide tiles" : "Add tiles";
+}
+
+// ---- results ----
+function awayBadge(away) {
+  if (away === 0) return el("span", "badge win", "Mahjong!");
+  return el("span", "badge " + (away <= 3 ? "close" : "away"), away + " away");
+}
+function handMeta(h) {
+  const bits = [h.category || "My card"];
+  if (h.points) bits.push(h.points + " points");
+  bits.push(h.concealed ? "Concealed" : "Exposed");
+  if (h.practice) bits.push("Practice");
+  return bits.join(" · ");
+}
+function resultCard(r) {
+  const { hand, best } = r;
+  const c = el("article", "card result");
+  const top = el("div", "spread");
+  top.append(el("span", "meta", handMeta(hand)), awayBadge(best.away));
+  c.append(top, el("h2", null, hand.name || hand.pattern));
+  const tiles = el("div", "hand-tiles");
+  best.variant.groups.forEach((g, gi) => {
+    const grp = el("div", "grp");
+    g.tiles.forEach((t, ti) => grp.append(tileEl(t, { small: true, mark: best.marks[gi][ti] })));
+    tiles.append(grp);
+  });
+  c.append(tiles);
+  const needs = Object.entries(best.need).sort((a, b) => M.TILES.findIndex(t => t.id === a[0]) - M.TILES.findIndex(t => t.id === b[0]));
+  if (needs.length || best.jokers) {
+    const nl = el("div", "need-list");
+    if (needs.length) {
+      nl.append(el("span", "muted", "Still need:"));
+      for (const [t, n] of needs) {
+        const it = el("span", "need-item");
+        it.append(tileEl(t, { small: true }));
+        if (n > 1) it.append(el("span", null, "×" + n));
+        nl.append(it);
+      }
+    }
+    if (best.jokers) nl.append(el("span", "muted", `Uses ${best.jokers} joker${best.jokers > 1 ? "s" : ""}.`));
+    c.append(nl);
+  }
+  if (hand.concealed && best.away > 0) c.append(el("p", "meta", "Concealed: you can only call a discard for your winning tile."));
+  return c;
+}
+function renderResults() {
+  const box = $("results");
+  box.replaceChildren();
+  const hands = allHands();
+  if (!hands.length) {
+    const c = el("div", "card");
+    c.append(el("p", null, "There are no hands to check yet. Turn on the practice hands or add hands from your card on the My card tab."));
+    box.append(c);
+    return;
+  }
+  if (!state.rack.length) {
+    const c = el("div", "card");
+    c.append(el("h2", null, "What can I make?"));
+    c.append(el("p", "muted", `Add your tiles and I'll check them against ${hands.length} hands, closest first.`));
+    box.append(c);
+    return;
+  }
+  const ranked = M.rankHands(hands, state.rack);
+  const best = ranked[0].best.away;
+  const head = el("div", "card");
+  head.append(el("h2", null, best === 0 ? "You have Mahjong!" : "Closest hands"));
+  let msg;
+  if (best === 0) msg = "Check your tiles against the card, then call it!";
+  else if (state.rack.length < 13) msg = `You have ${state.rack.length} tiles. A full rack is 13 (14 for East), so these will get closer as you add more.`;
+  else msg = `Your best hand is ${best} tile${best > 1 ? "s" : ""} away. “Away” counts the tiles you still need.`;
+  head.append(el("p", "small muted", msg));
+  // Tiles that none of the top hands use
+  const top = ranked.slice(0, 3);
+  const spare = M.spareTiles(state.rack, top);
+  if (spare.length && best > 0) {
+    const sp = el("div", "need-list");
+    sp.append(el("span", null, "Not used by your top 3 hands:"));
+    for (const t of spare) sp.append(tileEl(t, { small: true }));
+    head.append(sp, el("p", "meta", "Good tiles to pass in the Charleston or to discard. Never pass a joker."));
+  }
+  box.append(head);
+  const n = state.showAll ? ranked.length : Math.min(6, ranked.length);
+  ranked.slice(0, n).forEach(r => box.append(resultCard(r)));
+  if (ranked.length > 6) {
+    const more = el("button", "small", state.showAll ? "Show fewer" : `Show all ${ranked.length} hands`);
+    more.style.marginTop = "14px";
+    more.addEventListener("click", () => { state.showAll = !state.showAll; renderResults(); });
+    box.append(more);
+  }
+}
+
+function changed() {
+  state.example = false;
+  save("mahj.rack", state.rack);
+  if (state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
+  renderRack(); renderPicker(); renderResults();
+}
+
+// ---- card screen ----
+// Show a pattern the way the card prints it: groups in color, one color per suit letter.
+function patternEl(pattern) {
+  const p = el("div", "pat");
+  for (const g of M.parsePattern(pattern)) {
+    const s = el("span", g.tag ? "v" + g.tag : "vn");
+    s.textContent = g.syms.map(c => c === "F" ? "F" : c).join("");
+    p.append(s);
+  }
+  return p;
+}
+function renderHandList() {
+  const box = $("handList");
+  box.replaceChildren();
+  const list = [...state.custom.map(h => ({ ...h, custom: true })), ...(state.usePractice ? PRACTICE_HANDS.map(h => ({ ...h, practice: true })) : [])];
+  $("handCount").textContent = list.length + (list.length === 1 ? " hand" : " hands");
+  if (!list.length) { box.append(el("p", "muted", "No hands yet. Add one from your card, or turn on the practice hands.")); return; }
+  for (const h of list) {
+    const row = el("div", "hand-row");
+    const top = el("div", "spread");
+    const title = el("div");
+    title.append(el("strong", null, h.name || h.pattern));
+    title.append(el("div", "meta", handMeta(h) + (h.slide ? " · Any numbers" : "")));
+    top.append(title);
+    if (h.custom) {
+      const btns = el("div", "row");
+      const edit = el("button", "small", "Edit");
+      edit.addEventListener("click", () => openForm(h));
+      const del = el("button", "small danger", "Delete");
+      del.addEventListener("click", () => {
+        if (del.dataset.armed) { state.custom = state.custom.filter(x => x.id !== h.id); save("mahj.hands", state.custom); renderAll(); }
+        else { del.dataset.armed = "1"; del.textContent = "Tap to delete"; }
+      });
+      btns.append(edit, del);
+      top.append(btns);
+    }
+    row.append(top);
+    try { row.append(patternEl(h.pattern)); } catch (e) { row.append(el("p", "err", e.message)); }
+    box.append(row);
+  }
+}
+
+function openForm(h) {
+  state.editing = h ? h.id : null;
+  $("formTitle").textContent = h ? "Edit hand" : "Add a hand";
+  $("fPattern").value = h ? h.pattern : "";
+  $("fName").value = h ? h.name || "" : "";
+  $("fCategory").value = h ? h.category || "" : "";
+  $("fPoints").value = h && h.points ? h.points : "";
+  $("fSlide").checked = !!(h && h.slide);
+  $("fConcealed").checked = !!(h && h.concealed);
+  $("handForm").classList.remove("hidden");
+  updatePreview();
+  $("handForm").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("fPattern").focus({ preventScroll: true });
+}
+function closeForm() { state.editing = null; $("handForm").classList.add("hidden"); }
+function updatePreview() {
+  const box = $("fPreview");
+  box.replaceChildren();
+  const text = $("fPattern").value.trim();
+  if (!text) return;
+  try {
+    M.parsePattern(text);
+    box.append(patternEl(text));
+    const v = M.variants({ groups: M.parsePattern(text), slide: $("fSlide").checked })[0];
+    const tiles = el("div", "hand-tiles");
+    for (const g of v.groups) { const grp = el("div", "grp"); g.tiles.forEach(t => grp.append(tileEl(t, { small: true }))); tiles.append(grp); }
+    box.append(el("p", "meta", "For example:"), tiles);
+  } catch (e) { box.append(el("p", "err", e.message)); }
+}
+function saveForm() {
+  const pattern = $("fPattern").value.trim().replace(/\s+/g, " ");
+  try { M.parsePattern(pattern); } catch (e) { updatePreview(); $("fPattern").focus(); return; }
+  const points = parseInt($("fPoints").value, 10);
+  const h = {
+    id: state.editing || "c-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    pattern,
+    name: $("fName").value.trim(),
+    category: $("fCategory").value.trim(),
+    points: points > 0 ? points : null,
+    slide: $("fSlide").checked,
+    concealed: $("fConcealed").checked,
+  };
+  const i = state.custom.findIndex(x => x.id === h.id);
+  if (i >= 0) state.custom[i] = h; else state.custom.push(h);
+  save("mahj.hands", state.custom);
+  closeForm();
+  renderAll();
+}
+
+// ---- tabs ----
+function showTab(name) {
+  for (const t of ["hand", "card", "learn"]) {
+    $("view-" + t).classList.toggle("hidden", t !== name);
+    $("tab-" + t).setAttribute("aria-selected", String(t === name));
+  }
+  save("mahj.tab", name);
+  window.scrollTo(0, 0);
+}
+
+function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); }
+
+// ---- wire up ----
+buildPicker();
+$("appVersion").textContent = "Mahj Helper v" + APP_VERSION;
+const learn = $("learnTiles");
+for (const id of ["b1", "c5", "d9", "N", "E", "W", "S", "RD", "GD", "WD", "F", "J"]) learn.append(tileEl(id));
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$("togglePicker").addEventListener("click", () => { state.pickerOpen = !state.pickerOpen; renderPicker(); });
+$("clearRack").addEventListener("click", () => { state.rack = []; state.pickerOpen = true; state.showAll = false; changed(); });
+$("usePractice").checked = state.usePractice;
+$("usePractice").addEventListener("change", e => { state.usePractice = e.target.checked; save("mahj.usePractice", state.usePractice); renderAll(); });
+$("addHandBtn").addEventListener("click", () => openForm(null));
+$("cancelHand").addEventListener("click", closeForm);
+$("saveHand").addEventListener("click", saveForm);
+$("fPattern").addEventListener("input", updatePreview);
+$("fSlide").addEventListener("change", updatePreview);
+$("fPattern").addEventListener("keydown", e => { if (e.key === "Enter") saveForm(); });
+$("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("learn"); $("notation").scrollIntoView(); });
+if (state.example || state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
+renderAll();
+showTab(load("mahj.tab", "hand"));
+</script>
+<script>
+// Offline support: keeps the helper working with no signal once it has been opened.
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
