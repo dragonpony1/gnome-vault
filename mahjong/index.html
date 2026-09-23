@@ -175,13 +175,23 @@
   @media (prefers-reduced-motion: reduce){ #toast{transition:none} }
   .key-line{display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; font-size:13px; color:var(--muted); margin-top:10px}
   .key-line span{display:inline-flex; align-items:center; gap:5px}
-  .more{margin-top:8px; font-size:14px; padding:6px 0; color:var(--accent); font-weight:600}
+  button.more{margin-top:8px; font-size:14px; padding:6px 0; color:var(--accent); font-weight:600}
   .details{margin-top:4px; padding-top:10px; border-top:1px solid var(--line)}
+  .foot{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:center; margin-top:28px; color:var(--muted); font-size:13px}
+  .update-bar{
+    margin:12px 0 0;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--accent-soft); border:1px solid var(--accent); border-radius:12px; padding:8px 8px 8px 14px; font-size:14.5px; font-weight:600;
+  }
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="update-bar hidden" id="updateBar" role="status">
+    <span id="updateText">A new version is ready.</span>
+    <button class="small primary" id="updateNow">Update now</button>
+  </div>
   <header>
     <div class="spread">
       <div>
@@ -333,8 +343,13 @@
       <p><code>FF 1111a 2222b 3333c</code> with "any numbers" ticked<br><span class="small muted">Any three numbers in a row, one in each suit.</span></p>
     </section>
 
-    <p class="small muted" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.<br><span id="appVersion"></span></p>
+    <p class="small muted" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.</p>
   </main>
+
+  <footer class="foot">
+    <span id="appVersion"></span>
+    <button class="small" id="checkUpdate">Check for updates</button>
+  </footer>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -350,7 +365,9 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.2";
+// The claude.ai preview copy has no update to fetch; its build sets this to false.
+const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
 // A first visit opens with example tiles so the helper shows what it does right away.
 const EXAMPLE_RACK = ["F", "F", "b2", "b2", "b4", "c6", "c6", "b8", "b8", "b8", "J", "N", "RD"];
@@ -708,8 +725,54 @@ async function shareApp() {
 
 // ---- wire up ----
 $("shareApp").addEventListener("click", shareApp);
-buildPicker();
+
+// ---- updates ----
+// Reads the version number out of the newest index.html on the site. cache:"reload" skips
+// the phone's copy and refreshes it, so the reload after "Update now" opens the new files.
+let newVersion = null;
+async function latestVersion() {
+  const res = await fetch("./index.html", { cache: "reload" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const m = /const APP_VERSION = "([^"]+)"/.exec(await res.text());
+  if (!m) throw new Error("no version");
+  return m[1];
+}
+async function checkForUpdate(quiet) {
+  if (!CAN_UPDATE) { if (!quiet) toast("This copy updates by itself. You have v" + APP_VERSION + "."); return; }
+  const btn = $("checkUpdate");
+  if (!quiet) { btn.disabled = true; btn.textContent = "Checking…"; }
+  try {
+    const v = await latestVersion();
+    if (v !== APP_VERSION) {
+      newVersion = v;
+      $("updateText").textContent = `Version ${v} is ready.`;
+      $("updateBar").classList.remove("hidden");
+    } else if (!quiet) toast(`You have the newest version (v${APP_VERSION}).`);
+  } catch {
+    if (!quiet) toast("Couldn't check for updates. Are you online?");
+  } finally {
+    btn.disabled = false; btn.textContent = "Check for updates";
+  }
+}
+async function updateNow() {
+  const btn = $("updateNow");
+  btn.disabled = true; btn.textContent = "Updating…";
+  try {
+    await Promise.all(["./", "./index.html", "./engine.js", "./hands.js", "./manifest.webmanifest"].map(u => fetch(u, { cache: "reload" })));
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k.startsWith("mahj-helper-")).map(k => caches.delete(k)));
+  } catch {}
+  location.reload();
+}
 $("appVersion").textContent = "Mahj Helper v" + APP_VERSION;
+$("checkUpdate").addEventListener("click", () => checkForUpdate(false));
+$("updateNow").addEventListener("click", updateNow);
+// Look for a new version each time the app is opened or brought back to the front.
+checkForUpdate(true);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !newVersion) checkForUpdate(true); });
+buildPicker();
 const learn = $("learnTiles");
 for (const id of ["b1", "c5", "d9", "N", "E", "W", "S", "RD", "GD", "WD", "F", "J"]) learn.append(tileEl(id));
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
