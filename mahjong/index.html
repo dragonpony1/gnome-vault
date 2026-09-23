@@ -278,9 +278,41 @@
   .step p{margin:4px 0; font-size:14.5px}
   .step .row{margin-top:8px}
   .step .done-note{color:var(--good); font-weight:600; font-size:14px}
-  .setup-nudge{display:flex; align-items:center; gap:6px; margin:12px 0 0}
-  .setup-nudge #setupNudgeGo{flex:1; text-align:left; background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--seal); font-weight:600}
-  .setup-nudge .nudge-x{background:transparent; color:var(--on-ground-muted); font-size:20px; padding:6px 10px}
+  /* ---- set up a game ---- */
+  .gdots{display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap}
+  .gdots button{width:30px; height:30px; padding:0; border-radius:8px; font-size:13px; font-weight:700; background:var(--soft); color:var(--muted)}
+  .gdots button.done{background:var(--good-soft); color:var(--good)}
+  .gdots button[aria-selected="true"]{background:var(--seal); color:var(--seal-ink); transform:rotate(-3deg)}
+  .gbody{margin-top:10px; min-height:220px}
+  .gbody h3{font-size:19px; margin:6px 0 8px}
+  .gbody p,.gbody li{font-size:15.5px}
+  .gbody ul,.gbody ol{padding-left:20px; margin:6px 0}
+  .gbody li{margin:6px 0}
+  .gnav{display:flex; justify-content:space-between; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid var(--line)}
+  .gnav .primary{min-width:120px}
+  .tip{margin-top:10px; padding:8px 12px; border-radius:10px; background:var(--near-soft); font-size:14.5px}
+  .counts{display:grid; grid-template-columns:auto 1fr auto; gap:8px 12px; align-items:center; margin-top:8px}
+  .counts .n{font-weight:800; font-variant-numeric:tabular-nums; text-align:right}
+  .counts .total{grid-column:1 / -1; border-top:1px solid var(--line); padding-top:8px; display:flex; justify-content:space-between; font-weight:800}
+  .dice-row{display:flex; align-items:center; gap:14px; margin-top:12px; flex-wrap:wrap}
+  .die{width:52px; height:52px; border-radius:11px; background:var(--tile); border:1px solid var(--tile-edge); box-shadow:0 3px 0 var(--tile-back);
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:7px; gap:2px}
+  .die i{width:9px; height:9px; border-radius:50%; place-self:center; background:transparent}
+  .die i.on{background:var(--wind)}
+  .die.one i.on{background:var(--seal)}
+  .die.spin{animation:wobble .12s linear infinite}
+  @keyframes wobble{50%{transform:rotate(12deg) scale(.95)}}
+  @media (prefers-reduced-motion: reduce){ .die.spin{animation:none} }
+  .dice-sum{font-size:15px}
+  .dice-sum b{font-size:22px}
+  .wall-svg{width:100%; max-width:330px; height:auto; display:block; margin:10px auto 0}
+  .passes{display:grid; gap:8px; margin:8px 0}
+  .pass{display:flex; align-items:center; gap:10px; text-align:left; width:100%; padding:10px 12px; border:1px solid var(--line); background:var(--card)}
+  .pass .arrow{font-size:20px; width:28px; text-align:center; color:var(--accent)}
+  .pass.done{background:var(--good-soft); border-color:transparent}
+  .pass.done .arrow{color:var(--good)}
+  .pass small{display:block; color:var(--muted); font-size:13px}
+  .pass-group{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:14px 0 2px}
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
@@ -321,7 +353,7 @@
       <button role="tab" id="tab-hand" aria-selected="true" data-tab="hand">My tiles</button>
       <button role="tab" id="tab-card" aria-selected="false" data-tab="card">My card</button>
       <button role="tab" id="tab-learn" aria-selected="false" data-tab="learn">Learn</button>
-      <button role="tab" id="tab-setup" aria-selected="false" data-tab="setup">Set up<span class="tab-count" id="setupCount"></span></button>
+      <button role="tab" id="tab-setup" aria-selected="false" data-tab="setup">Set up</button>
     </div>
   </header>
 
@@ -350,11 +382,6 @@
         <button class="small lock-start hidden" id="lockStart"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Lock tiles I've exposed</button>
       </div>
     </div>
-
-    <p class="setup-nudge hidden" id="setupNudge">
-      <button id="setupNudgeGo">Finish setting up <span id="setupNudgeCount"></span></button>
-      <button class="nudge-x" id="setupNudgeHide" aria-label="Hide this">×</button>
-    </p>
 
     <section class="card" id="picker" aria-label="Add a tile">
       <p class="small muted" style="margin:0">Tap a tile to add it. Tap a tile in your rack to take it out.</p>
@@ -422,14 +449,24 @@
     </section>
   </main>
 
-  <!-- ======== LEARN ======== -->
+  <!-- ======== SET UP A GAME ======== -->
   <main id="view-setup" class="hidden">
-    <section class="card">
-      <h2>Set up Mahj Helper</h2>
-      <p class="small muted" id="setupSummary">Four quick steps. Each one ticks itself off when it's done.</p>
-      <ol class="steps" id="steps"></ol>
+    <section class="card game">
+      <div class="spread">
+        <h2 id="gTitle">Set up a game</h2>
+        <span class="muted small" id="gCount"></span>
+      </div>
+      <div class="gdots" id="gDots" role="tablist" aria-label="Steps"></div>
+      <div id="gBody" class="gbody"></div>
+      <div class="gnav">
+        <button class="small" id="gBack">Back</button>
+        <button class="primary" id="gNext">Next</button>
+      </div>
     </section>
+    <p class="small learn-foot" style="text-align:center">For four players, following the National Mah Jongg League's usual rules. Many tables have their own house rules.</p>
   </main>
+
+  <!-- ======== LEARN ======== -->
 
   <main id="view-learn" class="hidden learn">
     <section class="card">
@@ -498,6 +535,12 @@
       <p><code>FF 1111a 2222b 3333c</code> with "any numbers" ticked<br><span class="small muted">Any three numbers in a row, one in each suit.</span></p>
     </section>
 
+    <section class="card">
+      <h2>Getting this app ready</h2>
+      <p class="small muted" id="setupSummary"></p>
+      <ol class="steps" id="steps"></ol>
+    </section>
+
     <p class="small learn-foot" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.</p>
   </main>
 
@@ -509,8 +552,8 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.3"></script>
-<script src="hands.js?v=2.3"></script>
+<script src="engine.js?v=2.4"></script>
+<script src="hands.js?v=2.4"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -521,7 +564,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1062,11 +1105,220 @@ function renderSetup() {
     li.append(body);
     list.append(li);
   });
-  $("setupSummary").textContent = left ? `${steps.length - left} of ${steps.length} done. Each step ticks itself off when it's done.` : "All done. Enjoy your game!";
-  $("setupCount").textContent = left ? String(left) : "";
-  const hidden = !left || load("mahj.setupNudgeHidden", false);
-  $("setupNudge").classList.toggle("hidden", hidden);
-  $("setupNudgeCount").textContent = `(${steps.length - left} of ${steps.length})`;
+  $("setupSummary").textContent = left ? `${steps.length - left} of ${steps.length} done. Each step ticks itself off when it's done.` : "All done.";
+}
+
+// ---- set up a game ----
+// A walk-through for the table: check the set, pick East, build and break the wall, deal,
+// the Charleston, play, and paying. It remembers which step you're on and which passes are done.
+const game = { step: load("mahj.gameStep", 0), passes: load("mahj.passes", []) };
+function dieEl(n) {
+  const d = el("span", "die" + (n === 1 ? " one" : ""));
+  const on = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] }[n];
+  for (let i = 0; i < 9; i++) d.append(el("i", on.includes(i) ? "on" : ""));
+  d.setAttribute("role", "img"); d.setAttribute("aria-label", String(n));
+  return d;
+}
+// Two dice and a Roll button; onRoll(total) says what the roll means.
+function diceRoller(onRoll) {
+  const box = el("div", "dice-row");
+  const dice = el("span", "row"); dice.style.gap = "10px";
+  const out = el("span", "dice-sum");
+  const btn = el("button", "primary small", "Roll the dice");
+  const show = (a, b) => { dice.replaceChildren(dieEl(a), dieEl(b)); };
+  show(1, 1);
+  const roll = () => Math.ceil(Math.random() * 6);
+  btn.addEventListener("click", () => {
+    btn.disabled = true;
+    const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let ticks = still ? 0 : 7;
+    const spin = () => {
+      if (ticks-- > 0) { show(roll(), roll()); dice.querySelectorAll(".die").forEach(d => d.classList.add("spin")); setTimeout(spin, 70); return; }
+      const a = roll(), b = roll(); show(a, b);
+      out.replaceChildren(document.createTextNode("You rolled "), el("b", null, String(a + b)), document.createTextNode(". " + onRoll(a + b)));
+      btn.disabled = false; btn.textContent = "Roll again";
+    };
+    spin();
+  });
+  box.append(dice, btn, out);
+  return box;
+}
+// The four walls as a square, 19 stacks each, East at the bottom (you), play going to the right.
+function wallDiagram(breakAt) {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 320 320"); svg.setAttribute("class", "wall-svg");
+  svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "Four walls of 19 stacks in a square. East at the bottom, South on the right, West at the top, North on the left.");
+  const add = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text) e.textContent = text; svg.append(e); return e; };
+  const W = 10, H = 7, gap = 1, n = 19, len = n * (W + gap), start = (320 - len) / 2;
+  const walls = [
+    { name: "East (dealer)", x: i => start + i * (W + gap), y: () => 262, w: W, h: H, lx: 160, ly: 294 },
+    { name: "South", x: () => 262, y: i => start + (n - 1 - i) * (W + gap), w: H, h: W, lx: 300, ly: 160, rot: 90 },
+    { name: "West", x: i => start + (n - 1 - i) * (W + gap), y: () => 51, w: W, h: H, lx: 160, ly: 34 },
+    { name: "North", x: () => 51, y: i => start + i * (W + gap), w: H, h: W, lx: 20, ly: 160, rot: -90 },
+  ];
+  walls.forEach((wl, wi) => {
+    for (let i = 0; i < n; i++) {
+      // East's stacks count from its right end; mark the ones counted off before the break.
+      const counted = wi === 0 && breakAt && (n - 1 - i) < breakAt;
+      add("rect", { x: wl.x(i), y: wl.y(i), width: wl.w, height: wl.h, rx: 1.5,
+        fill: counted ? "var(--near-soft)" : "var(--tile)", stroke: counted ? "var(--near)" : "var(--tile-edge)", "stroke-width": 1 });
+    }
+    const t = add("text", { x: wl.lx, y: wl.ly, "text-anchor": "middle", "dominant-baseline": "middle", "font-size": 13, "font-weight": 700, fill: wi === 0 ? "var(--seal)" : "var(--ink)" }, wl.name);
+    if (wl.rot) t.setAttribute("transform", `rotate(${wl.rot} ${wl.lx} ${wl.ly})`);
+  });
+  if (breakAt) {
+    const bx = start + (n - breakAt) * (W + gap) - gap / 2 - 1;
+    add("line", { x1: bx, y1: 252, x2: bx, y2: 278, stroke: "var(--seal)", "stroke-width": 3, "stroke-linecap": "round" });
+    add("text", { x: bx, y: 246, "text-anchor": "middle", "font-size": 11, "font-weight": 700, fill: "var(--seal)" }, "break");
+  }
+  // Play goes to the right: East, South, West, North.
+  add("path", { d: "M120 120 A48 48 0 1 0 200 120", fill: "none", stroke: "var(--muted)", "stroke-width": 2, "stroke-dasharray": "4 4" });
+  add("path", { d: "M196 112 L200 121 L190 124", fill: "none", stroke: "var(--muted)", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  add("text", { x: 160, y: 164, "text-anchor": "middle", "font-size": 12, fill: "var(--muted)" }, "turns go");
+  add("text", { x: 160, y: 180, "text-anchor": "middle", "font-size": 12, fill: "var(--muted)" }, "to the right");
+  return svg;
+}
+const frag = (...kids) => { const f = document.createDocumentFragment(); kids.flat().forEach(k => k && f.append(typeof k === "string" ? el("p", null, k) : k)); return f; };
+const list = (items, ordered) => { const l = el(ordered ? "ol" : "ul"); items.forEach(t => { const li = el("li"); li.innerHTML = t; l.append(li); }); return l; };
+const tip = html => { const t = el("p", "tip"); t.innerHTML = html; return t; };
+const PASSES = [
+  { id: "r1", group: "First Charleston (everyone)", dir: "→", text: "Pass 3 tiles to the right" },
+  { id: "a1", group: "First Charleston (everyone)", dir: "↑", text: "Pass 3 tiles across" },
+  { id: "l1", group: "First Charleston (everyone)", dir: "←", text: "Pass 3 tiles to the left", note: "You may blind pass: pass on 1–3 of the tiles you just got, without looking." },
+  { id: "l2", group: "Second Charleston (any player can say stop)", dir: "←", text: "Pass 3 tiles to the left" },
+  { id: "a2", group: "Second Charleston (any player can say stop)", dir: "↑", text: "Pass 3 tiles across" },
+  { id: "r2", group: "Second Charleston (any player can say stop)", dir: "→", text: "Pass 3 tiles to the right", note: "Blind passing is allowed here too." },
+  { id: "c", group: "Courtesy pass (optional)", dir: "↕", text: "Trade 0–3 tiles with the player across", note: "You both agree how many; the smaller number wins." },
+];
+const GAME_STEPS = [
+  { title: "Check the set", body: () => {
+      const rows = [
+        [["b1", "b5", "b9"], "Bams, 1 to 9, four of each", 36],
+        [["c1", "c5", "c9"], "Craks, 1 to 9, four of each", 36],
+        [["d1", "d5", "d9"], "Dots, 1 to 9, four of each", 36],
+        [["N", "E", "W", "S"], "Winds, four of each", 16],
+        [["RD", "GD", "WD"], "Dragons, four of each", 12],
+        [["F"], "Flowers", 8],
+        [["J"], "Jokers", 8],
+      ];
+      const g = el("div", "counts");
+      for (const [ids, label, n] of rows) {
+        const t = el("span", "tiles-inline"); ids.forEach(id => t.append(tileEl(id, { small: true })));
+        g.append(t, el("span", null, label), el("span", "n", String(n)));
+      }
+      const tot = el("div", "total"); tot.append(el("span", null, "Total"), el("span", null, "152")); g.append(tot);
+      return frag("Count the tiles before your first game with a new set. A missing tile causes trouble later.", g,
+        tip("You also need: 4 racks, 2 dice, and a copy of this year's card for each player."));
+    } },
+  { title: "Pick who's East", body: () => frag(
+      "East is the dealer and goes first. Everyone rolls the dice; the highest total is East.",
+      diceRoller(t => "The highest roll at the table is East."),
+      list(["<b>South</b> sits on East's right.", "<b>West</b> sits across from East.", "<b>North</b> sits on East's left."]),
+      tip("Turns always go <b>to the right</b>: East, South, West, North.")) },
+  { title: "Build the walls", body: () => frag(
+      "Turn every tile face down and mix them on the table. Everyone helps.",
+      list(["Each player builds a wall <b>19 stacks long, 2 tiles high</b> (38 tiles) in front of their rack.", "Push the four walls together into a square, corners touching."], true),
+      wallDiagram(0)) },
+  { title: "Break the wall", body: () => {
+      const d = el("div");
+      const draw = n => d.replaceChildren(wallDiagram(n));
+      draw(0);
+      return frag(
+        "East rolls both dice. Starting at the right end of East's own wall, East counts that many stacks and pulls the wall apart there.",
+        diceRoller(t => { draw(t); return `Count ${t} stacks from the right end of East's wall, and break there.`; }),
+        d,
+        tip("Dealing starts with the stacks just to the <b>left</b> of the break."));
+    } },
+  { title: "Deal the tiles", body: () => frag(
+      list([
+        "East takes the next <b>2 stacks</b> (4 tiles) to the left of the break.",
+        "Then South, West and North each take 2 stacks, in turn to the right.",
+        "Go around <b>3 times</b>, so everyone has 12 tiles.",
+        "Then East takes <b>2 more</b> tiles and everyone else takes <b>1</b>.",
+      ], true),
+      tip("East starts with <b>14</b> tiles, everyone else with <b>13</b>. Count your tiles before you look at them.")) },
+  { title: "Look at your tiles", body: () => {
+      const row = el("div", "row"); row.style.marginTop = "10px";
+      const b = el("button", "primary small", "Put my tiles in the helper");
+      b.addEventListener("click", () => {
+        if (state.example) { state.rack = []; state.locked = []; state.example = false; state.pickerOpen = true; changed(); }
+        showTab("hand");
+      });
+      row.append(b);
+      return frag(
+        list(["Stand your tiles on your rack, facing you, so no one else can see them.", "Sort them by suit: Bams, Craks, Dots, then winds, dragons, flowers and jokers.", "Look over your card for 2 or 3 hands your tiles are close to."]),
+        row,
+        tip("The helper's <b>Tiles you can let go</b> list shows good tiles to pass in the Charleston."));
+    } },
+  { title: "The Charleston", body: () => {
+      const box = el("div");
+      const draw = () => {
+        box.replaceChildren();
+        let group = "";
+        const wrap = el("div", "passes");
+        PASSES.forEach(p => {
+          if (p.group !== group) { group = p.group; wrap.append(el("div", "pass-group", group)); }
+          const done = game.passes.includes(p.id);
+          const b = el("button", "pass" + (done ? " done" : ""));
+          b.setAttribute("aria-pressed", String(done));
+          b.append(el("span", "arrow", done ? "✓" : p.dir));
+          const t = el("span"); t.append(document.createTextNode(p.text)); if (p.note) t.append(el("small", null, p.note));
+          b.append(t);
+          b.addEventListener("click", () => {
+            game.passes = done ? game.passes.filter(x => x !== p.id) : [...game.passes, p.id];
+            save("mahj.passes", game.passes); draw();
+          });
+          wrap.append(b);
+        });
+        box.append(wrap);
+      };
+      draw();
+      return frag(
+        "Before play starts, everyone swaps unwanted tiles in a set order. Pass face down, 3 at a time. Tap each pass when it's done.",
+        box,
+        tip("<b>Never pass a joker.</b> If anyone says stop after the first Charleston, skip the second and go to the courtesy pass."));
+    } },
+  { title: "Play", body: () => frag(
+      list([
+        "<b>East goes first</b> by discarding one tile. Say its name out loud (\"3 Bam\").",
+        "Turns go to the right. On your turn, <b>take a tile</b> from the wall, then <b>discard one</b>.",
+        "<b>Want a discard?</b> Say \"Call!\" before the next player takes a tile. You can call it to finish a pung, kong or quint. Put that group face up on your rack, then discard.",
+        "You can't call a tile for a pair or a single, <b>unless it wins you the game</b>.",
+        "<b>Joker swap:</b> on your turn, if someone's face-up group has a joker and you hold the real tile it stands for, swap it in and take the joker.",
+        "<b>Concealed (C) hands:</b> the only discard you can call is the one that wins.",
+      ]),
+      tip("Called tiles lock in. Use <b>Lock tiles I've exposed</b> on My tiles to see which hands still fit.")) },
+  { title: "Mahjong! and paying", body: () => frag(
+      "When your 14 tiles make a hand on the card, say \"Mahjong!\" and lay them face up. Everyone checks it against the card.",
+      list([
+        "Won on someone's discard? That player pays <b>double</b> the hand's value; the other two pay the value.",
+        "Took the winning tile from the wall yourself? <b>Everyone pays double.</b>",
+        "No jokers in your hand? It's worth <b>double</b> (except Singles and Pairs, which can't have jokers anyway).",
+        "The wall runs out with no winner? It's a <b>wall game</b>: nobody pays.",
+      ]),
+      tip("Next game, the deal moves to the right: the player who was South becomes East. Then build the walls again.")) },
+];
+function renderGame() {
+  if (!$("gBody")) return;
+  const i = Math.max(0, Math.min(GAME_STEPS.length - 1, game.step));
+  const st = GAME_STEPS[i];
+  $("gCount").textContent = `Step ${i + 1} of ${GAME_STEPS.length}`;
+  const dots = $("gDots"); dots.replaceChildren();
+  GAME_STEPS.forEach((x, j) => {
+    const d = el("button", j < i ? "done" : "", String(j + 1));
+    d.setAttribute("role", "tab"); d.setAttribute("aria-selected", String(j === i)); d.setAttribute("aria-label", `Step ${j + 1}: ${x.title}`);
+    d.title = x.title;
+    d.addEventListener("click", () => goStep(j));
+    dots.append(d);
+  });
+  const body = $("gBody"); body.replaceChildren(el("h3", null, st.title), st.body());
+  $("gBack").disabled = i === 0;
+  $("gNext").textContent = i === GAME_STEPS.length - 1 ? "Next game" : "Next";
+}
+function goStep(j) {
+  game.step = j; save("mahj.gameStep", j); renderGame();
+  $("view-setup").scrollIntoView({ block: "start" });
 }
 
 // ---- tabs ----
@@ -1124,7 +1376,7 @@ function copyHands() {
   copyText(text, `Copied ${state.custom.length} hand${state.custom.length > 1 ? "s" : ""}. Paste them on your other device.`);
 }
 
-function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); renderSetup(); }
+function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); renderSetup(); renderGame(); }
 
 // ---- share ----
 function toast(msg) {
@@ -1300,9 +1552,16 @@ $("fPattern").addEventListener("keydown", e => { if (e.key === "Enter") saveForm
 $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("learn"); $("notation").scrollIntoView(); });
 if (state.example || allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
 renderAll();
-showTab(load("mahj.tab", null) || "setup");
-$("setupNudgeGo").addEventListener("click", () => showTab("setup"));
-$("setupNudgeHide").addEventListener("click", () => { save("mahj.setupNudgeHidden", true); renderSetup(); });
+showTab(load("mahj.tab", "hand"));
+$("gBack").addEventListener("click", () => goStep(Math.max(0, game.step - 1)));
+$("gNext").addEventListener("click", () => {
+  if (game.step >= GAME_STEPS.length - 1) {
+    // Next game: walls again, fresh Charleston.
+    game.passes = []; save("mahj.passes", []);
+    goStep(2);
+    toast("New game. The deal moves to the right.");
+  } else goStep(game.step + 1);
+});
 
 // A link ending in #add=<hands> opens Paste hands already filled in, so a whole card can be
 // added with one tap. The part after # never leaves the browser, so the hands aren't sent anywhere.
