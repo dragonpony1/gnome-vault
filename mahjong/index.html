@@ -110,6 +110,8 @@
   .tile.sm{width:28px; height:38px}
   .tile.sm b{font-size:16px}
   .tile.sm i{font-size:7px; margin-top:2px}
+  .tile.flower i,.tile.wind i{font-size:7.5px; letter-spacing:0}
+  .tile.sm.flower i,.tile.sm.wind i{font-size:5.8px}
   .tile.sm.WD b{width:15px; height:15px; font-size:11px}
 
   /* ---- rack ---- */
@@ -118,6 +120,7 @@
   .rack{display:flex; flex-wrap:wrap; gap:6px 4px; min-height:48px; margin-top:10px; align-items:center}
   .rack button.tile{padding:0; cursor:pointer}
   .rack .empty{color:var(--muted); font-size:14px}
+  .example-note{margin:8px 0 0; padding:6px 10px; border-radius:9px; background:var(--near-soft); color:var(--ink)}
   .count{font-weight:700; font-variant-numeric:tabular-nums}
 
   /* ---- picker ---- */
@@ -187,6 +190,7 @@
             <button class="small ghost" id="clearRack">Clear</button>
           </div>
         </div>
+        <p class="small example-note hidden" id="exampleNote">These are example tiles. Tap <strong>Clear</strong> to put in your own.</p>
         <div class="rack" id="rack" aria-live="polite"></div>
       </div>
     </div>
@@ -308,7 +312,7 @@
       <p><code>FF 1111a 2222b 3333c</code> with "any numbers" ticked<br><span class="small muted">Any three numbers in a row, one in each suit.</span></p>
     </section>
 
-    <p class="small muted" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.</p>
+    <p class="small muted" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.<br><span id="appVersion"></span></p>
   </main>
 </div>
 
@@ -324,8 +328,13 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
+const APP_VERSION = "1.0";
+// A first visit opens with example tiles so the helper shows what it does right away.
+const EXAMPLE_RACK = ["F", "F", "b2", "b2", "b4", "c6", "c6", "b8", "b8", "b8", "J", "N", "RD"];
+const savedRack = load("mahj.rack", null);
 const state = {
-  rack: load("mahj.rack", []).filter(t => M.TILE[t]),
+  rack: (savedRack || EXAMPLE_RACK).filter(t => M.TILE[t]),
+  example: !savedRack,
   custom: load("mahj.hands", []),
   usePractice: load("mahj.usePractice", true),
   showAll: false,
@@ -376,6 +385,7 @@ function renderRack() {
   const rack = $("rack");
   rack.replaceChildren();
   $("rackCount").textContent = state.rack.length;
+  $("exampleNote").classList.toggle("hidden", !state.example);
   if (!state.rack.length) { rack.append(el("span", "empty", "No tiles yet. Tap tiles below to add the ones you're holding.")); return; }
   M.sortRack(state.rack).forEach(id => {
     const b = tileEl(id, { button: true });
@@ -517,6 +527,7 @@ function renderResults() {
 }
 
 function changed() {
+  state.example = false;
   save("mahj.rack", state.rack);
   if (state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
   renderRack(); renderPicker(); renderResults();
@@ -627,6 +638,7 @@ function renderAll() { renderRack(); renderPicker(); renderResults(); renderHand
 
 // ---- wire up ----
 buildPicker();
+$("appVersion").textContent = "Mahj Helper v" + APP_VERSION;
 const learn = $("learnTiles");
 for (const id of ["b1", "c5", "d9", "N", "E", "W", "S", "RD", "GD", "WD", "F", "J"]) learn.append(tileEl(id));
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -641,7 +653,7 @@ $("fPattern").addEventListener("input", updatePreview);
 $("fSlide").addEventListener("change", updatePreview);
 $("fPattern").addEventListener("keydown", e => { if (e.key === "Enter") saveForm(); });
 $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("learn"); $("notation").scrollIntoView(); });
-if (state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
+if (state.example || state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
 renderAll();
 showTab(load("mahj.tab", "hand"));
 </script>
