@@ -412,7 +412,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -996,6 +996,23 @@ $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("le
 if (state.example || allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
 renderAll();
 showTab(load("mahj.tab", "hand"));
+
+// A link ending in #add=<hands> opens Paste hands already filled in, so a whole card can be
+// added with one tap. The part after # never leaves the browser, so the hands aren't sent anywhere.
+function openFromLink() {
+  const m = /^#add=(.+)$/.exec(location.hash);
+  if (!m) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  let text = "";
+  try {
+    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+    text = decodeURIComponent(escape(atob(b64)));
+  } catch { toast("That link didn't come through whole. Try copying it again."); return; }
+  showTab("card");
+  openPaste(text);
+}
+openFromLink();
+window.addEventListener("hashchange", openFromLink);
 </script>
 <script>
 // Offline support: keeps the helper working with no signal once it has been opened.
