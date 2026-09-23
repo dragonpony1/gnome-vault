@@ -1,12 +1,12 @@
-// Gnome Vault offline cache. Network first: when online you always get the newest
+// Mahj Helper offline cache. Network first: when online you always get the newest
 // version; when offline the last copy opens. Only this site's own files are cached.
-const CACHE = "gnome-vault-1";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+const CACHE = "mahj-helper-1";
+const FILES = ["./", "./index.html", "./engine.js", "./hands.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("gnome-vault-") && k !== CACHE).map(k => caches.delete(k))))
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("mahj-helper-") && k !== CACHE).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
