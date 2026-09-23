@@ -246,11 +246,20 @@
   .foot button{background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--ground-line)}
   .on-ground{background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--ground-line)}
   .learn-foot{color:var(--on-ground-muted)}
+  /* The "newer version" bar: pinned to the top of the screen, a slow gold shimmer so it's hard to miss. */
   .update-bar{
-    margin:12px 0 0;
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    background:var(--accent-soft); border:1px solid var(--accent); border-radius:12px; padding:8px 8px 8px 14px; font-size:14.5px; font-weight:600;
+    position:sticky; top:0; z-index:30; margin:0 -16px; padding:10px 16px;
+    display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 10px;
+    font-size:15px; font-weight:700; color:#2A1A05; text-align:center;
+    background:linear-gradient(100deg,#E9C46A 0%,#FFF1C9 20%,#F6B9CB 38%,#FFF1C9 55%,#E9C46A 75%,#FFF1C9 90%,#E9C46A 100%);
+    background-size:300% 100%; animation:shimmer 4s linear infinite;
+    box-shadow:0 4px 18px rgba(233,196,106,.45);
   }
+  body.has-update .rack-card{top:46px}
+  .update-bar button{font:inherit; font-weight:800; background:none; border:0; padding:0; color:#8A1C14; text-decoration:underline; cursor:pointer}
+  @keyframes shimmer{to{background-position:-300% 0}}
+  @media (prefers-reduced-motion: reduce){ .update-bar{animation:none} }
+  .ver{font-size:12px; color:var(--on-ground-muted); margin-top:2px}
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
@@ -258,8 +267,8 @@
 <canvas id="petals" aria-hidden="true"></canvas>
 <div class="wrap">
   <div class="update-bar hidden" id="updateBar" role="status">
-    <span id="updateText">A new version is ready.</span>
-    <button class="small primary" id="updateNow">Update now</button>
+    <span id="updateText">A newer version is ready.</span>
+    <button id="updateNow">Tap to refresh</button>
   </div>
   <header>
     <svg class="branch" viewBox="0 0 200 120" aria-hidden="true">
@@ -280,6 +289,7 @@
           <h1 class="display">Mahj Helper</h1>
         </div>
         <p class="sub">Put in your tiles. See which hands you're closest to.</p>
+        <p class="ver" id="headVersion"></p>
       </div>
       <button class="small share" id="shareApp" aria-label="Share this app">
         <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -463,8 +473,9 @@
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="engine.js"></script>
-<script src="hands.js"></script>
+<!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
+<script src="engine.js?v=2.2"></script>
+<script src="hands.js?v=2.2"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -475,7 +486,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1059,11 +1070,13 @@ async function shareApp() {
 $("shareApp").addEventListener("click", shareApp);
 
 // ---- updates ----
-// Reads the version number out of the newest index.html on the site. cache:"reload" skips
-// the phone's copy and refreshes it, so the reload after "Update now" opens the new files.
+// Same approach as the other apps: read the version number out of the newest index.html,
+// and when it differs show the bar. Checked on open, on coming back to the app, and every
+// 5 minutes while it's on screen. Note: this bar is drawn by the version the phone is
+// already running, so a change to it only shows up one release later.
 let newVersion = null;
 async function latestVersion() {
-  const res = await fetch("./index.html", { cache: "reload" });
+  const res = await fetch("./index.html?check=" + Date.now(), { cache: "no-store" });
   if (!res.ok) throw new Error("HTTP " + res.status);
   const m = /const APP_VERSION = "([^"]+)"/.exec(await res.text());
   if (!m) throw new Error("no version");
@@ -1077,8 +1090,9 @@ async function checkForUpdate(quiet) {
     const v = await latestVersion();
     if (v !== APP_VERSION) {
       newVersion = v;
-      $("updateText").textContent = `Version ${v} is ready.`;
+      $("updateText").textContent = `A newer version (v${v}) is ready.`;
       $("updateBar").classList.remove("hidden");
+      document.body.classList.add("has-update");
     } else if (!quiet) toast(`You have the newest version (v${APP_VERSION}).`);
   } catch {
     if (!quiet) toast("Couldn't check for updates. Are you online?");
@@ -1086,24 +1100,32 @@ async function checkForUpdate(quiet) {
     btn.disabled = false; btn.textContent = "Check for updates";
   }
 }
-async function updateNow() {
-  const btn = $("updateNow");
-  btn.disabled = true; btn.textContent = "Updating…";
+// Pull every file past the phone's cache and the app's offline copy, then open the page
+// at an address the phone has never seen (?v=<new version>), so it can't show an old copy.
+async function hardRefresh() {
+  $("updateText").textContent = "Fetching the new version…";
+  $("updateNow").hidden = true;
+  const v = newVersion || APP_VERSION;
   try {
-    await Promise.all(["./", "./index.html", "./engine.js", "./hands.js", "./manifest.webmanifest"].map(u => fetch(u, { cache: "reload" })));
-    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
-    if (reg) await reg.update();
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k.startsWith("mahj-helper-")).map(k => caches.delete(k)));
+    await Promise.all(["./", "./index.html", `./engine.js?v=${v}`, `./hands.js?v=${v}`, "./manifest.webmanifest", "./sw.js"]
+      .map(u => fetch(u, { cache: "reload" }).catch(() => {})));
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
   } catch {}
-  location.reload();
+  location.replace(location.pathname + "?v=" + encodeURIComponent(v) + location.hash);
 }
+// Tidy the address back up after a refresh.
+if (/[?&]v=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash);
 $("appVersion").textContent = "Mahj Helper v" + APP_VERSION;
+$("headVersion").textContent = "v" + APP_VERSION;
 $("checkUpdate").addEventListener("click", () => checkForUpdate(false));
-$("updateNow").addEventListener("click", updateNow);
-// Look for a new version each time the app is opened or brought back to the front.
+$("updateNow").addEventListener("click", hardRefresh);
 checkForUpdate(true);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !newVersion) checkForUpdate(true); });
+const whenAwake = fn => () => { if (!document.hidden) fn(); };
+setInterval(whenAwake(() => { if (!newVersion) checkForUpdate(true); }), 5 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !newVersion) checkForUpdate(true); });
 buildPicker();
 const learn = $("learnTiles");
 for (const id of ["b1", "c5", "d9", "N", "E", "W", "S", "RD", "GD", "WD", "F", "J"]) learn.append(tileEl(id));
