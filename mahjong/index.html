@@ -148,7 +148,9 @@
   .grp{display:flex; gap:2px}
   .need-list{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-top:10px; font-size:14px}
   .need-item{display:inline-flex; align-items:center; gap:3px}
-  .result h2{font-size:16px; margin:6px 0 0}
+  .result h2{font-size:17px; margin:0}
+  .result .spread{align-items:flex-start}
+  .hand-name{margin:1px 0 0; font-size:14px; color:var(--muted)}
   .meta{font-size:12.5px; color:var(--muted)}
 
   /* ---- card screen ---- */
@@ -365,7 +367,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.2";
+const APP_VERSION = "1.3";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -493,7 +495,11 @@ function resultCard(r, open) {
   const { hand, best } = r;
   const c = el("article", "card result");
   const top = el("div", "spread");
-  top.append(el("h2", null, hand.name || hand.pattern), awayBadge(best.away));
+  // The card's section leads, since that's how players find a hand on the card; the hand's own name follows.
+  const title = el("div");
+  title.append(el("h2", null, hand.category || "My card"));
+  if (hand.name) title.append(el("p", "hand-name", hand.name));
+  top.append(title, awayBadge(best.away));
   c.append(top);
   const tiles = el("div", "hand-tiles");
   best.variant.groups.forEach((g, gi) => {
