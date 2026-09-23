@@ -84,3 +84,43 @@ test("ranking puts the closest hand first, spare tiles skip jokers", () => {
   assert.equal(ranked[0].best.away, 1);
   assert.deepEqual(M.spareTiles(rack, ranked.slice(0, 1)), ["b5"]);
 });
+
+test("a locked group only fits hands with that exact group", () => {
+  const evens = hand("222a 4444a 666a 8888a");
+  const like = hand("FF 1111a 1111b 1111c", { slide: true });
+  const locked = [["b4", "b4", "b4", "b4"]];
+  const rack = ["b2", "b2", "b6", "b6", "b6", "b8", "b8", "b8", "J"];
+  const e = M.bestFor(evens, rack, locked);
+  assert.equal(e.away, 1); // one joker, but short a 2 and an 8
+  assert.deepEqual(e.locked, [false, true, false, false]);
+  assert.equal(e.variant.suits.a, "bam");
+  // Four 4 Bams can be the "like numbers" kong too, but only with the 4s in bams.
+  const l = M.bestFor(like, [], locked);
+  assert.ok(l.variant.groups.some((g, gi) => l.locked[gi] && g.tiles[0] === "b4"));
+  // A pung of 4s doesn't fit a hand that only has a kong of 4s.
+  assert.equal(M.bestFor(evens, rack, [["b4", "b4", "b4"]]), null);
+});
+
+test("locking rules out concealed hands and keeps jokers in the group", () => {
+  const conc = hand("FF 2468a 2468b 2468c", { concealed: true });
+  assert.equal(M.bestFor(conc, [], [["F", "F", "F"]]), null);
+  const winds = hand("NNNN EEE WWW SSSS");
+  const best = M.bestFor(winds, ["E", "E", "E", "W", "W", "W", "S", "S", "S", "S"], [["N", "N", "J", "J"]]);
+  assert.equal(best.away, 0);
+  assert.equal(best.jokers, 2);
+  assert.equal(best.used.J, undefined);
+});
+
+test("exposureTile accepts 3-5 of one tile plus jokers", () => {
+  assert.equal(M.exposureTile(["b5", "J", "b5"]), "b5");
+  assert.equal(M.exposureTile(["b5", "b5"]), null);
+  assert.equal(M.exposureTile(["J", "J", "J"]), null);
+  assert.equal(M.exposureTile(["b5", "b6", "b5"]), null);
+});
+
+test("ranking drops hands a locked group rules out", () => {
+  const hands = PRACTICE.map(h => ({ ...h, groups: M.parsePattern(h.pattern) }));
+  const ranked = M.rankHands(hands, [], [["N", "N", "N", "N"]]);
+  assert.ok(ranked.length > 0);
+  for (const r of ranked) assert.ok(!r.hand.concealed && r.hand.pattern.includes("NNNN"), r.hand.name);
+});

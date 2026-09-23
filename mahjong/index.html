@@ -121,6 +121,18 @@
   .rack button.tile{padding:0; cursor:pointer}
   .rack .empty{color:var(--muted); font-size:14px}
   .example-note{margin:8px 0 0; padding:6px 10px; border-radius:9px; background:var(--near-soft); color:var(--ink)}
+  .locked-row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px}
+  .locked-row .label{font-size:12.5px; font-weight:700; color:var(--accent); display:inline-flex; align-items:center; gap:4px}
+  .lock-grp{
+    display:inline-flex; gap:2px; padding:4px 5px 5px; border-radius:9px; background:var(--accent-soft);
+    border:1.5px solid var(--accent); cursor:pointer;
+  }
+  .rack button.tile.sel{outline:3px solid var(--accent); outline-offset:1px; transform:translateY(-3px)}
+  .lock-bar{margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--accent-soft)}
+  .lock-start{margin-top:10px; display:inline-flex; align-items:center; gap:6px}
+  .hand-tiles .grp.locked{padding:3px 4px 4px; margin:-4px -5px; border-radius:8px; background:var(--accent-soft); border:1.5px solid var(--accent)}
+  .lock-note{margin-top:10px; padding:6px 10px; border-radius:9px; background:var(--accent-soft)}
+  .key-line .grp.locked{padding:2px 3px 3px; border-radius:7px; background:var(--accent-soft); border:1.5px solid var(--accent)}
   .count{font-weight:700; font-variant-numeric:tabular-nums}
 
   /* ---- picker ---- */
@@ -224,7 +236,17 @@
           </div>
         </div>
         <p class="small example-note hidden" id="exampleNote">These are example tiles. Tap <strong>Clear</strong> to put in your own.</p>
+        <div class="locked-row hidden" id="lockedRow"></div>
         <div class="rack" id="rack" aria-live="polite"></div>
+        <div class="lock-bar hidden" id="lockBar">
+          <p class="small" id="lockHelp" style="margin:0">Tap the tiles you put face up: 3, 4 or 5 of the same tile. Include any jokers in the group.</p>
+          <p class="err hidden" id="lockErr"></p>
+          <div class="row" style="margin-top:8px">
+            <button class="small primary" id="lockDo" disabled>Lock tiles</button>
+            <button class="small ghost" id="lockCancel">Cancel</button>
+          </div>
+        </div>
+        <button class="small lock-start hidden" id="lockStart"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Lock tiles I've exposed</button>
       </div>
     </div>
 
@@ -323,6 +345,7 @@
         <li>The helper shows the hands you are closest to. <em>“3 away”</em> means you need 3 more of the right tiles.</li>
         <li>Faded dashed tiles are ones you still need. Plan to keep tiles that fit your top hands.</li>
         <li>Tiles that none of your best hands use are listed as good to pass in the Charleston, or to discard.</li>
+        <li>When you call a discard and put a group face up, tap <strong>Lock tiles I've exposed</strong> and pick those tiles. The helper then shows only hands that use that group, and works out what you still need.</li>
         <li>On <strong>My card</strong>, add the hands from your own card. It only takes a minute per hand, and they stay on this device.</li>
       </ul>
       <p class="small muted">Early in a game, keep two or three hands in mind. Pick one once you see which tiles come to you.</p>
@@ -367,7 +390,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -377,6 +400,10 @@ const savedRack = load("mahj.rack", null);
 const state = {
   rack: (savedRack || EXAMPLE_RACK).filter(t => M.TILE[t]),
   example: !savedRack,
+  // Groups you've called and put face up, e.g. ["b5","b5","J"]. They count toward your 14 tiles.
+  locked: load("mahj.locked", []).filter(g => M.exposureTile(g)),
+  selecting: false,
+  sel: [],
   custom: load("mahj.hands", []),
   usePractice: load("mahj.usePractice", true),
   showAll: false,
@@ -426,16 +453,83 @@ function allHands() {
 function renderRack() {
   const rack = $("rack");
   rack.replaceChildren();
-  $("rackCount").textContent = state.rack.length;
+  $("rackCount").textContent = allTiles().length;
   $("exampleNote").classList.toggle("hidden", !state.example);
-  if (!state.rack.length) { rack.append(el("span", "empty", "No tiles yet. Tap tiles below to add the ones you're holding.")); return; }
-  M.sortRack(state.rack).forEach(id => {
+
+  // Locked groups sit above the rack; tapping one unlocks it.
+  const lr = $("lockedRow");
+  lr.replaceChildren();
+  lr.classList.toggle("hidden", !state.locked.length);
+  if (state.locked.length) {
+    const label = el("span", "label");
+    label.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Locked`;
+    lr.append(label);
+    state.locked.forEach((g, i) => {
+      const b = el("button", "lock-grp");
+      g.forEach(t => b.append(tileEl(t, { small: true })));
+      b.setAttribute("aria-label", `Locked group: ${g.map(tileName).join(", ")}. Tap to unlock.`);
+      b.title = "Tap to unlock";
+      b.addEventListener("click", () => {
+        if (state.selecting) return;
+        state.rack.push(...state.locked[i]);
+        state.locked.splice(i, 1);
+        toast("Unlocked. Those tiles are back on your rack.");
+        changed();
+      });
+      lr.append(b);
+    });
+    if (!state.selecting) lr.append(el("span", "small muted", "Tap a group to unlock it."));
+  }
+
+  const sorted = M.sortRack(state.rack);
+  if (!sorted.length && !state.locked.length) rack.append(el("span", "empty", "No tiles yet. Tap tiles below to add the ones you're holding."));
+  sorted.forEach((id, i) => {
     const b = tileEl(id, { button: true });
-    b.title = "Take out " + tileName(id);
-    b.setAttribute("aria-label", "Take out " + tileName(id));
-    b.addEventListener("click", () => { state.rack.splice(state.rack.indexOf(id), 1); changed(); });
+    if (state.selecting) {
+      const on = state.sel.includes(i);
+      b.classList.toggle("sel", on);
+      b.setAttribute("aria-pressed", String(on));
+      b.setAttribute("aria-label", (on ? "Selected: " : "Select ") + tileName(id));
+      b.addEventListener("click", () => {
+        state.sel = on ? state.sel.filter(x => x !== i) : [...state.sel, i];
+        renderRack();
+      });
+    } else {
+      b.title = "Take out " + tileName(id);
+      b.setAttribute("aria-label", "Take out " + tileName(id));
+      b.addEventListener("click", () => { state.rack.splice(state.rack.indexOf(id), 1); changed(); });
+    }
     rack.append(b);
   });
+
+  $("lockBar").classList.toggle("hidden", !state.selecting);
+  $("lockStart").classList.toggle("hidden", state.selecting || state.rack.length < 3);
+  const n = state.sel.length;
+  $("lockDo").disabled = n < 3;
+  $("lockDo").textContent = n ? `Lock ${n} tile${n > 1 ? "s" : ""}` : "Lock tiles";
+}
+function startLocking() {
+  state.selecting = true; state.sel = [];
+  $("lockErr").classList.add("hidden");
+  renderRack();
+}
+function stopLocking() { state.selecting = false; state.sel = []; renderRack(); }
+function lockSelected() {
+  const sorted = M.sortRack(state.rack);
+  const group = state.sel.map(i => sorted[i]);
+  if (!M.exposureTile(group)) {
+    const err = $("lockErr");
+    err.textContent = group.length > 5
+      ? "A locked group is at most 5 tiles."
+      : "A locked group is 3, 4 or 5 of the same tile. Jokers can fill in, but it needs at least one real tile.";
+    err.classList.remove("hidden");
+    return;
+  }
+  for (const t of group) state.rack.splice(state.rack.indexOf(t), 1);
+  // Real tile first, then jokers, the way it sits on your rack.
+  state.locked.push(group.sort((a, b) => (a === "J") - (b === "J")));
+  state.selecting = false; state.sel = [];
+  changed();
 }
 
 const PICK_SECTIONS = [
@@ -465,11 +559,13 @@ function buildPicker() {
     box.append(s);
   }
 }
+function allTiles() { return state.rack.concat(...state.locked); }
 function canAdd(id) {
-  return state.rack.length < M.HAND_SIZE && state.rack.filter(t => t === id).length < M.TILE[id].max;
+  const all = allTiles();
+  return all.length < M.HAND_SIZE && all.filter(t => t === id).length < M.TILE[id].max;
 }
 function renderPicker() {
-  const counts = M.tally(state.rack);
+  const counts = M.tally(allTiles());
   for (const [id, { b, n }] of Object.entries(pickButtons)) {
     n.textContent = counts[id] || "";
     n.classList.toggle("hidden", !counts[id]);
@@ -503,7 +599,8 @@ function resultCard(r, open) {
   c.append(top);
   const tiles = el("div", "hand-tiles");
   best.variant.groups.forEach((g, gi) => {
-    const grp = el("div", "grp");
+    const grp = el("div", "grp" + (best.locked[gi] ? " locked" : ""));
+    if (best.locked[gi]) grp.title = "Your locked group";
     g.tiles.forEach((t, ti) => grp.append(tileEl(t, { small: true, mark: best.marks[gi][ti] })));
     tiles.append(grp);
   });
@@ -544,6 +641,14 @@ function keyLine() {
   const k = el("div", "key-line");
   const item = (mark, text) => { const s = el("span"); s.append(tileEl("b3", { small: true, mark }), document.createTextNode(text)); return s; };
   k.append(item(null, "you have it"), item("need", "you need it"), item("joker", "a joker fills in"));
+  if (state.locked.length) {
+    const s = el("span");
+    const g = el("span", "grp locked");
+    g.style.display = "inline-flex"; g.style.margin = "0";
+    g.append(tileEl("b3", { small: true }));
+    s.append(g, document.createTextNode("locked"));
+    k.append(s);
+  }
   return k;
 }
 function renderResults() {
@@ -556,24 +661,37 @@ function renderResults() {
     box.append(c);
     return;
   }
-  if (!state.rack.length) {
+  if (!allTiles().length) {
     const c = el("div", "card");
     c.append(el("h2", null, "What can I make?"));
     c.append(el("p", "muted", `Add your tiles and I'll check them against ${hands.length} hands, closest first.`));
     box.append(c);
     return;
   }
-  const ranked = M.rankHands(hands, state.rack);
+  const ranked = M.rankHands(hands, state.rack, state.locked);
+  if (!ranked.length) {
+    const c = el("div", "card");
+    c.append(el("h2", null, "No hands fit your locked tiles"));
+    c.append(el("p", "muted", "None of your hands have a group exactly like the one you locked. Check the group is right (tap it to unlock), or add the hand from your card."));
+    box.append(c);
+    return;
+  }
   const best = ranked[0].best.away;
+  const total = allTiles().length;
   const head = el("div", "card");
   if (best === 0) {
     head.append(el("h2", null, "You have Mahjong!"), el("p", "small muted", "Check your tiles against the card, then call it."));
   } else {
     head.append(el("h2", null, "Your best hands"));
-    head.append(el("p", "small muted", state.rack.length < 13
-      ? `You have ${state.rack.length} tiles. Add the rest (13 in all) for a better match.`
+    head.append(el("p", "small muted", total < 13
+      ? `You have ${total} tiles. Add the rest (13 in all) for a better match.`
       : `“${best} away” means you need ${best} more of the right tile${best > 1 ? "s" : ""}.`));
     head.append(keyLine());
+    if (state.locked.length) {
+      const out = hands.length - ranked.length;
+      const conc = hands.some(h => h.concealed) ? " Concealed hands are out once you expose." : "";
+      head.append(el("p", "small lock-note", `Only showing hands that use your locked tiles.${out ? ` ${out} hand${out > 1 ? "s don't" : " doesn't"} fit any more.` : ""}${conc}`));
+    }
     const spare = M.spareTiles(state.rack, ranked.slice(0, 3));
     if (spare.length) {
       const sp = el("div", "need-list");
@@ -596,7 +714,8 @@ function renderResults() {
 function changed() {
   state.example = false;
   save("mahj.rack", state.rack);
-  if (state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
+  save("mahj.locked", state.locked);
+  if (allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
   renderRack(); renderPicker(); renderResults();
 }
 
@@ -782,8 +901,11 @@ buildPicker();
 const learn = $("learnTiles");
 for (const id of ["b1", "c5", "d9", "N", "E", "W", "S", "RD", "GD", "WD", "F", "J"]) learn.append(tileEl(id));
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$("lockStart").addEventListener("click", startLocking);
+$("lockCancel").addEventListener("click", stopLocking);
+$("lockDo").addEventListener("click", lockSelected);
 $("togglePicker").addEventListener("click", () => { state.pickerOpen = !state.pickerOpen; renderPicker(); });
-$("clearRack").addEventListener("click", () => { state.rack = []; state.pickerOpen = true; state.showAll = false; changed(); });
+$("clearRack").addEventListener("click", () => { state.rack = []; state.locked = []; state.selecting = false; state.sel = []; state.pickerOpen = true; state.showAll = false; changed(); });
 $("usePractice").checked = state.usePractice;
 $("usePractice").addEventListener("change", e => { state.usePractice = e.target.checked; save("mahj.usePractice", state.usePractice); renderAll(); });
 $("addHandBtn").addEventListener("click", () => openForm(null));
@@ -793,7 +915,7 @@ $("fPattern").addEventListener("input", updatePreview);
 $("fSlide").addEventListener("change", updatePreview);
 $("fPattern").addEventListener("keydown", e => { if (e.key === "Enter") saveForm(); });
 $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("learn"); $("notation").scrollIntoView(); });
-if (state.example || state.rack.length >= M.HAND_SIZE) state.pickerOpen = false;
+if (state.example || allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
 renderAll();
 showTab(load("mahj.tab", "hand"));
 </script>
