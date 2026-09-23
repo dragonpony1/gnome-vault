@@ -62,6 +62,7 @@
   }
 
   // All concrete ways to play a hand: every suit assignment, and every shift if numbers can slide.
+  // hand.step = 2 keeps odd numbers odd and even numbers even ("odd like #s" / "even like #s").
   function variants(hand) {
     const groups = hand.groups;
     const vs = vars(groups);
@@ -69,10 +70,12 @@
     const shifts = hand.slide && digits.length
       ? Array.from({ length: 9 - Math.max(...digits) + Math.min(...digits) }, (_, i) => i + 1 - Math.min(...digits))
       : [0];
+    const step = hand.step || 1;
     const out = [];
     for (const perm of permutations(SUITS, vs.length)) {
       const suitOf = Object.fromEntries(vs.map((v, i) => [v, perm[i]]));
       for (const k of shifts) {
+        if (k % step) continue;
         const vgroups = groups.map(g => {
           const tiles = g.syms.map(c => {
             if (/[1-9]/.test(c)) return SUIT_LETTER[suitOf[g.tag]] + (Number(c) + k);
@@ -211,7 +214,7 @@
   // Used only when hands ran together. "any" is matched lowercase only, so a section named
   // "Any like numbers" isn't taken for it; points are at most 2 digits, so "X 25" followed
   // by section "2468" with the line break lost ("X 252468") still splits right.
-  const OPTS = /^([xcXC](?![a-zA-Z]))?\s*(\d{1,2})?\s*(any(?![a-z]))?\s*/;
+  const OPTS = /^([xcXC](?![a-zA-Z]))?\s*(\d{1,2})?\s*(any(?![a-z]))?\s*((?:odd|even)(?![a-z]))?\s*/;
   function handFromParts(category, pattern, opts, name) {
     const words = String(opts || "").toLowerCase().split(/[\s,]+/).filter(Boolean);
     const num = words.find(w => /^\d+$/.test(w));
@@ -219,7 +222,9 @@
       category, pattern: pattern.replace(/\s+/g, " "), name: name || "",
       points: num ? Number(num) : null,
       concealed: words.includes("c"),
-      slide: words.includes("any"),
+      // "odd" / "even": any number, but only odd ones (or only even ones), as the hand is written.
+      slide: words.includes("any") || words.includes("odd") || words.includes("even"),
+      step: words.includes("odd") || words.includes("even") ? 2 : 1,
     };
   }
   function parseHandLines(text) {
@@ -253,7 +258,9 @@
   }
 
   function formatHandLine(h) {
-    const opts = [h.concealed ? "C" : "X", h.points || "", h.slide ? "any" : ""].filter(Boolean).join(" ");
+    const digits = String(h.pattern).match(/[1-9]/g) || ["1"];
+    const kind = h.step === 2 ? (Math.min(...digits.map(Number)) % 2 ? "odd" : "even") : "any";
+    const opts = [h.concealed ? "C" : "X", h.points || "", h.slide ? kind : ""].filter(Boolean).join(" ");
     return [h.category || "", h.pattern, opts, h.name || ""].join(" | ").replace(/( \| )+$/, "");
   }
 

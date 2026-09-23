@@ -412,7 +412,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.8";
+const APP_VERSION = "1.9";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -764,7 +764,7 @@ function renderHandList() {
     const title = el("div");
     title.append(el("strong", null, h.name || h.category || "Hand from my card"));
     const meta = h.name ? handMeta(h) : handMeta(h).split(" · ").slice(1).join(" · ");
-    title.append(el("div", "meta", meta + (h.slide ? " · Any numbers" : "")));
+    title.append(el("div", "meta", meta + (h.slide ? (h.step === 2 ? " · Any odd or any even numbers, as written" : " · Any numbers") : "")));
     top.append(title);
     if (h.custom) {
       const btns = el("div", "row");
