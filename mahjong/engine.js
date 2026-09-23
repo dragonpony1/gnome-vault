@@ -98,58 +98,93 @@
     return c;
   }
 
-  // Score one concrete variant against a rack.
-  // Natural tiles go to singles and pairs first, since jokers can't fill those.
+  // An exposed (locked) group is 3-5 tiles: one kind of tile plus any jokers, with at least one real tile.
+  // Returns the tile it stands for, or null if it isn't a valid group.
+  function exposureTile(exp) {
+    if (!Array.isArray(exp) || exp.length < 3 || exp.length > 5) return null;
+    const real = [...new Set(exp.filter(t => t !== "J"))];
+    return real.length === 1 && TILE[real[0]] ? real[0] : null;
+  }
+
+  // Match each exposure to its own pung/kong/quint of the same tile and size in this variant.
+  // Returns a map of group index -> exposure, or null when the exposures don't all fit.
+  function placeExposures(v, exposures) {
+    const placed = {};
+    const fit = i => {
+      if (i === exposures.length) return true;
+      const t = exposureTile(exposures[i]);
+      for (let gi = 0; gi < v.groups.length; gi++) {
+        const g = v.groups[gi];
+        if (placed[gi] || !g.jokerable || g.tiles[0] !== t || g.tiles.length !== exposures[i].length) continue;
+        placed[gi] = exposures[i];
+        if (fit(i + 1)) return true;
+        delete placed[gi];
+      }
+      return false;
+    };
+    return fit(0) ? placed : null;
+  }
+
+  // Score one concrete variant against the tiles on your rack.
+  // Locked groups fill their own spots exactly. Of the rest, natural tiles go to
+  // singles and pairs first, since jokers can't fill those.
   // Returns each slot marked "have", "joker" or "need", plus totals.
-  function scoreVariant(v, counts) {
+  function scoreVariant(v, counts, placed = {}) {
     const left = { ...counts };
     let jokers = left.J || 0;
-    const marks = v.groups.map(g => g.tiles.map(() => "need"));
-    const passes = [false, true]; // non-jokerable groups first
-    for (const jok of passes) {
+    const marks = v.groups.map((g, gi) => placed[gi]
+      ? placed[gi].map(t => t === "J" ? "joker" : "have")
+      : g.tiles.map(() => "need"));
+    const free = v.groups.map((g, gi) => !placed[gi]);
+    for (const jok of [false, true]) { // non-jokerable groups first
       v.groups.forEach((g, gi) => {
-        if (g.jokerable !== jok) return;
+        if (!free[gi] || g.jokerable !== jok) return;
         g.tiles.forEach((t, ti) => {
           if ((left[t] || 0) > 0) { left[t]--; marks[gi][ti] = "have"; }
         });
       });
     }
     v.groups.forEach((g, gi) => {
-      if (!g.jokerable) return;
+      if (!free[gi] || !g.jokerable) return;
       g.tiles.forEach((t, ti) => {
         if (marks[gi][ti] === "need" && jokers > 0) { jokers--; marks[gi][ti] = "joker"; }
       });
     });
     let have = 0, jok = 0;
-    const need = {};
+    const need = {}, used = {};
     v.groups.forEach((g, gi) => g.tiles.forEach((t, ti) => {
       const m = marks[gi][ti];
       if (m === "have") have++;
       else if (m === "joker") jok++;
       else need[t] = (need[t] || 0) + 1;
+      // "used" counts only rack tiles, so locked tiles never show up as spare or kept.
+      if (free[gi] && m === "have") used[t] = (used[t] || 0) + 1;
+      if (free[gi] && m === "joker") used.J = (used.J || 0) + 1;
     }));
-    const used = {};
-    v.groups.forEach((g, gi) => g.tiles.forEach((t, ti) => {
-      if (marks[gi][ti] === "have") used[t] = (used[t] || 0) + 1;
-    }));
-    if (jok) used.J = jok;
-    return { marks, have, jokers: jok, away: HAND_SIZE - have - jok, need, used };
+    const locked = v.groups.map((g, gi) => !!placed[gi]);
+    return { marks, locked, have, jokers: jok, away: HAND_SIZE - have - jok, need, used };
   }
 
-  // Best way to play one hand with this rack.
-  function bestFor(hand, rack) {
+  // Best way to play one hand with this rack and these locked groups.
+  // Returns null when the hand can't be made any more: it's concealed and you've exposed,
+  // or your locked groups aren't part of it.
+  function bestFor(hand, rack, exposures = []) {
+    if (exposures.length && hand.concealed) return null;
     const counts = tally(rack);
     let best = null;
     for (const v of variants(hand)) {
-      const s = scoreVariant(v, counts);
+      const placed = exposures.length ? placeExposures(v, exposures) : {};
+      if (!placed) continue;
+      const s = scoreVariant(v, counts, placed);
       if (!best || s.away < best.away || (s.away === best.away && s.jokers < best.jokers)) best = { ...s, variant: v };
     }
     return best;
   }
 
-  // Rank every hand for a rack, closest first.
-  function rankHands(hands, rack) {
-    return hands.map(hand => ({ hand, best: bestFor(hand, rack) }))
+  // Rank every hand that's still possible, closest first.
+  function rankHands(hands, rack, exposures = []) {
+    return hands.map(hand => ({ hand, best: bestFor(hand, rack, exposures) }))
+      .filter(r => r.best)
       .sort((x, y) => x.best.away - y.best.away || x.best.jokers - y.best.jokers || (x.hand.points || 0) - (y.hand.points || 0));
   }
 
@@ -171,7 +206,7 @@
     return rack.slice().sort((a, b) => ORDER[a] - ORDER[b]);
   }
 
-  const api = { SUITS, TILES, TILE, HAND_SIZE, parsePattern, variants, bestFor, rankHands, spareTiles, sortRack, tally };
+  const api = { SUITS, TILES, TILE, HAND_SIZE, parsePattern, variants, exposureTile, bestFor, rankHands, spareTiles, sortRack, tally };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Mahj = api;
 })(this);
