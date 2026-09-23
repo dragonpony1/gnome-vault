@@ -129,7 +129,10 @@
   /* ---- header + tabs ---- */
   header{padding:18px 0 0}
   .tabs{display:flex; gap:4px; margin-top:14px; background:var(--ground-soft); border:1px solid var(--ground-line); border-radius:12px; padding:4px; position:relative; z-index:1}
-  .tabs button{flex:1; padding:8px 6px; background:transparent; color:var(--on-ground-muted); font-weight:600; font-size:15px; border-radius:9px}
+  .tabs button{flex:1; padding:8px 4px; background:transparent; color:var(--on-ground-muted); font-weight:600; font-size:15px; border-radius:9px; white-space:nowrap}
+  @media (max-width:380px){ .tabs button{font-size:14px} }
+  .tab-count{display:inline-block; margin-left:5px; min-width:17px; padding:0 5px; border-radius:9px; background:var(--seal); color:var(--seal-ink); font-size:11px; line-height:17px; vertical-align:1px}
+  .tab-count:empty{display:none}
   .tabs button[aria-selected="true"]{background:var(--card); color:var(--ink); box-shadow:inset 0 -2px 0 var(--seal)}
   button.share{background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--ground-line)}
 
@@ -260,6 +263,24 @@
   @keyframes shimmer{to{background-position:-300% 0}}
   @media (prefers-reduced-motion: reduce){ .update-bar{animation:none} }
   .ver{font-size:12px; color:var(--on-ground-muted); margin-top:2px}
+  /* ---- set up ---- */
+  .steps{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:10px}
+  .step{display:grid; grid-template-columns:34px 1fr; gap:12px; padding:12px; border:1px solid var(--line); border-radius:12px}
+  .step.now{border-color:var(--seal); box-shadow:0 0 0 1px var(--seal) inset}
+  .step .num{
+    width:34px; height:34px; border-radius:8px; display:grid; place-items:center; font-weight:800;
+    background:var(--soft); color:var(--muted); transform:rotate(-3deg);
+  }
+  .step.now .num{background:var(--seal); color:var(--seal-ink)}
+  .step.done .num{background:var(--good-soft); color:var(--good)}
+  .step h3{margin:4px 0 2px; font-size:16px}
+  .step.done h3{color:var(--muted)}
+  .step p{margin:4px 0; font-size:14.5px}
+  .step .row{margin-top:8px}
+  .step .done-note{color:var(--good); font-weight:600; font-size:14px}
+  .setup-nudge{display:flex; align-items:center; gap:6px; margin:12px 0 0}
+  .setup-nudge #setupNudgeGo{flex:1; text-align:left; background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--seal); font-weight:600}
+  .setup-nudge .nudge-x{background:transparent; color:var(--on-ground-muted); font-size:20px; padding:6px 10px}
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
@@ -300,6 +321,7 @@
       <button role="tab" id="tab-hand" aria-selected="true" data-tab="hand">My tiles</button>
       <button role="tab" id="tab-card" aria-selected="false" data-tab="card">My card</button>
       <button role="tab" id="tab-learn" aria-selected="false" data-tab="learn">Learn</button>
+      <button role="tab" id="tab-setup" aria-selected="false" data-tab="setup">Set up<span class="tab-count" id="setupCount"></span></button>
     </div>
   </header>
 
@@ -328,6 +350,11 @@
         <button class="small lock-start hidden" id="lockStart"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Lock tiles I've exposed</button>
       </div>
     </div>
+
+    <p class="setup-nudge hidden" id="setupNudge">
+      <button id="setupNudgeGo">Finish setting up <span id="setupNudgeCount"></span></button>
+      <button class="nudge-x" id="setupNudgeHide" aria-label="Hide this">×</button>
+    </p>
 
     <section class="card" id="picker" aria-label="Add a tile">
       <p class="small muted" style="margin:0">Tap a tile to add it. Tap a tile in your rack to take it out.</p>
@@ -396,6 +423,14 @@
   </main>
 
   <!-- ======== LEARN ======== -->
+  <main id="view-setup" class="hidden">
+    <section class="card">
+      <h2>Set up Mahj Helper</h2>
+      <p class="small muted" id="setupSummary">Four quick steps. Each one ticks itself off when it's done.</p>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </main>
+
   <main id="view-learn" class="hidden learn">
     <section class="card">
       <h2>The tiles</h2>
@@ -474,8 +509,8 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.2"></script>
-<script src="hands.js?v=2.2"></script>
+<script src="engine.js?v=2.3"></script>
+<script src="hands.js?v=2.3"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -486,7 +521,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.3";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -830,7 +865,7 @@ function changed() {
   save("mahj.rack", state.rack);
   save("mahj.locked", state.locked);
   if (allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
-  renderRack(); renderPicker(); renderResults();
+  renderRack(); renderPicker(); renderResults(); renderSetup();
 }
 
 // ---- card screen ----
@@ -925,9 +960,118 @@ function saveForm() {
   renderAll();
 }
 
+// ---- set up ----
+// A short checklist for new players. Each step checks the app's real state, so it ticks
+// itself off; nothing here is stored except "hide the reminder".
+let installPrompt = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; renderSetup(); });
+addEventListener("appinstalled", () => { installPrompt = null; renderSetup(); });
+const isInstalled = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function setupSteps() {
+  const mine = state.custom.length;
+  return [
+    {
+      title: "Put it on your home screen",
+      done: isInstalled() || load("mahj.installedDone", false),
+      body: () => {
+        const f = document.createDocumentFragment();
+        if (installPrompt) {
+          f.append(el("p", null, "It opens full screen like a real app, and works with no signal."));
+          const row = el("div", "row"); const b = el("button", "primary small", "Install Mahj Helper");
+          b.addEventListener("click", async () => { installPrompt.prompt(); try { await installPrompt.userChoice; } catch {} installPrompt = null; renderSetup(); });
+          row.append(b); f.append(row);
+        } else if (isIOS()) {
+          f.append(el("p", null, "In Safari, tap the Share button (the square with an arrow), then Add to Home Screen. Open Mahj Helper from the new icon."));
+        } else {
+          f.append(el("p", null, "Open your browser's menu (⋮), then Install app or Add to Home screen. Open Mahj Helper from the new icon."));
+        }
+        const row = el("div", "row"); const skip = el("button", "ghost small", "Done, or skip this");
+        skip.addEventListener("click", () => { save("mahj.installedDone", true); renderSetup(); });
+        row.append(skip); f.append(row);
+        return f;
+      },
+      doneText: "On your home screen.",
+    },
+    {
+      title: "Add the hands from your card",
+      done: mine > 0,
+      body: () => {
+        const f = document.createDocumentFragment();
+        f.append(el("p", null, "The helper checks your tiles against the hands on your card. Paste a whole list if someone sent you one, or add hands one at a time."));
+        const row = el("div", "row");
+        const paste = el("button", "primary small", "Paste a list of hands");
+        paste.addEventListener("click", () => { showTab("card"); openPaste(); });
+        const one = el("button", "small", "Add one hand");
+        one.addEventListener("click", () => { showTab("card"); openForm(null); });
+        row.append(paste, one); f.append(row);
+        return f;
+      },
+      doneText: `${mine} hand${mine === 1 ? "" : "s"} from your card.`,
+    },
+    {
+      title: "Use only your card",
+      done: mine > 0 && !state.usePractice,
+      body: () => {
+        const f = document.createDocumentFragment();
+        f.append(el("p", null, mine
+          ? "Turn off the 24 practice hands, so the helper only shows hands you can really play."
+          : "Once your card is in, turn off the practice hands. Until then they're handy for learning."));
+        if (mine) {
+          const row = el("div", "row"); const b = el("button", "primary small", "Turn off practice hands");
+          b.addEventListener("click", () => { state.usePractice = false; save("mahj.usePractice", false); $("usePractice").checked = false; renderAll(); });
+          row.append(b); f.append(row);
+        }
+        return f;
+      },
+      doneText: "Checking only your card.",
+    },
+    {
+      title: "Put in your tiles",
+      done: !state.example && allTiles().length > 0,
+      body: () => {
+        const f = document.createDocumentFragment();
+        f.append(el("p", null, "Clear the example tiles and tap in the 13 you're holding (14 if you're East). Your closest hands show up underneath."));
+        const row = el("div", "row"); const b = el("button", "primary small", "Put in my tiles");
+        b.addEventListener("click", () => {
+          if (state.example) { state.rack = []; state.locked = []; state.example = false; state.pickerOpen = true; changed(); }
+          showTab("hand");
+        });
+        row.append(b); f.append(row);
+        return f;
+      },
+      doneText: "Done. You're all set.",
+    },
+  ];
+}
+function renderSetup() {
+  if (!$("steps")) return;
+  const steps = setupSteps();
+  const left = steps.filter(x => !x.done).length;
+  const now = steps.findIndex(x => !x.done);
+  const list = $("steps");
+  list.replaceChildren();
+  steps.forEach((st, i) => {
+    const li = el("li", "step" + (st.done ? " done" : i === now ? " now" : ""));
+    li.append(el("span", "num", st.done ? "✓" : String(i + 1)));
+    const body = el("div");
+    body.append(el("h3", null, st.title));
+    if (st.done) body.append(el("p", "done-note", st.doneText));
+    else if (i === now) body.append(st.body());
+    else body.append(el("p", "muted", "Comes after the step above."));
+    li.append(body);
+    list.append(li);
+  });
+  $("setupSummary").textContent = left ? `${steps.length - left} of ${steps.length} done. Each step ticks itself off when it's done.` : "All done. Enjoy your game!";
+  $("setupCount").textContent = left ? String(left) : "";
+  const hidden = !left || load("mahj.setupNudgeHidden", false);
+  $("setupNudge").classList.toggle("hidden", hidden);
+  $("setupNudgeCount").textContent = `(${steps.length - left} of ${steps.length})`;
+}
+
 // ---- tabs ----
 function showTab(name) {
-  for (const t of ["hand", "card", "learn"]) {
+  for (const t of ["hand", "card", "learn", "setup"]) {
     $("view-" + t).classList.toggle("hidden", t !== name);
     $("tab-" + t).setAttribute("aria-selected", String(t === name));
   }
@@ -980,7 +1124,7 @@ function copyHands() {
   copyText(text, `Copied ${state.custom.length} hand${state.custom.length > 1 ? "s" : ""}. Paste them on your other device.`);
 }
 
-function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); }
+function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); renderSetup(); }
 
 // ---- share ----
 function toast(msg) {
@@ -1156,7 +1300,9 @@ $("fPattern").addEventListener("keydown", e => { if (e.key === "Enter") saveForm
 $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("learn"); $("notation").scrollIntoView(); });
 if (state.example || allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
 renderAll();
-showTab(load("mahj.tab", "hand"));
+showTab(load("mahj.tab", null) || "setup");
+$("setupNudgeGo").addEventListener("click", () => showTab("setup"));
+$("setupNudgeHide").addEventListener("click", () => { save("mahj.setupNudgeHidden", true); renderSetup(); });
 
 // A link ending in #add=<hands> opens Paste hands already filled in, so a whole card can be
 // added with one tap. The part after # never leaves the browser, so the hands aren't sent anywhere.
