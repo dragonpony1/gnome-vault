@@ -154,3 +154,26 @@ test("a hand written out as a line reads back the same", () => {
     assert.equal(back.slide, !!h.slide);
   }
 });
+
+test("pasting survives the ways phones mangle copied text", () => {
+  const text = [
+    "2468 | FF 2222a 44b 66b 8888a | X 25",
+    "2468 | 222a 444a 666a 888a DDa | C 30",
+    "Any like numbers | FFFF 1111b 11c 1111a | X 25 any",
+    "Math | 333a + 444a - 555a - 222a = 00 | C 30",
+  ].join("\n");
+  const ref = M.parseHandLines(text).hands;
+  assert.equal(ref.length, 4);
+  for (const mangled of [
+    text.replace(/\n/g, "\r"),
+    text.replace(/\n/g, " "),
+    text.replace(/\n/g, " "),
+    text.replace(/\n/g, ""),
+    text.replace(/\|/g, "│"),
+    text.replace(/\n/g, "\n\n"),
+  ]) {
+    const { hands, errors } = M.parseHandLines(mangled);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(hands, ref);
+  }
+});

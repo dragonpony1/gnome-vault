@@ -206,23 +206,48 @@
   //   Section | Pattern | options | Name
   // Options: X (exposed) or C (concealed), a number for points, and "any" when the
   // numbers can be any numbers. Name is optional. Blank lines and lines starting with # are skipped.
+  // Phones don't always copy text the way it looked: line breaks can turn into other
+  // characters or vanish, and bars can come back as look-alikes. Clean all of that up first.
+  // Used only when hands ran together. "any" is matched lowercase only, so a section named
+  // "Any like numbers" isn't taken for it; points are at most 2 digits, so "X 25" followed
+  // by section "2468" with the line break lost ("X 252468") still splits right.
+  const OPTS = /^([xcXC](?![a-zA-Z]))?\s*(\d{1,2})?\s*(any(?![a-z]))?\s*/;
+  function handFromParts(category, pattern, opts, name) {
+    const words = String(opts || "").toLowerCase().split(/[\s,]+/).filter(Boolean);
+    const num = words.find(w => /^\d+$/.test(w));
+    return {
+      category, pattern: pattern.replace(/\s+/g, " "), name: name || "",
+      points: num ? Number(num) : null,
+      concealed: words.includes("c"),
+      slide: words.includes("any"),
+    };
+  }
   function parseHandLines(text) {
     const hands = [], errors = [];
-    String(text || "").split(/\r?\n/).forEach((line, i) => {
+    const clean = String(text || "").replace(/[\u2502\u2503\uFF5C\u00A6\u2223]/g, "|").replace(/\u00A0/g, " ");
+    const add = (lineNo, raw, category, pattern, opts, name) => {
+      try { parsePattern(pattern); } catch (e) { errors.push({ line: lineNo, text: raw, message: e.message }); return; }
+      hands.push(handFromParts(category, pattern, opts, name));
+    };
+    clean.split(/\r\n|[\n\r\u2028\u2029\u0085]/).forEach((line, i) => {
       const raw = line.trim();
-      if (!raw || raw.startsWith("#")) return;
+      if (!raw || (raw.startsWith("#") && !raw.includes("|"))) return;
       const parts = raw.split("|").map(p => p.trim());
       if (parts.length < 2) { errors.push({ line: i + 1, text: raw, message: "Put a | between the section and the hand." }); return; }
-      const [category, pattern, opts = "", name = ""] = parts;
-      try { parsePattern(pattern); } catch (e) { errors.push({ line: i + 1, text: raw, message: e.message }); return; }
-      const words = opts.toLowerCase().split(/[\s,]+/).filter(Boolean);
-      const num = words.find(w => /^\d+$/.test(w));
-      hands.push({
-        category, pattern: pattern.replace(/\s+/g, " "), name,
-        points: num ? Number(num) : null,
-        concealed: words.includes("c"),
-        slide: words.includes("any"),
-      });
+      if (parts.length <= 4) { add(i + 1, raw, parts[0], parts[1], parts[2], parts[3]); return; }
+      // Several hands ran together on one line: Section | Hand | X 25 Next section | Hand | ...
+      // Walk it in steps of two, peeling the options off the front of each third piece.
+      let category = parts[0].replace(/^#.*\.\s*/, "");
+      for (let k = 1; k < parts.length; k += 2) {
+        const pattern = parts[k];
+        const tail = parts[k + 1] || "";
+        const m = OPTS.exec(tail);
+        const opts = m[0];
+        const rest = tail.slice(opts.length).trim();
+        const last = k + 2 >= parts.length;
+        add(i + 1, raw, category, pattern, opts, last ? rest : "");
+        category = rest;
+      }
     });
     return { hands, errors };
   }

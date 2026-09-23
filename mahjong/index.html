@@ -412,7 +412,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -858,12 +858,14 @@ function renderPaste() {
   if (dupes) box.append(el("p", "muted", `${dupes} already on your list, so they'll be skipped.`));
   for (const e of errors.slice(0, 5)) box.append(el("p", "paste-err", `Line ${e.line}: ${e.message}`));
   if (errors.length > 5) box.append(el("p", "paste-err", `…and ${errors.length - 5} more lines to fix.`));
+  if (!fresh.length && !dupes && !errors.length && $("pasteText").value.trim())
+    box.append(el("p", "paste-err", "I couldn't find any hands in that. Each hand looks like: 2468 | FF 2222a 44b 66b 8888a | X 25"));
   $("pasteAdd").disabled = !fresh.length;
   $("pasteAdd").textContent = fresh.length ? `Add ${fresh.length} hand${fresh.length > 1 ? "s" : ""}` : "Add hands";
 }
-function openPaste() {
+function openPaste(text) {
   closeForm();
-  $("pasteText").value = "";
+  $("pasteText").value = typeof text === "string" ? text : "";
   $("pasteBox").classList.remove("hidden");
   renderPaste();
   $("pasteBox").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -975,14 +977,19 @@ $("clearRack").addEventListener("click", () => { state.rack = []; state.locked =
 $("usePractice").checked = state.usePractice;
 $("usePractice").addEventListener("change", e => { state.usePractice = e.target.checked; save("mahj.usePractice", state.usePractice); renderAll(); });
 $("addHandBtn").addEventListener("click", () => { closePaste(); openForm(null); });
-$("pasteBtn").addEventListener("click", openPaste);
+$("pasteBtn").addEventListener("click", () => openPaste());
 $("pasteCancel").addEventListener("click", closePaste);
 $("pasteAdd").addEventListener("click", addPasted);
 $("pasteText").addEventListener("input", renderPaste);
 $("copyHandsBtn").addEventListener("click", copyHands);
 $("cancelHand").addEventListener("click", closeForm);
 $("saveHand").addEventListener("click", saveForm);
-$("fPattern").addEventListener("input", updatePreview);
+// A whole list pasted into the one-hand box goes to Paste hands instead.
+$("fPattern").addEventListener("input", () => {
+  const v = $("fPattern").value;
+  if (v.includes("|")) { openPaste(v); renderPaste(); return; }
+  updatePreview();
+});
 $("fSlide").addEventListener("change", updatePreview);
 $("fPattern").addEventListener("keydown", e => { if (e.key === "Enter") saveForm(); });
 $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("learn"); $("notation").scrollIntoView(); });
