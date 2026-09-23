@@ -109,46 +109,44 @@
     return real.length === 1 && TILE[real[0]] ? real[0] : null;
   }
 
-  // Match each exposure to its own pung/kong/quint of the same tile and size in this variant.
-  // Returns a map of group index -> exposure, or null when the exposures don't all fit.
-  function placeExposures(v, exposures) {
+  // Every way to give each exposure its own group of the same tile that is at least as big:
+  // a locked pung of 8s can be three of the four 8s a hand needs. Yields maps of group index -> exposure.
+  function* placeExposures(v, exposures) {
     const placed = {};
-    const fit = i => {
-      if (i === exposures.length) return true;
+    function* fit(i) {
+      if (i === exposures.length) { yield { ...placed }; return; }
       const t = exposureTile(exposures[i]);
       for (let gi = 0; gi < v.groups.length; gi++) {
         const g = v.groups[gi];
-        if (placed[gi] || !g.jokerable || g.tiles[0] !== t || g.tiles.length !== exposures[i].length) continue;
+        if (placed[gi] || !g.jokerable || g.tiles[0] !== t || g.tiles.length < exposures[i].length) continue;
         placed[gi] = exposures[i];
-        if (fit(i + 1)) return true;
+        yield* fit(i + 1);
         delete placed[gi];
       }
-      return false;
-    };
-    return fit(0) ? placed : null;
+    }
+    yield* fit(0);
   }
 
-  // Score one concrete variant against the tiles on your rack.
-  // Locked groups fill their own spots exactly. Of the rest, natural tiles go to
-  // singles and pairs first, since jokers can't fill those.
-  // Returns each slot marked "have", "joker" or "need", plus totals.
+  // Score one concrete variant against the tiles still on your rack (your hidden tiles).
+  // Locked tiles fill the front of their group; any spots left in that group are filled from
+  // the rack like any other. Of the rack tiles, natural ones go to singles and pairs first,
+  // since jokers can't fill those. Returns each slot marked "have", "joker" or "need".
   function scoreVariant(v, counts, placed = {}) {
     const left = { ...counts };
     let jokers = left.J || 0;
-    const marks = v.groups.map((g, gi) => placed[gi]
-      ? placed[gi].map(t => t === "J" ? "joker" : "have")
-      : g.tiles.map(() => "need"));
-    const free = v.groups.map((g, gi) => !placed[gi]);
+    const fromLock = v.groups.map((g, gi) => g.tiles.map((_, ti) => !!placed[gi] && ti < placed[gi].length));
+    const marks = v.groups.map((g, gi) => g.tiles.map((_, ti) =>
+      fromLock[gi][ti] ? (placed[gi][ti] === "J" ? "joker" : "have") : "need"));
     for (const jok of [false, true]) { // non-jokerable groups first
       v.groups.forEach((g, gi) => {
-        if (!free[gi] || g.jokerable !== jok) return;
+        if (g.jokerable !== jok) return;
         g.tiles.forEach((t, ti) => {
-          if ((left[t] || 0) > 0) { left[t]--; marks[gi][ti] = "have"; }
+          if (marks[gi][ti] === "need" && (left[t] || 0) > 0) { left[t]--; marks[gi][ti] = "have"; }
         });
       });
     }
     v.groups.forEach((g, gi) => {
-      if (!free[gi] || !g.jokerable) return;
+      if (!g.jokerable) return;
       g.tiles.forEach((t, ti) => {
         if (marks[gi][ti] === "need" && jokers > 0) { jokers--; marks[gi][ti] = "joker"; }
       });
@@ -161,25 +159,25 @@
       else if (m === "joker") jok++;
       else need[t] = (need[t] || 0) + 1;
       // "used" counts only rack tiles, so locked tiles never show up as spare or kept.
-      if (free[gi] && m === "have") used[t] = (used[t] || 0) + 1;
-      if (free[gi] && m === "joker") used.J = (used.J || 0) + 1;
+      if (!fromLock[gi][ti] && m === "have") used[t] = (used[t] || 0) + 1;
+      if (!fromLock[gi][ti] && m === "joker") used.J = (used.J || 0) + 1;
     }));
     const locked = v.groups.map((g, gi) => !!placed[gi]);
     return { marks, locked, have, jokers: jok, away: HAND_SIZE - have - jok, need, used };
   }
 
-  // Best way to play one hand with this rack and these locked groups.
+  // Best way to play one hand with the tiles on your rack plus your locked groups.
   // Returns null when the hand can't be made any more: it's concealed and you've exposed,
-  // or your locked groups aren't part of it.
+  // or it has no room for one of your locked groups.
   function bestFor(hand, rack, exposures = []) {
     if (exposures.length && hand.concealed) return null;
     const counts = tally(rack);
     let best = null;
     for (const v of variants(hand)) {
-      const placed = exposures.length ? placeExposures(v, exposures) : {};
-      if (!placed) continue;
-      const s = scoreVariant(v, counts, placed);
-      if (!best || s.away < best.away || (s.away === best.away && s.jokers < best.jokers)) best = { ...s, variant: v };
+      for (const placed of exposures.length ? placeExposures(v, exposures) : [{}]) {
+        const s = scoreVariant(v, counts, placed);
+        if (!best || s.away < best.away || (s.away === best.away && s.jokers < best.jokers)) best = { ...s, variant: v };
+      }
     }
     return best;
   }

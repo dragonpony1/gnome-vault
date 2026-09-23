@@ -85,7 +85,7 @@ test("ranking puts the closest hand first, spare tiles skip jokers", () => {
   assert.deepEqual(M.spareTiles(rack, ranked.slice(0, 1)), ["b5"]);
 });
 
-test("a locked group only fits hands with that exact group", () => {
+test("a locked group fits hands that include it", () => {
   const evens = hand("222a 4444a 666a 8888a");
   const like = hand("FF 1111a 1111b 1111c", { slide: true });
   const locked = [["b4", "b4", "b4", "b4"]];
@@ -97,8 +97,15 @@ test("a locked group only fits hands with that exact group", () => {
   // Four 4 Bams can be the "like numbers" kong too, but only with the 4s in bams.
   const l = M.bestFor(like, [], locked);
   assert.ok(l.variant.groups.some((g, gi) => l.locked[gi] && g.tiles[0] === "b4"));
-  // A pung of 4s doesn't fit a hand that only has a kong of 4s.
-  assert.equal(M.bestFor(evens, rack, [["b4", "b4", "b4"]]), null);
+  // A locked pung of 4s counts toward a hand that needs four 4s; the fourth comes from the rack.
+  const grow = M.bestFor(evens, ["b2", "b2", "b2", "b4", "b6", "b6", "b6", "b8", "b8", "b8", "b8"], [["b4", "b4", "b4"]]);
+  assert.equal(grow.away, 0);
+  assert.deepEqual(grow.locked, [false, true, false, false]);
+  // ...and a joker from the rack can be that fourth tile.
+  assert.equal(M.bestFor(evens, ["b2", "b2", "b2", "J", "b6", "b6", "b6", "b8", "b8", "b8", "b8"], [["b4", "b4", "b4"]]).away, 0);
+  // A locked kong can't shrink to fit a pung, and it must be the same tile.
+  assert.equal(M.bestFor(hand("222a 444a 6666a 8888a"), [], [["b4", "b4", "b4", "b4"]]), null);
+  assert.equal(M.bestFor(evens, [], [["b5", "b5", "b5"]]), null);
 });
 
 test("locking rules out concealed hands and keeps jokers in the group", () => {
