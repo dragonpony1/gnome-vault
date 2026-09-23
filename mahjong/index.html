@@ -69,10 +69,12 @@
   button.small{padding:7px 11px; font-size:14px; border-radius:9px}
   button.danger{background:transparent; color:var(--danger)}
   button:disabled{opacity:.45; cursor:default}
-  input[type=text],input[type=number]{
+  input[type=text],input[type=number],textarea{
     width:100%; font:inherit; color:var(--ink); background:var(--card);
     border:1px solid var(--line); border-radius:11px; padding:11px 12px;
   }
+  textarea{resize:vertical; font:14px/1.5 ui-monospace,Menlo,Consolas,monospace}
+  .paste-err{color:var(--danger); margin:4px 0 0}
   label.field{display:block; font-size:13px; color:var(--muted); margin:14px 0 4px; font-weight:600}
   label.check{display:flex; gap:10px; align-items:flex-start; margin:12px 0 0; font-size:15px}
   label.check input{width:20px; height:20px; margin:1px 0 0; accent-color:var(--accent); flex-shrink:0}
@@ -266,7 +268,23 @@
       <label class="check"><input type="checkbox" id="usePractice">
         <span>Include the practice hands<br><span class="small muted">24 made-up hands in the style of a real card, for learning. They are not the official NMJL card.</span></span>
       </label>
-      <div class="row" style="margin-top:14px"><button class="primary" id="addHandBtn">Add a hand from your card</button></div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="addHandBtn">Add a hand from your card</button>
+        <button id="pasteBtn">Paste hands</button>
+        <button class="ghost" id="copyHandsBtn">Copy my hands</button>
+      </div>
+    </section>
+
+    <section class="card hidden" id="pasteBox">
+      <h2>Paste hands</h2>
+      <p class="small muted">Paste hands you were sent or copied, one per line:<br><code>Section | Hand | X or C, points, any | Name</code></p>
+      <label class="field" for="pasteText">Hands</label>
+      <textarea id="pasteText" rows="7" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="2468 | FF 2222a 44b 66b 8888a | X 25"></textarea>
+      <div id="pastePreview" class="small" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="pasteAdd" disabled>Add hands</button>
+        <button class="ghost" id="pasteCancel">Cancel</button>
+      </div>
     </section>
 
     <section class="card hidden" id="handForm">
@@ -390,7 +408,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -820,6 +838,49 @@ function showTab(name) {
   window.scrollTo(0, 0);
 }
 
+// ---- paste / copy a list of hands ----
+function pasteParse() {
+  const { hands, errors } = M.parseHandLines($("pasteText").value);
+  const have = new Set(state.custom.map(h => h.pattern + "|" + !!h.slide));
+  const fresh = hands.filter(h => !have.has(h.pattern + "|" + h.slide));
+  return { fresh, dupes: hands.length - fresh.length, errors };
+}
+function renderPaste() {
+  const { fresh, dupes, errors } = pasteParse();
+  const box = $("pastePreview");
+  box.replaceChildren();
+  if (fresh.length) box.append(el("p", null, `Ready to add ${fresh.length} hand${fresh.length > 1 ? "s" : ""}.`));
+  if (dupes) box.append(el("p", "muted", `${dupes} already on your list, so they'll be skipped.`));
+  for (const e of errors.slice(0, 5)) box.append(el("p", "paste-err", `Line ${e.line}: ${e.message}`));
+  if (errors.length > 5) box.append(el("p", "paste-err", `…and ${errors.length - 5} more lines to fix.`));
+  $("pasteAdd").disabled = !fresh.length;
+  $("pasteAdd").textContent = fresh.length ? `Add ${fresh.length} hand${fresh.length > 1 ? "s" : ""}` : "Add hands";
+}
+function openPaste() {
+  closeForm();
+  $("pasteText").value = "";
+  $("pasteBox").classList.remove("hidden");
+  renderPaste();
+  $("pasteBox").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("pasteText").focus({ preventScroll: true });
+}
+function closePaste() { $("pasteBox").classList.add("hidden"); }
+function addPasted() {
+  const { fresh, errors } = pasteParse();
+  if (!fresh.length) return;
+  const stamp = Date.now().toString(36);
+  fresh.forEach((h, i) => state.custom.push({ ...h, id: `c-${stamp}-${i}` }));
+  save("mahj.hands", state.custom);
+  closePaste();
+  renderAll();
+  toast(`Added ${fresh.length} hand${fresh.length > 1 ? "s" : ""}.` + (errors.length ? ` ${errors.length} line${errors.length > 1 ? "s" : ""} skipped.` : ""));
+}
+function copyHands() {
+  if (!state.custom.length) { toast("You haven't added any hands yet."); return; }
+  const text = "# Mahj Helper hands. Paste into My card > Paste hands.\n" + state.custom.map(M.formatHandLine).join("\n");
+  copyText(text, `Copied ${state.custom.length} hand${state.custom.length > 1 ? "s" : ""}. Paste them on your other device.`);
+}
+
 function renderAll() { renderRack(); renderPicker(); renderResults(); renderHandList(); }
 
 // ---- share ----
@@ -908,7 +969,12 @@ $("togglePicker").addEventListener("click", () => { state.pickerOpen = !state.pi
 $("clearRack").addEventListener("click", () => { state.rack = []; state.locked = []; state.selecting = false; state.sel = []; state.pickerOpen = true; state.showAll = false; changed(); });
 $("usePractice").checked = state.usePractice;
 $("usePractice").addEventListener("change", e => { state.usePractice = e.target.checked; save("mahj.usePractice", state.usePractice); renderAll(); });
-$("addHandBtn").addEventListener("click", () => openForm(null));
+$("addHandBtn").addEventListener("click", () => { closePaste(); openForm(null); });
+$("pasteBtn").addEventListener("click", openPaste);
+$("pasteCancel").addEventListener("click", closePaste);
+$("pasteAdd").addEventListener("click", addPasted);
+$("pasteText").addEventListener("input", renderPaste);
+$("copyHandsBtn").addEventListener("click", copyHands);
 $("cancelHand").addEventListener("click", closeForm);
 $("saveHand").addEventListener("click", saveForm);
 $("fPattern").addEventListener("input", updatePreview);

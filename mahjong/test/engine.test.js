@@ -124,3 +124,33 @@ test("ranking drops hands a locked group rules out", () => {
   assert.ok(ranked.length > 0);
   for (const r of ranked) assert.ok(!r.hand.concealed && r.hand.pattern.includes("NNNN"), r.hand.name);
 });
+
+test("pasted hand lines turn into hands, with errors per line", () => {
+  const { hands, errors } = M.parseHandLines([
+    "# my card",
+    "2468 | FF 2222a 44b 66b 8888a | X 25 | Evens two suits",
+    "Like numbers | FF 1111a 1111b 1111c | x 30 any",
+    "",
+    "Singles | NN EE WW SS 11a 11b 11c | C 50 any",
+    "Quints | 11111a 2222b",
+    "no bar here",
+  ].join("\n"));
+  assert.equal(hands.length, 3);
+  assert.deepEqual(hands[0], { category: "2468", pattern: "FF 2222a 44b 66b 8888a", name: "Evens two suits", points: 25, concealed: false, slide: false });
+  assert.equal(hands[1].slide, true);
+  assert.equal(hands[2].concealed, true);
+  assert.deepEqual(errors.map(e => e.line), [6, 7]);
+  assert.match(errors[0].message, /9 tiles/);
+});
+
+test("a hand written out as a line reads back the same", () => {
+  for (const h of PRACTICE) {
+    const back = M.parseHandLines(M.formatHandLine(h)).hands[0];
+    assert.equal(back.pattern, h.pattern);
+    assert.equal(back.category, h.category);
+    assert.equal(back.name, h.name);
+    assert.equal(back.points, h.points);
+    assert.equal(back.concealed, !!h.concealed);
+    assert.equal(back.slide, !!h.slide);
+  }
+});

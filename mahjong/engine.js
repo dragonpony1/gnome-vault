@@ -202,11 +202,41 @@
     return spare;
   }
 
+  // Hands as plain text, one per line, so a whole card can be pasted in at once:
+  //   Section | Pattern | options | Name
+  // Options: X (exposed) or C (concealed), a number for points, and "any" when the
+  // numbers can be any numbers. Name is optional. Blank lines and lines starting with # are skipped.
+  function parseHandLines(text) {
+    const hands = [], errors = [];
+    String(text || "").split(/\r?\n/).forEach((line, i) => {
+      const raw = line.trim();
+      if (!raw || raw.startsWith("#")) return;
+      const parts = raw.split("|").map(p => p.trim());
+      if (parts.length < 2) { errors.push({ line: i + 1, text: raw, message: "Put a | between the section and the hand." }); return; }
+      const [category, pattern, opts = "", name = ""] = parts;
+      try { parsePattern(pattern); } catch (e) { errors.push({ line: i + 1, text: raw, message: e.message }); return; }
+      const words = opts.toLowerCase().split(/[\s,]+/).filter(Boolean);
+      const num = words.find(w => /^\d+$/.test(w));
+      hands.push({
+        category, pattern: pattern.replace(/\s+/g, " "), name,
+        points: num ? Number(num) : null,
+        concealed: words.includes("c"),
+        slide: words.includes("any"),
+      });
+    });
+    return { hands, errors };
+  }
+
+  function formatHandLine(h) {
+    const opts = [h.concealed ? "C" : "X", h.points || "", h.slide ? "any" : ""].filter(Boolean).join(" ");
+    return [h.category || "", h.pattern, opts, h.name || ""].join(" | ").replace(/( \| )+$/, "");
+  }
+
   function sortRack(rack) {
     return rack.slice().sort((a, b) => ORDER[a] - ORDER[b]);
   }
 
-  const api = { SUITS, TILES, TILE, HAND_SIZE, parsePattern, variants, exposureTile, bestFor, rankHands, spareTiles, sortRack, tally };
+  const api = { SUITS, TILES, TILE, HAND_SIZE, parsePattern, variants, exposureTile, bestFor, rankHands, spareTiles, sortRack, tally, parseHandLines, formatHandLine };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Mahj = api;
 })(this);
