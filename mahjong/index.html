@@ -11,49 +11,90 @@
 <meta name="apple-mobile-web-app-title" content="Mahj Helper">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1d4a45">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<meta name="theme-color" content="#101a36">
+<meta property="og:title" content="Mahj Helper">
+<meta property="og:description" content="Put in your mahjong tiles and see which hands you're closest to. Made for beginners.">
+<meta property="og:image" content="https://dragonpony1.github.io/gnome-vault/mahjong/share.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <style>
+  /* Two little fonts that ship with the app: brush letters for the title, and the
+     characters on the dragon tiles and the seal. Each holds only the glyphs used. */
+  @font-face{font-family:"Mahj Brush"; src:url(font-brush.woff2) format("woff2"); font-display:swap}
+  @font-face{font-family:"Mahj Hanzi"; src:url(font-hanzi.woff2) format("woff2"); font-weight:700; font-display:swap}
+
+  /* The page sits on an indigo night in both themes; light mode puts porcelain cards on it,
+     dark mode puts deep blue lacquer cards on it. */
   :root{
-    --bg:#F2F1EA; --card:#FFFFFF; --ink:#1F2624; --muted:#63706C;
-    --line:#DCDDD3; --accent:#1D5E57; --accent-ink:#F4F3EC; --accent-soft:#DDEBE7;
-    --soft:#E9E9E0; --focus:#1D5E5766; --danger:#A4432F;
-    --shadow:0 1px 2px rgba(31,38,36,.07),0 6px 18px rgba(31,38,36,.06);
-    --tile:#FBF8EE; --tile-edge:#D9D1B8; --tile-back:#C9BE9C;
-    --bam:#2C7A45; --crak:#B5302A; --dot:#2458A6; --wind:#2A2F2D; --flower:#A63E82; --joker:#8A5A00;
-    --good:#2C7A45; --good-soft:#DCEFE1; --near:#8A5A00; --near-soft:#F6EACB;
-    --card-red:#B5302A; --card-green:#2C7A45;
+    --ground:#121C3A; --ground-deep:#080D1F; --moon:rgba(246,226,196,.20);
+    --on-ground:#F3EEE4; --on-ground-muted:#AEB8D2; --ground-soft:rgba(255,255,255,.08); --ground-line:rgba(255,255,255,.14);
+    --card:#FBFAF7; --ink:#1A2340; --muted:#5B6480;
+    --line:#DDE1EC; --accent:#23408A; --accent-ink:#F6F7FB; --accent-soft:#E4EAF7;
+    --soft:#EDEFF5; --focus:#23408A66; --danger:#A3322A;
+    --seal:#B3261E; --seal-ink:#FBF3E8; --petal:#F6B9CB;
+    --shadow:0 1px 2px rgba(8,13,31,.10),0 10px 26px rgba(8,13,31,.22);
+    --tile:#FBF7EC; --tile-edge:#D8CDB0; --tile-back:#B9AC86;
+    --bam:#2A7443; --crak:#B3261E; --dot:#23408A; --wind:#1A2340; --flower:#B8457A; --joker:#8A6410;
+    --good:#2A7443; --good-soft:#DCEEDF; --near:#8A6410; --near-soft:#F5EBCF;
+    --card-red:#B3261E; --card-green:#2A7443;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#131816; --card:#1D2421; --ink:#E4EAE6; --muted:#98A5A0;
-      --line:#303A36; --accent:#7CC1B5; --accent-ink:#0F211E; --accent-soft:#233532;
-      --soft:#27302C; --focus:#7CC1B566; --danger:#DE8168;
-      --shadow:0 1px 3px rgba(0,0,0,.45);
-      --tile:#EDE7D6; --tile-edge:#A69C80; --tile-back:#7E755C;
-      --good:#7CC98F; --good-soft:#1F3526; --near:#E2B54F; --near-soft:#3A3120;
+      --ground:#0B1229; --ground-deep:#050814; --moon:rgba(246,226,196,.14);
+      --card:#141D38; --ink:#E7EAF3; --muted:#9AA4C0;
+      --line:#27314F; --accent:#93B0F0; --accent-ink:#0B1229; --accent-soft:#1D2A4D;
+      --soft:#1C2645; --focus:#93B0F066; --danger:#EC8378;
+      --seal:#D9483E; --seal-ink:#FFF4EA;
+      --shadow:0 1px 3px rgba(0,0,0,.5),0 10px 26px rgba(0,0,0,.35);
+      --tile:#EEE7D5; --tile-edge:#A89C7E; --tile-back:#7C7257;
+      --good:#7CC98F; --good-soft:#1B3325; --near:#E6BE5C; --near-soft:#382F1B;
       --card-red:#F08A7E; --card-green:#7CC98F;
     }
   }
   :root[data-theme="dark"]{
-    --bg:#131816; --card:#1D2421; --ink:#E4EAE6; --muted:#98A5A0;
-    --line:#303A36; --accent:#7CC1B5; --accent-ink:#0F211E; --accent-soft:#233532;
-    --soft:#27302C; --focus:#7CC1B566; --danger:#DE8168;
-    --shadow:0 1px 3px rgba(0,0,0,.45);
-    --tile:#EDE7D6; --tile-edge:#A69C80; --tile-back:#7E755C;
-    --good:#7CC98F; --good-soft:#1F3526; --near:#E2B54F; --near-soft:#3A3120;
+    --ground:#0B1229; --ground-deep:#050814; --moon:rgba(246,226,196,.14);
+    --card:#141D38; --ink:#E7EAF3; --muted:#9AA4C0;
+    --line:#27314F; --accent:#93B0F0; --accent-ink:#0B1229; --accent-soft:#1D2A4D;
+    --soft:#1C2645; --focus:#93B0F066; --danger:#EC8378;
+    --seal:#D9483E; --seal-ink:#FFF4EA;
+    --shadow:0 1px 3px rgba(0,0,0,.5),0 10px 26px rgba(0,0,0,.35);
+    --tile:#EEE7D5; --tile-edge:#A89C7E; --tile-back:#7C7257;
+    --good:#7CC98F; --good-soft:#1B3325; --near:#E6BE5C; --near-soft:#382F1B;
     --card-red:#F08A7E; --card-green:#7CC98F;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{
-    margin:0; background:var(--bg); color:var(--ink);
+    margin:0; background:var(--ground); color:var(--ink);
     font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     font-size:16px; line-height:1.45; min-height:100vh;
   }
-  .display{font-family:Fraunces,Georgia,"Times New Roman",serif}
+  .display{font-family:"Mahj Brush","Ma Shan Zheng","Kaiti SC","STKaiti",Georgia,serif; font-weight:400}
+
+  /* ---- night sky: moon glow, then drifting petals, then the page ---- */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 88% 6%, var(--moon) 0, transparent 30%),
+      radial-gradient(ellipse at 50% 120%, rgba(90,120,210,.18), transparent 60%),
+      linear-gradient(180deg, var(--ground) 0%, var(--ground-deep) 100%);
+  }
+  #petals{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none}
+  .wrap{position:relative; z-index:1}
+  .branch{position:absolute; top:-40px; right:-16px; width:160px; height:auto; opacity:.9; pointer-events:none; z-index:0}
+  @media (max-width:420px){ .branch{width:130px; top:-36px; right:-16px} }
   .wrap{max-width:680px; margin:0 auto; padding:0 16px 90px}
-  h1{font-size:24px; margin:0; font-weight:700}
+  h1{font-size:34px; margin:0; font-weight:400; line-height:1.1; color:var(--on-ground); letter-spacing:.01em}
+  .title-row{display:flex; align-items:center; gap:12px}
+  .seal{
+    flex-shrink:0; width:38px; height:38px; border-radius:6px; background:var(--seal); color:var(--seal-ink);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    font:700 14px/1 "Mahj Hanzi","Noto Serif SC","Songti SC",serif;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.18); transform:rotate(-4deg);
+  }
+  header .sub{color:var(--on-ground-muted); margin-top:4px}
+  header{position:relative}
+  header > .spread{position:relative; z-index:1}
   h2{font-size:18px; margin:0 0 4px}
   h3{font-size:15px; margin:18px 0 6px}
   p{margin:6px 0}
@@ -81,15 +122,16 @@
   label.field{display:block; font-size:13px; color:var(--muted); margin:14px 0 4px; font-weight:600}
   label.check{display:flex; gap:10px; align-items:flex-start; margin:12px 0 0; font-size:15px}
   label.check input{width:20px; height:20px; margin:1px 0 0; accent-color:var(--accent); flex-shrink:0}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-top:14px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); margin-top:14px}
   .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .spread{display:flex; align-items:center; justify-content:space-between; gap:10px}
 
   /* ---- header + tabs ---- */
   header{padding:18px 0 0}
-  .tabs{display:flex; gap:4px; margin-top:12px; background:var(--soft); border-radius:12px; padding:4px}
-  .tabs button{flex:1; padding:8px 6px; background:transparent; color:var(--muted); font-weight:600; font-size:15px; border-radius:9px}
-  .tabs button[aria-selected="true"]{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
+  .tabs{display:flex; gap:4px; margin-top:14px; background:var(--ground-soft); border:1px solid var(--ground-line); border-radius:12px; padding:4px; position:relative; z-index:1}
+  .tabs button{flex:1; padding:8px 6px; background:transparent; color:var(--on-ground-muted); font-weight:600; font-size:15px; border-radius:9px}
+  .tabs button[aria-selected="true"]{background:var(--card); color:var(--ink); box-shadow:inset 0 -2px 0 var(--seal)}
+  button.share{background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--ground-line)}
 
   /* ---- tiles ---- */
   .tile{
@@ -105,9 +147,12 @@
   .tile.bam{--c:var(--bam)} .tile.crak{--c:var(--crak)} .tile.dot{--c:var(--dot)}
   .tile.flower{--c:var(--flower)} .tile.joker{--c:var(--joker)}
   .tile.RD{--c:var(--crak)} .tile.GD{--c:var(--bam)} .tile.WD{--c:var(--dot)}
+  .tile.RD b,.tile.GD b{font-family:"Mahj Hanzi","Noto Serif SC","Songti SC","SimSun",serif; font-size:19px}
+  .tile.sm.RD b,.tile.sm.GD b{font-size:15px}
+  .pick .tile.RD b,.pick .tile.GD b{font-size:20px}
   .tile.WD b{border:2px solid currentColor; border-radius:3px; width:18px; height:18px; font-size:13px; display:flex; align-items:center; justify-content:center}
   .tile.joker b{font-size:18px}
-  .tile.need{background:transparent; border:1.5px dashed var(--muted); box-shadow:none; opacity:.55}
+  .tile.need{background:color-mix(in srgb, var(--tile) 30%, transparent); border:1.5px dashed var(--muted); box-shadow:none; opacity:.8}
   .tile.jk::after{
     content:"J"; position:absolute; top:-6px; right:-6px; width:16px; height:16px; border-radius:50%;
     background:var(--joker); color:#fff; font:700 10px/16px -apple-system,Roboto,sans-serif; text-align:center;
@@ -120,7 +165,7 @@
   .tile.sm.WD b{width:15px; height:15px; font-size:11px}
 
   /* ---- rack ---- */
-  .rack-card{position:sticky; top:0; z-index:5; margin-top:14px; background:var(--bg); padding:8px 0 10px}
+  .rack-card{position:sticky; top:0; z-index:5; margin-top:14px; padding:8px 0 10px}
   .rack-card .card{margin:0}
   .rack{display:flex; flex-wrap:wrap; gap:6px 4px; min-height:48px; margin-top:10px; align-items:center}
   .rack button.tile{padding:0; cursor:pointer}
@@ -159,7 +204,7 @@
   .badge{display:inline-block; border-radius:999px; padding:2px 10px; font-size:12.5px; font-weight:700; white-space:nowrap}
   .badge.away{background:var(--soft); color:var(--ink)}
   .badge.close{background:var(--near-soft); color:var(--near)}
-  .badge.win{background:var(--good-soft); color:var(--good)}
+  .badge.win{background:var(--seal); color:var(--seal-ink)}
   .chip{display:inline-block; border:1px solid var(--line); border-radius:999px; padding:1px 8px; font-size:12px; color:var(--muted)}
   .hand-tiles{display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:10px}
   .grp{display:flex; gap:2px}
@@ -184,10 +229,10 @@
   details summary{cursor:pointer; font-weight:600}
   .learn p,.learn li{font-size:15px}
   .learn ul{padding-left:20px; margin:6px 0}
-  button.share{display:inline-flex; align-items:center; gap:6px; flex-shrink:0; font-weight:600}
+  button.share{display:inline-flex; align-items:center; gap:6px; flex-shrink:0; font-weight:600; position:relative; z-index:1}
   #toast{
     position:fixed; left:50%; bottom:calc(28px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
-    background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px;
+    background:var(--ink); color:var(--card); padding:10px 18px; border-radius:999px;
     font-size:14.5px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:99;
     max-width:88vw; text-align:center;
   }
@@ -197,7 +242,10 @@
   .key-line span{display:inline-flex; align-items:center; gap:5px}
   button.more{margin-top:8px; font-size:14px; padding:6px 0; color:var(--accent); font-weight:600}
   .details{margin-top:4px; padding-top:10px; border-top:1px solid var(--line)}
-  .foot{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:center; margin-top:28px; color:var(--muted); font-size:13px}
+  .foot{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:center; margin-top:28px; color:var(--on-ground-muted); font-size:13px}
+  .foot button{background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--ground-line)}
+  .on-ground{background:var(--ground-soft); color:var(--on-ground); border:1px solid var(--ground-line)}
+  .learn-foot{color:var(--on-ground-muted)}
   .update-bar{
     margin:12px 0 0;
     display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -207,15 +255,30 @@
 </style>
 </head>
 <body>
+<canvas id="petals" aria-hidden="true"></canvas>
 <div class="wrap">
   <div class="update-bar hidden" id="updateBar" role="status">
     <span id="updateText">A new version is ready.</span>
     <button class="small primary" id="updateNow">Update now</button>
   </div>
   <header>
+    <svg class="branch" viewBox="0 0 200 120" aria-hidden="true">
+      <path d="M200 8 C160 14 132 30 110 52 C96 66 82 74 60 80 M140 26 C146 40 146 52 140 64 M104 58 C104 72 98 84 88 92"
+        fill="none" stroke="#4A3A40" stroke-width="3.2" stroke-linecap="round"/>
+      <g fill="var(--petal)">
+        <g transform="translate(62 80)"><circle r="6" cx="0" cy="-7"/><circle r="6" cx="6.7" cy="-2.2"/><circle r="6" cx="4.1" cy="5.7"/><circle r="6" cx="-4.1" cy="5.7"/><circle r="6" cx="-6.7" cy="-2.2"/><circle r="2.6" fill="#E0576F"/></g>
+        <g transform="translate(140 64) scale(.8)"><circle r="6" cx="0" cy="-7"/><circle r="6" cx="6.7" cy="-2.2"/><circle r="6" cx="4.1" cy="5.7"/><circle r="6" cx="-4.1" cy="5.7"/><circle r="6" cx="-6.7" cy="-2.2"/><circle r="2.6" fill="#E0576F"/></g>
+        <g transform="translate(88 92) scale(.7)"><circle r="6" cx="0" cy="-7"/><circle r="6" cx="6.7" cy="-2.2"/><circle r="6" cx="4.1" cy="5.7"/><circle r="6" cx="-4.1" cy="5.7"/><circle r="6" cx="-6.7" cy="-2.2"/><circle r="2.6" fill="#E0576F"/></g>
+        <g transform="translate(118 44) scale(.6)"><circle r="6" cx="0" cy="-7"/><circle r="6" cx="6.7" cy="-2.2"/><circle r="6" cx="4.1" cy="5.7"/><circle r="6" cx="-4.1" cy="5.7"/><circle r="6" cx="-6.7" cy="-2.2"/><circle r="2.6" fill="#E0576F"/></g>
+        <circle r="3.4" cx="168" cy="16"/><circle r="3" cx="150" cy="36" opacity=".85"/><circle r="2.6" cx="76" cy="70"/>
+      </g>
+    </svg>
     <div class="spread">
       <div>
-        <h1 class="display">Mahj Helper</h1>
+        <div class="title-row">
+          <span class="seal" aria-hidden="true"><span>麻</span><span>將</span></span>
+          <h1 class="display">Mahj Helper</h1>
+        </div>
         <p class="sub">Put in your tiles. See which hands you're closest to.</p>
       </div>
       <button class="small share" id="shareApp" aria-label="Share this app">
@@ -367,7 +430,7 @@
         <li>The helper shows the hands you are closest to. <em>“3 away”</em> means you need 3 more of the right tiles.</li>
         <li>Faded dashed tiles are ones you still need. Plan to keep tiles that fit your top hands.</li>
         <li>Tiles that none of your best hands use are listed as good to pass in the Charleston, or to discard.</li>
-        <li>When you call a discard and put a group face up, tap <strong>Lock tiles I've exposed</strong> and pick those tiles. The helper then shows only hands that use that group, and works out what you still need.</li>
+        <li>When you call a discard and put a group face up, tap <strong>Lock tiles I've exposed</strong> and pick those tiles. The helper then shows only hands that include those tiles, and works out what you still need from them plus your hidden tiles.</li>
         <li>On <strong>My card</strong>, add the hands from your own card. It only takes a minute per hand, and they stay on this device.</li>
       </ul>
       <p class="small muted">Early in a game, keep two or three hands in mind. Pick one once you see which tiles come to you.</p>
@@ -390,7 +453,7 @@
       <p><code>FF 1111a 2222b 3333c</code> with "any numbers" ticked<br><span class="small muted">Any three numbers in a row, one in each suit.</span></p>
     </section>
 
-    <p class="small muted" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.</p>
+    <p class="small learn-foot" style="text-align:center; margin-top:22px">Everything stays on this device. Works offline once opened.</p>
   </main>
 
   <footer class="foot">
@@ -412,7 +475,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "1.9";
+const APP_VERSION = "2.0";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -436,7 +499,7 @@ const state = {
 // ---- tile faces ----
 const SUIT_WORD = { bam: "Bam", crak: "Crak", dot: "Dot" };
 const FACE = { N: ["N", "North"], E: ["E", "East"], W: ["W", "West"], S: ["S", "South"],
-  RD: ["R", "Red"], GD: ["G", "Green"], WD: ["0", "Soap"], F: ["✿", "Flower"], J: ["J", "Joker"] };
+  RD: ["中", "Red"], GD: ["發", "Green"], WD: ["0", "Soap"], F: ["✿", "Flower"], J: ["J", "Joker"] };
 function tileName(id) {
   const t = M.TILE[id];
   if (t.kind === "num") return `${t.num} ${SUIT_WORD[t.suit]}`;
@@ -694,7 +757,7 @@ function renderResults() {
   if (!ranked.length) {
     const c = el("div", "card");
     c.append(el("h2", null, "No hands fit your locked tiles"));
-    c.append(el("p", "muted", "None of your hands have a group exactly like the one you locked. Check the group is right (tap it to unlock), or add the hand from your card."));
+    c.append(el("p", "muted", "None of your hands include the tiles you locked. Check the group is right (tap it to unlock), or add the hand from your card."));
     box.append(c);
     return;
   }
@@ -712,7 +775,7 @@ function renderResults() {
     if (state.locked.length) {
       const out = hands.length - ranked.length;
       const conc = hands.some(h => h.concealed) ? " Concealed hands are out once you expose." : "";
-      head.append(el("p", "small lock-note", `Only showing hands that use your locked tiles.${out ? ` ${out} hand${out > 1 ? "s don't" : " doesn't"} fit any more.` : ""}${conc}`));
+      head.append(el("p", "small lock-note", `Only showing hands that include your locked tiles. Your hidden tiles count toward the rest.${out ? ` ${out} hand${out > 1 ? "s don't" : " doesn't"} fit any more.` : ""}${conc}`));
     }
     const spare = M.spareTiles(state.rack, ranked.slice(0, 3));
     if (spare.length) {
@@ -726,7 +789,7 @@ function renderResults() {
   const n = state.showAll ? ranked.length : Math.min(3, ranked.length);
   ranked.slice(0, n).forEach(r => box.append(resultCard(r, false)));
   if (ranked.length > 3) {
-    const more = el("button", "small", state.showAll ? "Show only the top 3" : `See ${ranked.length - 3} more hands`);
+    const more = el("button", "small on-ground", state.showAll ? "Show only the top 3" : `See ${ranked.length - 3} more hands`);
     more.style.marginTop = "14px";
     more.addEventListener("click", () => { state.showAll = !state.showAll; renderResults(); });
     box.append(more);
@@ -915,6 +978,64 @@ async function shareApp() {
   }
   await copyText(text, "Link copied. Paste it into a text message.");
 }
+
+// ---- cherry blossom petals ----
+// A handful of petals drift down behind the page. Skipped when the device asks for less motion,
+// and paused while the app is in the background.
+(function petals() {
+  const canvas = $("petals");
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)");
+  if (!canvas.getContext || (reduce && reduce.matches)) { canvas.remove(); return; }
+  const ctx = canvas.getContext("2d");
+  const colors = ["#F6B9CB", "#F9D0DC", "#F2A7BD", "#FBE3EA"];
+  let W = 0, H = 0, dpr = 1, list = [], running = false, last = 0;
+  const make = top => ({
+    x: Math.random() * W, y: top ? -20 - Math.random() * H * 0.3 : Math.random() * H,
+    r: 5 + Math.random() * 5, vy: 14 + Math.random() * 18, sway: 18 + Math.random() * 26,
+    phase: Math.random() * Math.PI * 2, spin: (Math.random() - .5) * 1.2, a: Math.random() * Math.PI,
+    c: colors[(Math.random() * colors.length) | 0], o: .55 + Math.random() * .35,
+  });
+  function size() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const n = Math.round(Math.min(26, Math.max(12, W / 40)));
+    while (list.length < n) list.push(make(false));
+    list.length = n;
+  }
+  function petal(p) {
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.a);
+    ctx.scale(1, .55 + .45 * Math.abs(Math.cos(p.a * 1.7)));  // tumbling
+    ctx.globalAlpha = p.o; ctx.fillStyle = p.c;
+    ctx.beginPath();
+    ctx.moveTo(0, -p.r);
+    ctx.bezierCurveTo(p.r * .9, -p.r * .9, p.r, p.r * .3, 0, p.r);
+    ctx.bezierCurveTo(-p.r, p.r * .3, -p.r * .9, -p.r * .9, -p.r * .18, -p.r * .78);
+    ctx.lineTo(0, -p.r * .55);  // the little notch at the tip
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  function frame(t) {
+    if (!running) return;
+    const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    for (const p of list) {
+      p.phase += dt * .9; p.a += p.spin * dt;
+      p.y += p.vy * dt; p.x += Math.sin(p.phase) * p.sway * dt + 6 * dt;
+      if (p.y > H + 20 || p.x > W + 20) Object.assign(p, make(true));
+      petal(p);
+    }
+    requestAnimationFrame(frame);
+  }
+  function start() { if (running) return; running = true; last = performance.now(); requestAnimationFrame(frame); }
+  function stop() { running = false; }
+  size(); start();
+  addEventListener("resize", size);
+  document.addEventListener("visibilitychange", () => document.hidden ? stop() : start());
+  if (reduce && reduce.addEventListener) reduce.addEventListener("change", e => { if (e.matches) { stop(); canvas.remove(); } });
+})();
 
 // ---- wire up ----
 $("shareApp").addEventListener("click", shareApp);
