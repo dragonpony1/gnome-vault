@@ -207,13 +207,23 @@ test("call options: groups one tile short, the winning tile, and concealed hands
   const rack = ["b2", "b2", "b4", "b4", "b4", "b6", "b6", "b6", "b8", "b8"];
   const best = M.bestFor(evens, rack);
   assert.deepEqual(M.callOptions(evens, best), [{ tile: "b2", size: 3 }, { tile: "b4", size: 4 }]);
-  // A joker counts toward the group: two 8s + a joker makes the 8 kong one short too.
+  // A joker counts toward the group: two 8s + a joker makes the 8 kong one short too, and the
+  // 2 pung the joker completed can be called with a real 2 to free the joker.
   const withJoker = M.bestFor(evens, [...rack, "J"]);
-  assert.ok(M.callOptions(evens, withJoker).some(o => o.tile === "b8" && o.size === 4));
+  const jc = M.callOptions(evens, withJoker);
+  assert.ok(jc.some(o => o.tile === "b8" && o.size === 4));
+  assert.ok(jc.some(o => o.tile === "b2" && o.freesJoker));
   // One away: the missing tile wins, even when it's for a pair.
   const run = hand("11a 222a 3333a 444a 55a");
   const nearly = M.bestFor(run, ["c1", "c1", "c2", "c2", "c2", "c3", "c3", "c3", "c3", "c4", "c4", "c4", "c5"]);
   assert.deepEqual(M.callOptions(run, nearly), [{ tile: "c5", mahjong: true }]);
+  // One away with a kong one short: that tile both finishes the kong and wins.
+  const almost = M.bestFor(evens, ["b2", "b2", "b2", "b4", "b4", "b4", "b4", "b6", "b6", "b6", "b8", "b8", "b8"]);
+  assert.deepEqual(M.callOptions(evens, almost), [{ tile: "b8", size: 4, mahjong: true }]);
+  // One away on a pair, with a kong a joker completed: the win first, then the joker-freeing call.
+  const mixed = hand("FF 1111a 2222b 3333c", { slide: true });
+  const mixedBest = M.bestFor(mixed, ["F", "b4", "b4", "b4", "J", "c5", "c5", "c5", "c5", "d6", "d6", "d6", "d6"]);
+  assert.deepEqual(M.callOptions(mixed, mixedBest), [{ tile: "F", mahjong: true }, { tile: "b4", size: 4, freesJoker: true }]);
   // Concealed: nothing to expose, only the winning call.
   const conc = { ...evens, concealed: true };
   assert.deepEqual(M.callOptions(conc, M.bestFor(conc, rack)), []);
