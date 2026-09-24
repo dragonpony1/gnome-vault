@@ -417,8 +417,15 @@
       <div class="row" style="margin-top:14px">
         <button class="primary" id="addHandBtn">Add a hand from your card</button>
         <button id="pasteBtn">Paste hands</button>
+      </div>
+      <h3>Keep your card on all your devices</h3>
+      <p class="small muted" style="margin-top:0">Your hands are saved on this device only. Save them to a file once (iCloud Drive works well), then restore that file on your other phone, iPad or computer.</p>
+      <div class="row">
+        <button id="restoreBtn">Restore from file</button>
+        <button id="saveCardBtn">Save my card</button>
         <button class="ghost" id="copyHandsBtn">Copy my hands</button>
       </div>
+      <input type="file" id="restoreFile" accept=".txt,text/plain" hidden>
     </section>
 
     <section class="card hidden" id="pasteBox">
@@ -581,8 +588,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.7"></script>
-<script src="hands.js?v=2.7"></script>
+<script src="engine.js?v=2.8"></script>
+<script src="hands.js?v=2.8"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -593,7 +600,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1076,7 +1083,9 @@ function setupSteps() {
         paste.addEventListener("click", () => { showTab("card"); openPaste(); });
         const one = el("button", "small", "Add one hand");
         one.addEventListener("click", () => { showTab("card"); openForm(null); });
-        row.append(paste, one); f.append(row);
+        const restore = el("button", "small", "Restore from file");
+        restore.addEventListener("click", () => $("restoreFile").click());
+        row.append(paste, one, restore); f.append(row);
         return f;
       },
       doneText: `${mine} hand${mine === 1 ? "" : "s"} from your card.`,
@@ -1433,6 +1442,46 @@ function addPasted() {
   renderAll();
   toast(`Added ${fresh.length} hand${fresh.length > 1 ? "s" : ""}.` + (errors.length ? ` ${errors.length} line${errors.length > 1 ? "s" : ""} skipped.` : ""));
 }
+// ---- save / restore the card as a file ----
+// The file is the same text as Paste hands, so it can also be opened and read, or pasted.
+function cardText() {
+  return "# Mahj Helper: my card. Restore it on My card > Restore from file.\n" + state.custom.map(M.formatHandLine).join("\n") + "\n";
+}
+async function saveCard() {
+  if (!state.custom.length) { toast("You haven't added any hands yet."); return; }
+  const file = new File([cardText()], "my-mahj-card.txt", { type: "text/plain" });
+  // Phones: the share sheet has "Save to Files". Elsewhere: a normal download.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "My Mahj Helper card" }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  const a = el("a"); a.href = URL.createObjectURL(file); a.download = file.name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("Saved my-mahj-card.txt to your downloads.");
+}
+function addHands(hands) {
+  const have = new Set(state.custom.map(h => h.pattern + "|" + !!h.slide + "|" + (h.step || 1)));
+  const fresh = hands.filter(h => !have.has(h.pattern + "|" + !!h.slide + "|" + (h.step || 1)));
+  const stamp = Date.now().toString(36);
+  fresh.forEach((h, i) => state.custom.push({ ...h, id: `c-${stamp}-${i}` }));
+  save("mahj.hands", state.custom);
+  return fresh.length;
+}
+async function restoreCard(file) {
+  if (!file) return;
+  let text = "";
+  try { text = await file.text(); } catch { toast("Couldn't open that file."); return; }
+  const { hands, errors } = M.parseHandLines(text);
+  if (!hands.length) { toast("No hands found in that file. Pick the my-mahj-card file."); return; }
+  const added = addHands(hands);
+  renderAll();
+  const same = hands.length - added;
+  toast(added
+    ? `Added ${added} hand${added > 1 ? "s" : ""}.${same ? ` ${same} were already here.` : ""}${errors.length ? ` ${errors.length} line${errors.length > 1 ? "s" : ""} skipped.` : ""}`
+    : "All those hands are already here.");
+}
+
 function copyHands() {
   if (!state.custom.length) { toast("You haven't added any hands yet."); return; }
   const text = "# Mahj Helper hands. Paste into My card > Paste hands.\n" + state.custom.map(M.formatHandLine).join("\n");
@@ -1627,6 +1676,9 @@ $("pasteCancel").addEventListener("click", closePaste);
 $("pasteAdd").addEventListener("click", addPasted);
 $("pasteText").addEventListener("input", renderPaste);
 $("copyHandsBtn").addEventListener("click", copyHands);
+$("saveCardBtn").addEventListener("click", saveCard);
+$("restoreBtn").addEventListener("click", () => $("restoreFile").click());
+$("restoreFile").addEventListener("change", e => { restoreCard(e.target.files[0]); e.target.value = ""; });
 $("cancelHand").addEventListener("click", closeForm);
 $("saveHand").addEventListener("click", saveForm);
 // A whole list pasted into the one-hand box goes to Paste hands instead.
