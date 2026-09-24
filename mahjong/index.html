@@ -581,8 +581,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.6"></script>
-<script src="hands.js?v=2.6"></script>
+<script src="engine.js?v=2.7"></script>
+<script src="hands.js?v=2.7"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -593,7 +593,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1574,25 +1574,38 @@ async function checkForUpdate(quiet) {
 // Pull every file past the phone's cache and the app's offline copy, then open the page
 // at an address the phone has never seen (?v=<new version>), so it can't show an old copy.
 async function hardRefresh() {
+  if (hardRefresh.busy) return;
+  hardRefresh.busy = true;
   $("updateText").textContent = "Fetching the new version…";
   $("updateNow").hidden = true;
   const v = newVersion || APP_VERSION;
-  try {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith("mahj-helper-")).map(k => caches.delete(k)));
-    await Promise.all(["./", "./index.html", `./engine.js?v=${v}`, `./hands.js?v=${v}`, "./manifest.webmanifest", "./sw.js"]
-      .map(u => fetch(u, { cache: "reload" }).catch(() => {})));
-    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
-    if (reg) await reg.update();
-  } catch {}
-  location.replace(location.pathname + "?v=" + encodeURIComponent(v) + location.hash);
+  const go = () => location.replace(location.pathname + "?v=" + encodeURIComponent(v) + location.hash);
+  // Safari can leave any of the steps below hanging forever, so each one gets a time limit,
+  // the whole thing gives up after 5 seconds, and a manual button shows up as a backup.
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const limit = (p, ms) => Promise.race([p.catch(() => {}), wait(ms)]);
+  setTimeout(() => {
+    $("updateText").textContent = "Still loading?";
+    const b = $("updateNow"); b.textContent = "Tap to reload"; b.hidden = false; b.onclick = go;
+  }, 7000);
+  await limit((async () => {
+    const keys = await limit(caches.keys(), 1500) || [];
+    await limit(Promise.all(keys.filter(k => k.startsWith("mahj-helper-")).map(k => caches.delete(k))), 1500);
+    await limit(Promise.all(["./", "./index.html", `./engine.js?v=${v}`, `./hands.js?v=${v}`, "./manifest.webmanifest"]
+      .map(u => fetch(u, { cache: "reload" }))), 3000);
+    // Step the offline copy aside so the reload comes straight from the site;
+    // it sets itself up again as soon as the new version opens.
+    const reg = navigator.serviceWorker && await limit(navigator.serviceWorker.getRegistration(), 1500);
+    if (reg) await limit(reg.unregister(), 1500);
+  })(), 5000);
+  go();
 }
 // Tidy the address back up after a refresh.
 if (/[?&]v=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash);
 $("appVersion").textContent = "Mahj Helper v" + APP_VERSION;
 $("headVersion").textContent = "v" + APP_VERSION;
 $("checkUpdate").addEventListener("click", () => checkForUpdate(false));
-$("updateNow").addEventListener("click", hardRefresh);
+$("updateNow").onclick = hardRefresh;
 checkForUpdate(true);
 const whenAwake = fn => () => { if (!document.hidden) fn(); };
 setInterval(whenAwake(() => { if (!newVersion) checkForUpdate(true); }), 5 * 60 * 1000);
