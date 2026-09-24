@@ -288,6 +288,14 @@
   .gbody p,.gbody li{font-size:15.5px}
   .gbody ul,.gbody ol{padding-left:20px; margin:6px 0}
   .gbody li{margin:6px 0}
+  .gbody{cursor:pointer; -webkit-tap-highlight-color:transparent}
+  .gbody button,.gbody a{cursor:pointer}
+  .gtap{margin:10px 0 0; font-size:12.5px; color:var(--muted); text-align:center}
+  .gbody.turn{animation:turn .22s ease-out}
+  .gbody.turn-back{animation:turnback .22s ease-out}
+  @keyframes turn{from{opacity:.2; transform:translateX(18px)}}
+  @keyframes turnback{from{opacity:.2; transform:translateX(-18px)}}
+  @media (prefers-reduced-motion: reduce){ .gbody.turn,.gbody.turn-back{animation:none} }
   .gnav{display:flex; justify-content:space-between; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid var(--line)}
   .gnav .primary{min-width:120px}
   .tip{margin-top:10px; padding:8px 12px; border-radius:10px; background:var(--near-soft); font-size:14.5px}
@@ -465,6 +473,7 @@
       </div>
       <div class="gdots" id="gDots" role="tablist" aria-label="Steps"></div>
       <div id="gBody" class="gbody"></div>
+      <p class="gtap" id="gTapHint">Tap anywhere on the step, or swipe, to go on.</p>
       <div class="gnav">
         <button class="small" id="gBack">Back</button>
         <button class="primary" id="gNext">Next</button>
@@ -572,8 +581,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.5"></script>
-<script src="hands.js?v=2.5"></script>
+<script src="engine.js?v=2.6"></script>
+<script src="hands.js?v=2.6"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -584,7 +593,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.5";
+const APP_VERSION = "2.6";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1337,9 +1346,43 @@ function renderGame() {
   $("gNext").textContent = i === GAME_STEPS.length - 1 ? "Next game" : "Next";
 }
 function goStep(j) {
+  const back = j < game.step;
   game.step = j; save("mahj.gameStep", j); renderGame();
+  const body = $("gBody");
+  body.classList.remove("turn", "turn-back"); void body.offsetWidth; body.classList.add(back ? "turn-back" : "turn");
   $("view-setup").scrollIntoView({ block: "start" });
 }
+function gameNext() {
+  if (game.step >= GAME_STEPS.length - 1) {
+    // Next game: walls again, fresh Charleston.
+    game.passes = []; save("mahj.passes", []);
+    goStep(2);
+    toast("New game. The deal moves to the right.");
+  } else goStep(game.step + 1);
+}
+function gameBack() { if (game.step > 0) goStep(game.step - 1); }
+// Tap anywhere on a step to go on. Taps on the step's own buttons (dice, passes, links)
+// do their own thing, and selecting text doesn't count as a tap.
+$("gBody").addEventListener("click", e => {
+  if (e.target.closest("button, a, input, label")) return;
+  if (String(window.getSelection && getSelection()).length) return;
+  if (swiped) { swiped = false; return; }
+  gameNext();
+});
+// Swipe left for the next step, right to go back.
+let touchX = null, touchY = null, swiped = false;
+$("gBody").addEventListener("touchstart", e => { const t = e.touches[0]; touchX = t.clientX; touchY = t.clientY; swiped = false; }, { passive: true });
+$("gBody").addEventListener("touchend", e => {
+  if (touchX === null) return;
+  const t = e.changedTouches[0], dx = t.clientX - touchX, dy = t.clientY - touchY;
+  touchX = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiped = true; dx < 0 ? gameNext() : gameBack(); }
+}, { passive: true });
+document.addEventListener("keydown", e => {
+  if ($("view-setup").classList.contains("hidden") || e.target.closest("input, textarea")) return;
+  if (e.key === "ArrowRight") gameNext();
+  if (e.key === "ArrowLeft") gameBack();
+});
 
 // ---- tabs ----
 function showTab(name) {
@@ -1585,15 +1628,8 @@ $("toNotation").addEventListener("click", e => { e.preventDefault(); showTab("le
 if (state.example || allTiles().length >= M.HAND_SIZE) state.pickerOpen = false;
 renderAll();
 showTab(load("mahj.tab", "hand"));
-$("gBack").addEventListener("click", () => goStep(Math.max(0, game.step - 1)));
-$("gNext").addEventListener("click", () => {
-  if (game.step >= GAME_STEPS.length - 1) {
-    // Next game: walls again, fresh Charleston.
-    game.passes = []; save("mahj.passes", []);
-    goStep(2);
-    toast("New game. The deal moves to the right.");
-  } else goStep(game.step + 1);
-});
+$("gBack").addEventListener("click", gameBack);
+$("gNext").addEventListener("click", gameNext);
 
 // A link ending in #add=<hands> opens Paste hands already filled in, so a whole card can be
 // added with one tap. The part after # never leaves the browser, so the hands aren't sent anywhere.
