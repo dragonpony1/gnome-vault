@@ -262,25 +262,39 @@
     return [h.category || "", h.pattern, opts, h.name || ""].join(" | ").replace(/( \| )+$/, "");
   }
 
-  // Discards worth calling for this hand. A group of 3+ that's one tile short can be finished
-  // with a called discard and put face up; one tile from winning, any tile you need wins.
+  // Discards worth calling for this hand: every group of 3+ that's one tile short, since calling
+  // that tile finishes the group so you can put it face up, and every group that's only complete
+  // thanks to a joker, since calling the real tile puts it face up and frees the joker. If you're one tile from winning,
+  // the winning tile is included and marked mahjong (it can finish a pair or single too).
   // Concealed hands can only call the winning tile. Locked groups are already face up.
   function callOptions(hand, best) {
     if (!best) return [];
-    if (best.away === 1) return [{ tile: Object.keys(best.need)[0], mahjong: true }];
-    if (hand.concealed) return [];
-    // Jokers can go in any group, so count all of yours toward each one, not just where they sit now.
-    const jokers = best.jokers - best.variant.groups.reduce((n, g, gi) =>
-      n + (best.locked[gi] ? best.marks[gi].filter(m => m === "joker").length : 0), 0);
     const out = [];
-    best.variant.groups.forEach((g, gi) => {
-      if (!g.jokerable || best.locked[gi]) return;
-      const marks = best.marks[gi];
-      if (!marks.includes("need")) return;                       // already complete
-      const real = marks.filter(m => m === "have").length;       // your own tiles in it
-      if (!real || real + jokers < g.tiles.length - 1) return;   // needs more than one more
-      if (!out.some(o => o.tile === g.tiles[0] && o.size === g.tiles.length)) out.push({ tile: g.tiles[0], size: g.tiles.length });
-    });
+    if (!hand.concealed) {
+      // Jokers can go in any group, so count all of yours toward each one, not just where they sit now.
+      const jokers = best.jokers - best.variant.groups.reduce((n, g, gi) =>
+        n + (best.locked[gi] ? best.marks[gi].filter(m => m === "joker").length : 0), 0);
+      best.variant.groups.forEach((g, gi) => {
+        if (!g.jokerable || best.locked[gi]) return;
+        const marks = best.marks[gi];
+        const real = marks.filter(m => m === "have").length;       // your own tiles in it
+        if (!real) return;                                         // don't flag every tile for jokers alone
+        let opt = null;
+        if (marks.includes("need")) {
+          if (real + jokers >= g.tiles.length - 1) opt = { tile: g.tiles[0], size: g.tiles.length };  // one short
+        } else if (marks.includes("joker")) {
+          // Complete only thanks to a joker: calling the real tile puts it face up and frees the joker.
+          opt = { tile: g.tiles[0], size: g.tiles.length, freesJoker: true };
+        }
+        if (opt && !out.some(o => o.tile === opt.tile && o.size === opt.size)) out.push(opt);
+      });
+    }
+    if (best.away === 1) {
+      const win = Object.keys(best.need)[0];
+      const same = out.find(o => o.tile === win);
+      if (same) same.mahjong = true; else out.push({ tile: win, mahjong: true });
+      out.sort((a, b) => !!b.mahjong - !!a.mahjong);
+    }
     return out;
   }
 
