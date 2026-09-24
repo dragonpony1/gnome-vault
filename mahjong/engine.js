@@ -262,11 +262,33 @@
     return [h.category || "", h.pattern, opts, h.name || ""].join(" | ").replace(/( \| )+$/, "");
   }
 
+  // Discards worth calling for this hand. A group of 3+ that's one tile short can be finished
+  // with a called discard and put face up; one tile from winning, any tile you need wins.
+  // Concealed hands can only call the winning tile. Locked groups are already face up.
+  function callOptions(hand, best) {
+    if (!best) return [];
+    if (best.away === 1) return [{ tile: Object.keys(best.need)[0], mahjong: true }];
+    if (hand.concealed) return [];
+    // Jokers can go in any group, so count all of yours toward each one, not just where they sit now.
+    const jokers = best.jokers - best.variant.groups.reduce((n, g, gi) =>
+      n + (best.locked[gi] ? best.marks[gi].filter(m => m === "joker").length : 0), 0);
+    const out = [];
+    best.variant.groups.forEach((g, gi) => {
+      if (!g.jokerable || best.locked[gi]) return;
+      const marks = best.marks[gi];
+      if (!marks.includes("need")) return;                       // already complete
+      const real = marks.filter(m => m === "have").length;       // your own tiles in it
+      if (!real || real + jokers < g.tiles.length - 1) return;   // needs more than one more
+      if (!out.some(o => o.tile === g.tiles[0] && o.size === g.tiles.length)) out.push({ tile: g.tiles[0], size: g.tiles.length });
+    });
+    return out;
+  }
+
   function sortRack(rack) {
     return rack.slice().sort((a, b) => ORDER[a] - ORDER[b]);
   }
 
-  const api = { SUITS, TILES, TILE, HAND_SIZE, parsePattern, variants, exposureTile, bestFor, rankHands, spareTiles, sortRack, tally, parseHandLines, formatHandLine };
+  const api = { SUITS, TILES, TILE, HAND_SIZE, parsePattern, variants, exposureTile, bestFor, rankHands, spareTiles, sortRack, tally, parseHandLines, formatHandLine, callOptions };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Mahj = api;
 })(this);

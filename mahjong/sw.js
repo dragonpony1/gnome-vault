@@ -1,6 +1,6 @@
 // Mahj Helper offline cache. Network first: when online you always get the newest
 // version; when offline the last copy opens. Only this site's own files are cached.
-const CACHE = "mahj-helper-21";
+const CACHE = "mahj-helper-22";
 const FILES = ["./", "./index.html", "./engine.js", "./hands.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./font-brush.woff2", "./font-hanzi.woff2", "./qr.svg"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

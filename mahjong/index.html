@@ -339,6 +339,9 @@
   .plan h2{margin:2px 0 0}
   .plan-q{font-weight:600}
   .plan-hint{margin-top:10px}
+  .calls{margin-top:12px; padding:10px 12px; border-radius:10px; background:var(--accent-soft)}
+  .calls .plan-q{margin:0 0 6px}
+  .call-row{display:flex; align-items:center; gap:10px; margin-top:6px; font-size:14.5px}
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
@@ -599,8 +602,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.9"></script>
-<script src="hands.js?v=2.9"></script>
+<script src="engine.js?v=3.0"></script>
+<script src="hands.js?v=3.0"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -611,7 +614,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.9";
+const APP_VERSION = "3.0";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -957,6 +960,25 @@ function renderResults() {
       head.append(nl);
     }
     if (pk.jokers) head.append(el("p", "small muted", `Your joker${pk.jokers > 1 ? "s fill" : " fills"} ${pk.jokers} spot${pk.jokers > 1 ? "s" : ""} in this hand.`));
+    // Discards worth calling for this hand.
+    const calls = M.callOptions(ph, pk);
+    if (calls.length) {
+      const cb = el("div", "calls");
+      cb.append(el("p", "plan-q", calls[0].mahjong ? "Call this and win:" : "You can call:"));
+      const count = ["", "", "", "three", "four", "five"];
+      for (const c of calls) {
+        const row = el("div", "call-row");
+        row.append(tileEl(c.tile, { small: true }));
+        const name = c.tile === "F" ? "flowers" : c.tile === "WD" ? "Soaps" : tileName(c.tile) + "s";
+        row.append(el("span", null, c.mahjong
+          ? `If anyone discards ${/^(8|11|18|[AEIOU])/.test(tileName(c.tile)) ? "an" : "a"} ${tileName(c.tile)}, call it. That's Mahjong!`
+          : `If anyone discards one, call it and put ${count[c.size]} ${name} face up.`));
+        cb.append(row);
+      }
+      head.append(cb);
+    } else if (ph.concealed && pk.away > 1) {
+      head.append(el("p", "small muted", "Concealed hand: the only discard you can call is the one that wins."));
+    }
     const spare = M.spareTiles(state.rack, [picked]);
     const sp = el("div", "need-list");
     sp.append(el("span", "plan-q", "Tiles you can let go:"));
