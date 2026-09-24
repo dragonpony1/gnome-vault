@@ -328,6 +328,17 @@
   .sheet h2{margin:0 0 2px}
   .qr{display:block; width:240px; max-width:100%; height:auto; margin:12px auto; border-radius:4px; border:6px solid #fff; box-shadow:0 0 0 1px var(--line)}
   .share-url{font-size:13px; color:var(--muted); word-break:break-all; user-select:all; -webkit-user-select:all; margin:4px 0 12px}
+  /* ---- going for a hand ---- */
+  .result{cursor:pointer}
+  .result:focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+  .result.picked{border-color:var(--seal); box-shadow:0 0 0 2px var(--seal), var(--shadow)}
+  .result-right{display:flex; flex-direction:column; align-items:flex-end; gap:6px}
+  .pick-chip{font-size:11.5px; font-weight:700; color:var(--muted); white-space:nowrap}
+  .result.picked .pick-chip{color:var(--seal-ink); background:var(--seal); padding:2px 8px; border-radius:999px}
+  .plan-label{margin:0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--seal)}
+  .plan h2{margin:2px 0 0}
+  .plan-q{font-weight:600}
+  .plan-hint{margin-top:10px}
   .tiles-inline{display:inline-flex; gap:2px; vertical-align:middle}
 </style>
 </head>
@@ -588,8 +599,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=2.8"></script>
-<script src="hands.js?v=2.8"></script>
+<script src="engine.js?v=2.9"></script>
+<script src="hands.js?v=2.9"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -600,7 +611,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "2.8";
+const APP_VERSION = "2.9";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -613,6 +624,7 @@ const state = {
   // Groups you've called and put face up, e.g. ["b5","b5","J"]. They count toward your 14 tiles.
   locked: load("mahj.locked", []).filter(g => M.exposureTile(g)),
   selecting: false,
+  pick: null,   // the hand you've tapped to go for; null means your closest hand
   sel: [],
   custom: load("mahj.hands", []),
   usePractice: load("mahj.usePractice", true),
@@ -797,15 +809,25 @@ function handMeta(h) {
   if (h.practice) bits.push("Practice");
   return bits.join(" · ");
 }
-function resultCard(r, open) {
+const handKey = h => h.id || h.pattern;
+function resultCard(r, open, picked) {
   const { hand, best } = r;
-  const c = el("article", "card result");
+  const c = el("article", "card result" + (picked ? " picked" : ""));
+  // Tap a hand to go for it: the box at the top then shows what this hand needs and what you can let go.
+  c.tabIndex = 0;
+  c.setAttribute("aria-label", `${hand.category || "My card"}${hand.name ? ", " + hand.name : ""}, ${best.away ? best.away + " away" : "Mahjong"}. ${picked ? "Going for this hand." : "Tap to go for this hand."}`);
+  const pick = () => { state.pick = handKey(hand); renderResults(); scrollToPlan(); };
+  c.addEventListener("click", e => { if (!e.target.closest("button")) pick(); });
+  c.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target === c) { e.preventDefault(); pick(); } });
   const top = el("div", "spread");
   // The card's section leads, since that's how players find a hand on the card; the hand's own name follows.
   const title = el("div");
   title.append(el("h2", null, hand.category || "My card"));
   if (hand.name) title.append(el("p", "hand-name", hand.name));
-  top.append(title, awayBadge(best.away));
+  const right = el("div", "result-right");
+  right.append(awayBadge(best.away));
+  right.append(el("span", "pick-chip", picked ? "Going for this" : "Tap to go for"));
+  top.append(title, right);
   c.append(top);
   const tiles = el("div", "hand-tiles");
   best.variant.groups.forEach((g, gi) => {
@@ -906,37 +928,68 @@ function renderResults() {
   }
   const best = ranked[0].best.away;
   const total = allTiles().length;
-  const head = el("div", "card");
+  const picked = ranked.find(r => handKey(r.hand) === state.pick) || ranked[0];
+  const head = el("div", "card plan");
   if (best === 0) {
     head.append(el("h2", null, "You have Mahjong!"), el("p", "small muted", "Check your tiles against the card, then call it."));
   } else {
-    head.append(el("h2", null, "Your best hands"));
-    head.append(el("p", "small muted", total < 13
-      ? `You have ${total} tiles. Add the rest (13 in all) for a better match.`
-      : `“${best} away” means you need ${best} more of the right tile${best > 1 ? "s" : ""}.`));
-    head.append(keyLine());
+    const pk = picked.best;
+    const ph = picked.hand;
+    head.id = "plan";
+    const t = el("div", "spread"); t.style.alignItems = "flex-start";
+    const tt = el("div");
+    tt.append(el("p", "plan-label", picked === ranked[0] ? "Going for your closest hand" : "Going for"));
+    tt.append(el("h2", null, ph.category || "My card"));
+    if (ph.name) tt.append(el("p", "hand-name", ph.name));
+    t.append(tt, awayBadge(pk.away));
+    head.append(t);
+    if (total < 13) head.append(el("p", "small muted", `You have ${total} tiles. Add the rest (13 in all) for a better match.`));
+    const needs = Object.entries(pk.need).sort((a, b) => M.TILES.findIndex(x => x.id === a[0]) - M.TILES.findIndex(x => x.id === b[0]));
+    if (needs.length) {
+      const nl = el("div", "need-list");
+      nl.append(el("span", "plan-q", "You still need:"));
+      for (const [id, n] of needs) {
+        const it = el("span", "need-item");
+        it.append(tileEl(id, { small: true }));
+        if (n > 1) it.append(el("span", null, "×" + n));
+        nl.append(it);
+      }
+      head.append(nl);
+    }
+    if (pk.jokers) head.append(el("p", "small muted", `Your joker${pk.jokers > 1 ? "s fill" : " fills"} ${pk.jokers} spot${pk.jokers > 1 ? "s" : ""} in this hand.`));
+    const spare = M.spareTiles(state.rack, [picked]);
+    const sp = el("div", "need-list");
+    sp.append(el("span", "plan-q", "Tiles you can let go:"));
+    if (spare.length) for (const id of spare) sp.append(tileEl(id, { small: true }));
+    else sp.append(el("span", "muted", "none, every tile you hold fits this hand."));
+    head.append(sp);
     if (state.locked.length) {
       const out = hands.length - ranked.length;
       const conc = hands.some(h => h.concealed) ? " Concealed hands are out once you expose." : "";
       head.append(el("p", "small lock-note", `Only showing hands that include your locked tiles. Your hidden tiles count toward the rest.${out ? ` ${out} hand${out > 1 ? "s don't" : " doesn't"} fit any more.` : ""}${conc}`));
     }
-    const spare = M.spareTiles(state.rack, ranked.slice(0, 3));
-    if (spare.length) {
-      const sp = el("div", "need-list");
-      sp.append(el("span", null, "Tiles you can let go:"));
-      for (const t of spare) sp.append(tileEl(t, { small: true }));
-      head.append(sp);
-    }
+    head.append(keyLine());
+    head.append(el("p", "small muted plan-hint", "Tap any hand below to go for it instead."));
   }
   box.append(head);
   const n = state.showAll ? ranked.length : Math.min(3, ranked.length);
-  ranked.slice(0, n).forEach(r => box.append(resultCard(r, false)));
+  const shown = ranked.slice(0, n);
+  if (!shown.includes(picked)) shown.push(picked);  // the hand you're going for always stays on screen
+  shown.forEach(r => box.append(resultCard(r, false, r === picked && best > 0)));
   if (ranked.length > 3) {
     const more = el("button", "small on-ground", state.showAll ? "Show only the top 3" : `See ${ranked.length - 3} more hands`);
     more.style.marginTop = "14px";
     more.addEventListener("click", () => { state.showAll = !state.showAll; renderResults(); });
     box.append(more);
   }
+}
+
+// Bring the "Going for" box into view, just under the pinned tile panel.
+function scrollToPlan() {
+  const plan = $("plan"); if (!plan) return;
+  const rack = document.querySelector(".rack-card");
+  const offset = (rack ? rack.getBoundingClientRect().height : 0) + 8;
+  window.scrollTo({ top: plan.getBoundingClientRect().top + scrollY - offset, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
 function changed() {
@@ -1667,7 +1720,7 @@ $("lockStart").addEventListener("click", startLocking);
 $("lockCancel").addEventListener("click", stopLocking);
 $("lockDo").addEventListener("click", lockSelected);
 $("togglePicker").addEventListener("click", () => { state.pickerOpen = !state.pickerOpen; renderPicker(); });
-$("clearRack").addEventListener("click", () => { state.rack = []; state.locked = []; state.selecting = false; state.sel = []; state.pickerOpen = true; state.showAll = false; changed(); });
+$("clearRack").addEventListener("click", () => { state.rack = []; state.locked = []; state.pick = null; state.selecting = false; state.sel = []; state.pickerOpen = true; state.showAll = false; changed(); });
 $("usePractice").checked = state.usePractice;
 $("usePractice").addEventListener("change", e => { state.usePractice = e.target.checked; save("mahj.usePractice", state.usePractice); renderAll(); });
 $("addHandBtn").addEventListener("click", () => { closePaste(); openForm(null); });
