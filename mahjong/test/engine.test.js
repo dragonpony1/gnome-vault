@@ -200,3 +200,24 @@ test("odd and even like numbers only slide to the same kind of number", () => {
   const fours = fives.map(t => t.replace("5", "4"));
   assert.ok(M.bestFor({ ...hands[0], groups: M.parsePattern(hands[0].pattern) }, fours).away > 0);
 });
+
+test("call options: groups one tile short, the winning tile, and concealed hands", () => {
+  const evens = hand("222a 4444a 666a 8888a");
+  // Two 2s (pung short one), three 4s (kong short one), 6s complete, two 8s (kong short two).
+  const rack = ["b2", "b2", "b4", "b4", "b4", "b6", "b6", "b6", "b8", "b8"];
+  const best = M.bestFor(evens, rack);
+  assert.deepEqual(M.callOptions(evens, best), [{ tile: "b2", size: 3 }, { tile: "b4", size: 4 }]);
+  // A joker counts toward the group: two 8s + a joker makes the 8 kong one short too.
+  const withJoker = M.bestFor(evens, [...rack, "J"]);
+  assert.ok(M.callOptions(evens, withJoker).some(o => o.tile === "b8" && o.size === 4));
+  // One away: the missing tile wins, even when it's for a pair.
+  const run = hand("11a 222a 3333a 444a 55a");
+  const nearly = M.bestFor(run, ["c1", "c1", "c2", "c2", "c2", "c3", "c3", "c3", "c3", "c4", "c4", "c4", "c5"]);
+  assert.deepEqual(M.callOptions(run, nearly), [{ tile: "c5", mahjong: true }]);
+  // Concealed: nothing to expose, only the winning call.
+  const conc = { ...evens, concealed: true };
+  assert.deepEqual(M.callOptions(conc, M.bestFor(conc, rack)), []);
+  // A locked group is already face up.
+  const locked = M.bestFor(evens, ["b2", "b2", "b6", "b6", "b6", "b8", "b8"], [["b4", "b4", "b4"]]);
+  assert.ok(!M.callOptions(evens, locked).some(o => o.tile === "b4"));
+});
