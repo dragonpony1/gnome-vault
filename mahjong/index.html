@@ -223,6 +223,7 @@
   .pat{display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:8px; font:700 18px/1.2 Georgia,"Times New Roman",serif; letter-spacing:.06em}
   /* Card colors: a = black, b = red, c = green, the way most cards print them. */
   .pat .va{color:var(--ink)} .pat .vb{color:var(--card-red)} .pat .vc{color:var(--card-green)} .pat .vn{color:var(--ink)}
+  .ways .or{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin:4px 0 -2px}
   .hand-row{padding:12px 0; border-top:1px solid var(--line)}
   .hand-row:first-of-type{border-top:none}
   .err{color:var(--danger); font-size:14px; margin-top:6px}
@@ -607,8 +608,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=3.2"></script>
-<script src="hands.js?v=3.2"></script>
+<script src="engine.js?v=3.3"></script>
+<script src="hands.js?v=3.3"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -619,7 +620,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "3.2";
+const APP_VERSION = "3.3";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1034,13 +1035,22 @@ function changed() {
 // ---- card screen ----
 // Show a pattern the way the card prints it: groups in color, one color per suit letter.
 function patternEl(pattern) {
-  const p = el("div", "pat");
-  for (const g of M.parsePattern(pattern)) {
-    const s = el("span", g.tag ? "v" + g.tag : "vn");
-    s.textContent = g.syms.map(c => c === "F" ? "F" : c).join("");
-    p.append(s);
-  }
-  return p;
+  const groups = M.parsePattern(pattern);
+  const ways = groups.alts || [groups];
+  const wrap = el("div", "ways");
+  const line = gs => {
+    const p = el("div", "pat");
+    for (const g of gs) {
+      const s = el("span", g.tag ? "v" + g.tag : "vn");
+      s.textContent = g.syms.join("");
+      p.append(s);
+    }
+    return p;
+  };
+  // Hands with several ways: show a few, then how many more.
+  ways.slice(0, 3).forEach((gs, i) => { if (i) wrap.append(el("div", "or", "or")); wrap.append(line(gs)); });
+  if (ways.length > 3) wrap.append(el("div", "or", `or ${ways.length - 3} more way${ways.length - 3 > 1 ? "s" : ""}, same pattern`));
+  return wrap;
 }
 function renderHandList() {
   const box = $("handList");

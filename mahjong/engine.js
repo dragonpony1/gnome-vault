@@ -29,7 +29,23 @@
   const HAND_SIZE = 14;
 
   // Parse a pattern string into groups of symbol slots. Throws Error with a friendly message.
+  // A hand that can be played more than one way lists each way, split by " / ":
+  //   2468c 2222b Db 2222a Da / 2468c 4444b Db 4444a Da
+  // The returned groups are the first way; groups.alts holds every way.
   function parsePattern(text) {
+    const ways = String(text || "").split(/\s+\/\s+|\s*\/\s*(?=\S)/).map(t => t.trim()).filter(Boolean);
+    if (ways.length > 1) {
+      const alts = ways.map((w, i) => {
+        try { return parseOneWay(w); }
+        catch (e) { throw new Error(`Way ${i + 1} of this hand: ${e.message}`); }
+      });
+      const first = alts[0];
+      first.alts = alts;
+      return first;
+    }
+    return parseOneWay(text);
+  }
+  function parseOneWay(text) {
     const words = String(text || "").trim().split(/\s+/).filter(w => w && !/^[+=\-x×*&]$/i.test(w));
     if (!words.length) throw new Error("Type a pattern, like FF 1111a 2222b 3333c");
     const groups = [];
@@ -64,7 +80,10 @@
   // All concrete ways to play a hand: every suit assignment, and every shift if numbers can slide.
   // hand.step = 2 keeps odd numbers odd and even numbers even ("odd like #s" / "even like #s").
   function variants(hand) {
-    const groups = hand.groups;
+    const ways = hand.groups.alts || [hand.groups];
+    return ways.flatMap(groups => variantsOf(hand, groups));
+  }
+  function variantsOf(hand, groups) {
     const vs = vars(groups);
     const digits = groups.flatMap(g => g.syms).filter(c => /[1-9]/.test(c)).map(Number);
     const shifts = hand.slide && digits.length
