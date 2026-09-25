@@ -112,6 +112,7 @@
   button.ghost{background:transparent; color:var(--muted)}
   button.small{padding:7px 11px; font-size:14px; border-radius:9px}
   button.danger{background:transparent; color:var(--danger)}
+  button.danger.armed{background:var(--danger); color:#fff; font-weight:700}
   button:disabled{opacity:.45; cursor:default}
   input[type=text],input[type=number],textarea{
     width:100%; font:inherit; color:var(--ink); background:var(--card);
@@ -441,6 +442,9 @@
         <button class="ghost" id="copyHandsBtn">Copy my hands</button>
       </div>
       <input type="file" id="restoreFile" accept=".txt,text/plain" hidden>
+      <h3>Starting a new card?</h3>
+      <p class="small muted" style="margin-top:0">Clear out every hand you've added, then add your new card. Save your old card to a file first if you might want it back.</p>
+      <div class="row"><button class="danger small" id="deleteAllBtn">Delete all my hands</button></div>
     </section>
 
     <section class="card hidden" id="pasteBox">
@@ -603,8 +607,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <!-- ?v= must match APP_VERSION below. It's what gets a phone past GitHub Pages' ~10 minute cache. -->
-<script src="engine.js?v=3.1"></script>
-<script src="hands.js?v=3.1"></script>
+<script src="engine.js?v=3.2"></script>
+<script src="hands.js?v=3.2"></script>
 <script>
 "use strict";
 const M = window.Mahj;
@@ -615,7 +619,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-const APP_VERSION = "3.1";
+const APP_VERSION = "3.2";
 // The claude.ai preview copy has no update to fetch; its build sets this to false.
 const CAN_UPDATE = true;
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/mahjong/";
@@ -1756,6 +1760,23 @@ $("pasteCancel").addEventListener("click", closePaste);
 $("pasteAdd").addEventListener("click", addPasted);
 $("pasteText").addEventListener("input", renderPaste);
 $("copyHandsBtn").addEventListener("click", copyHands);
+// Delete all: the first tap arms the button, a second tap within a few seconds deletes.
+$("deleteAllBtn").addEventListener("click", () => {
+  const b = $("deleteAllBtn"), n = state.custom.length;
+  if (!n) { toast("There are no hands of yours to delete."); return; }
+  if (!b.dataset.armed) {
+    b.dataset.armed = "1"; b.classList.add("armed");
+    b.textContent = `Tap again to delete all ${n} hand${n > 1 ? "s" : ""}`;
+    clearTimeout(b._t);
+    b._t = setTimeout(() => { delete b.dataset.armed; b.classList.remove("armed"); b.textContent = "Delete all my hands"; }, 4000);
+    return;
+  }
+  clearTimeout(b._t); delete b.dataset.armed; b.classList.remove("armed"); b.textContent = "Delete all my hands";
+  state.custom = []; state.pick = null;
+  save("mahj.hands", state.custom);
+  renderAll();
+  toast(`Deleted ${n} hand${n > 1 ? "s" : ""}. Now add your new card.`);
+});
 $("saveCardBtn").addEventListener("click", saveCard);
 $("restoreBtn").addEventListener("click", () => $("restoreFile").click());
 $("restoreFile").addEventListener("change", e => { restoreCard(e.target.files[0]); e.target.value = ""; });
