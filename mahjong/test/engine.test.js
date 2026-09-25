@@ -231,3 +231,19 @@ test("call options: groups one tile short, the winning tile, and concealed hands
   const locked = M.bestFor(evens, ["b2", "b2", "b6", "b6", "b6", "b8", "b8"], [["b4", "b4", "b4"]]);
   assert.ok(!M.callOptions(evens, locked).some(o => o.tile === "b4"));
 });
+
+test("a hand can list several ways to play it, split by /", () => {
+  const h = hand("2468c 2222b Db 2222a Da / 2468c 4444b Db 4444a Da / 2468c 6666b Db 6666a Da / 2468c 8888b Db 8888a Da");
+  assert.equal(h.groups.alts.length, 4);
+  assert.equal(M.variants(h).length, 4 * 6);
+  // Racks for the 6s way and the 8s way both match fully.
+  const sixes = ["d2", "d4", "d6", "d8", "c6", "c6", "c6", "c6", "RD", "b6", "b6", "b6", "b6", "GD"];
+  assert.equal(M.bestFor(h, sixes).away, 0);
+  assert.equal(M.bestFor(h, sixes.map(t => t.replace("6", "8").replace("d8", "d6")).map((t, i) => i === 2 ? "d6" : i === 3 ? "d8" : t)).away, 0);
+  // Each way is checked on its own: a bad way names which one.
+  assert.throws(() => M.parsePattern("FF 1111a 2222b 3333c / FF 1111a"), /Way 2/);
+  // Lines with ways survive paste and copy.
+  const line = "2468 | 2468c 2222b Db 2222a Da / 2468c 4444b Db 4444a Da | X 25";
+  const back = M.parseHandLines(M.formatHandLine(M.parseHandLines(line).hands[0])).hands[0];
+  assert.equal(back.pattern, "2468c 2222b Db 2222a Da / 2468c 4444b Db 4444a Da");
+});
