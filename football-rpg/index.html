@@ -18,7 +18,7 @@
   --night:#0b1712; --sideline:#0f241a; --turf:#17392a; --turf-2:#1b4231; --chalk:#eef2e6; --dim:#97ab9e;
   --torch:#f2a23a; --bulls:#d6533a; --wraith:#8fd8c8; --leather:#a8693a;
   --fur:#6b4329; --snout:#a07a5c; --horn:#f1e6c8; --robe:#2c4245; --hood:#152123;
-  --good:#8cd894; --bad:#ff7461; --line:rgba(238,242,230,.14); --faint:rgba(238,242,230,.26);
+  --good:#8cd894; --bad:#ff7461; --mana:#62b4ff; --gold:#f5c542; --line:rgba(238,242,230,.14); --faint:rgba(238,242,230,.26);
   --f-display:"Grenze Gotisch",Georgia,"Times New Roman",serif;
   --f-body:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --f-num:"Chivo Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -112,6 +112,60 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 .auto input{accent-color:var(--torch);width:16px;height:16px}
 #stats{font-family:var(--f-num);font-size:12px;font-variant-numeric:tabular-nums}
 
+/* RPG chrome */
+.bars{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bars .mom{grid-column:auto;min-width:0}
+.mana .bar i{background:linear-gradient(90deg,#3c4fd6,var(--mana))}
+.panel{border-color:color-mix(in srgb,var(--torch) 38%,transparent);background:linear-gradient(180deg,color-mix(in srgb,#14201a 95%,transparent),color-mix(in srgb,var(--night) 95%,transparent));
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--night) 92%,transparent),inset 0 0 0 4px color-mix(in srgb,var(--torch) 16%,transparent),0 12px 30px rgba(0,0,0,.45)}
+.card{background:linear-gradient(180deg,#1d3226,#122118);border-color:color-mix(in srgb,var(--torch) 30%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 4px 12px rgba(0,0,0,.35)}
+.card:not(:disabled):hover{border-color:var(--torch)}
+.spells{display:flex;gap:8px;overflow-x:auto;flex:none;min-height:40px;align-items:center;scrollbar-width:none}
+.spells::-webkit-scrollbar{display:none}
+.spell{display:flex;align-items:center;gap:7px;flex:none;padding:6px 12px 6px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+  background:color-mix(in srgb,var(--c) 10%,var(--night));color:var(--chalk);font:inherit;text-align:left;cursor:pointer;touch-action:manipulation}
+.spell svg{width:18px;height:18px;fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;flex:none}
+.spell b{display:block;font-size:13px;line-height:1.05}
+.spell small{display:block;font-size:11px;line-height:1.1;color:var(--dim)}
+.spell.armed{background:color-mix(in srgb,var(--c) 28%,var(--night));box-shadow:0 0 0 1px var(--c),0 0 16px color-mix(in srgb,var(--c) 55%,transparent)}
+.spell:disabled{opacity:.4;cursor:default}
+.spell:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+.reveal{flex:none;font-size:13px;font-weight:600;color:#d9c2ff;padding:6px 12px;border:1px dashed #9a6bff;border-radius:999px}
+.coin{display:inline-block;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,var(--gold) 45%,#a8741a);box-shadow:0 0 0 1px #6b4a12;vertical-align:-1px;flex:none}
+.shopbtn{appearance:none;display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);
+  background:color-mix(in srgb,var(--gold) 12%,var(--night));color:var(--chalk);font:600 14px var(--f-body);cursor:pointer;touch-action:manipulation}
+.shopbtn b{font-family:var(--f-num);font-size:13px}
+.shopbtn:disabled{opacity:.45;cursor:default}
+.shopbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.loot{margin:0;display:flex;align-items:center;gap:7px;font-weight:700;color:var(--gold)}
+.shop{position:fixed;inset:0;z-index:30;display:flex;justify-content:center;background:rgba(2,6,4,.82);
+  padding-block:calc(env(safe-area-inset-top,0px) + 14px) calc(env(safe-area-inset-bottom,0px) + 14px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.shop-in{width:100%;max-width:540px;display:flex;flex-direction:column;gap:12px;min-height:0;padding:16px;border-radius:14px;
+  background:linear-gradient(180deg,#15211b,#0b130e);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);
+  box-shadow:inset 0 0 0 4px var(--night),inset 0 0 0 5px color-mix(in srgb,var(--gold) 18%,transparent),0 20px 50px rgba(0,0,0,.6)}
+.shop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.shop-head h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:32px;line-height:1;color:var(--gold);text-wrap:balance}
+.shop-head p{margin:5px 0 0;color:var(--dim);font-size:14px;line-height:1.3}
+.purse{display:flex;align-items:center;gap:7px;flex:none;font-family:var(--f-num);font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.purse .coin{width:16px;height:16px}
+.shop-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;overscroll-behavior:contain}
+.shop-group h3{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.items{display:grid;gap:8px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:center;padding:11px 12px;border-radius:10px;
+  background:color-mix(in srgb,var(--c) 7%,var(--night));border:1px solid color-mix(in srgb,var(--c) 34%,transparent)}
+.item>*{grid-column:1}
+.item h4{margin:0;font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1.05;color:var(--c)}
+.item .tag{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c);opacity:.85}
+.item p{margin:2px 0 0;font-size:13.5px;line-height:1.3}
+.buy{grid-column:2;grid-row:1/span 3;appearance:none;border:0;border-radius:8px;padding:9px 12px;background:var(--gold);color:#1b1306;
+  font:700 14px var(--f-num);display:flex;align-items:center;gap:6px;cursor:pointer;touch-action:manipulation}
+.buy:disabled{background:transparent;color:var(--dim);border:1px solid var(--line);cursor:default}
+.buy:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
+.item.owned{opacity:.7}
+.shop-msg{margin:0;min-height:1.3em;font-size:14px;font-weight:600;color:var(--good)}
+.shop-foot{display:flex;justify-content:space-between;align-items:center;gap:12px}
+
 @media (prefers-reduced-motion: reduce){
   .los,.ltg,.ball,.bar i,.card{transition:none}
 }
@@ -121,7 +175,7 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
   <header class="board">
     <div class="matchup"><span class="bulls">Labyrinth Bulls <em id="scB">0</em></span><span class="wraiths"><small>vs</small> Hollowmere Wraiths <em id="scW">0</em></span></div>
     <div class="situ"><b id="downTxt">1st &amp; 10</b><span id="spotTxt">Own 25</span></div>
-    <div class="mom"><span class="lbl">Momentum</span><div class="bar"><i id="momFill"></i></div><span class="pct" id="momPct">0%</span></div>
+    <div class="bars"><div class="mom"><span class="lbl">Rally</span><div class="bar"><i id="momFill"></i></div><span class="pct" id="momPct">0%</span></div><div class="mom mana"><span class="lbl">Mana</span><div class="bar"><i id="manaFill"></i></div><span class="pct" id="manaTxt">60</span></div></div>
   </header>
 
   <div class="strip" aria-hidden="true">
@@ -142,12 +196,24 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
     </div>
   </section>
 
+  <div class="spells" id="spells" aria-label="Spells to cast before the snap"></div>
   <div class="cards" id="cards"></div>
 
   <footer class="foot">
     <label class="auto" for="auto"><input type="checkbox" id="auto"> Auto mode (dice only)</label>
-    <span id="stats">Play 0 · 0 yds</span>
+    <button class="shopbtn" id="shopBtn" type="button">Shop <i class="coin"></i><b id="goldTxt">0</b></button>
   </footer>
+
+  <div class="shop" id="shop" hidden role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+    <div class="shop-in">
+      <header class="shop-head">
+        <div><h2 id="shopTitle">The Bone Market</h2><p>Spend the gold you win on drives. Everything you buy stays with your team.</p></div>
+        <div class="purse"><i class="coin"></i><span id="shopGold">0</span></div>
+      </header>
+      <div class="shop-list" id="shopList"></div>
+      <div class="shop-foot"><p class="shop-msg" id="shopMsg" aria-live="polite"></p><button class="again" id="shopClose" type="button">Back to the game</button></div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/babylonjs@9.28.0/babylon.js"></script>
@@ -164,7 +230,7 @@ let W = 0, H = 0;
 
 const css = getComputedStyle(document.documentElement);
 const C = {};
-['torch','bulls','wraith','chalk','dim','good','bad','night','sideline','turf','turf-2','leather','fur','snout','horn','robe','hood']
+['torch','bulls','wraith','chalk','dim','good','bad','night','sideline','turf','turf-2','leather','fur','snout','horn','robe','hood','gold','mana']
   .forEach(k => C[k.replace('-', '')] = css.getPropertyValue('--' + k).trim());
 const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * t + parseInt(b.substr(i, 2), 16) * (1 - t)).toString(16).padStart(2, '0')).join('');
 const FD = css.getPropertyValue('--f-display').trim(), FB = css.getPropertyValue('--f-body').trim(), FN = css.getPropertyValue('--f-num').trim();
@@ -193,9 +259,73 @@ const DIRS = ['left', 'right', 'up'];
 const FIELD_W = 53.3, MID = 26.65, HASH_L = 23.6, HASH_R = 29.7;
 
 const fresh = () => ({ ball: 25, bx: MID, down: 1, toGo: 10, mom: 0, fail: 0, plays: 0, yards: 0, perf: 0,
-  fright: false, wraithRally: false, over: false, result: null, phase: 'choose', side: 'O', score: { B: 0, W: 0 } });
+  fright: false, wraithRally: false, over: false, result: null, phase: 'choose', side: 'O', score: { B: 0, W: 0 }, mana: null, earn: 0, armed: null, reveal: null, nextDef: null, nextOff: null });
 let S = fresh();
 const addMom = v => { S.mom = clamp(S.mom + v, 0, 100); };
+
+/* ================= team: gold, gear and spells that stay with you ================= */
+const TEAM_KEY = 'gridiron-glory-team';
+const teamDefault = () => ({ gold: 100, owned: {} });
+let TEAM = teamDefault();
+try { const t = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (t && typeof t.gold === 'number') TEAM = Object.assign(teamDefault(), t); } catch (_) {}
+let teamDoc = null, saving = false, saveAgain = false;
+function persistLocal() { try { localStorage.setItem(TEAM_KEY, JSON.stringify(TEAM)); } catch (_) {} }
+async function saveTeam() {
+  persistLocal();
+  if (!teamDoc) return;
+  if (saving) { saveAgain = true; return; }
+  saving = true;
+  try { await teamDoc.set({ gold: TEAM.gold, owned: Object.assign({}, TEAM.owned) }); } catch (_) {}
+  saving = false;
+  if (saveAgain) { saveAgain = false; saveTeam(); }
+}
+async function connectStore() {
+  try {
+    if (!window.claude || typeof window.claude.use !== 'function') return;
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id(); if (!id) return;
+    const doc = db.collection('data/users/' + id).doc('gridiron-team');
+    const snap = await doc.get();
+    teamDoc = doc;
+    if (snap.exists) {
+      const d = snap.data();
+      if (d && typeof d.gold === 'number') { TEAM = Object.assign(teamDefault(), { gold: d.gold, owned: Object.assign({}, d.owned || {}) }); persistLocal(); render(); }
+    } else saveTeam();
+  } catch (_) { teamDoc = null; }
+}
+const has = id => !!TEAM.owned[id];
+const maxMana = () => 60 + (has('manawell') ? 40 : 0);
+const rallyAt = () => has('oldhorn') ? 70 : 100;
+const SPELLS = {
+  foresight: { name: 'Foresight', cost: 15, sides: 'OD', color: '#b98cff', desc: 'See their call before you pick yours.' },
+  haste:     { name: 'Haste',     cost: 20, sides: 'O',  color: '#7be0ff', desc: 'Your carrier runs faster and juke windows stay open longer.' },
+  stoneskin: { name: 'Stoneskin', cost: 25, sides: 'OD', color: '#d8c08a', desc: 'Every roll this play swings 3 your way.' },
+  fireball:  { name: 'Fireball',  cost: 30, sides: 'O',  color: '#ff7a2e', desc: 'Blast the first defender off his feet right after the snap.' },
+  frost:     { name: 'Frost Nova', cost: 30, sides: 'D', color: '#8fdcff', desc: 'Their whole offense moves at two-thirds speed for the play.' }
+};
+const START_SPELLS = ['foresight', 'haste'];
+const known = k => START_SPELLS.includes(k) || has(k);
+const RUNE = {
+  foresight: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  haste: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  stoneskin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>',
+  fireball: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c4 0 7-3 7-7 0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-3 3-5 5-5 8 0 4 3 7 7 7z"/></svg>',
+  frost: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20M5 5l14 14M19 5 5 19"/></svg>'
+};
+const RARITY = { rare: '#62b4ff', epic: '#c48bff', legendary: '#f5a623' };
+const ITEMS = [
+  { id: 'horns', name: 'Iron-Capped Horns', kind: 'Gear', rarity: 'rare', cost: 80, desc: '+1 power on Bull Run. On defense, their runs roll 1 lower.' },
+  { id: 'cleats', name: 'Cleats of the Gale', kind: 'Gear', rarity: 'rare', cost: 90, desc: 'Your carriers run faster, and every juke window stays open 0.2 seconds longer.' },
+  { id: 'gauntlets', name: 'Gauntlets of Grip', kind: 'Gear', rarity: 'rare', cost: 80, desc: '+1 on catches. A natural 1 no longer fumbles.' },
+  { id: 'runeball', name: 'Runed Pigskin', kind: 'Gear', rarity: 'epic', cost: 140, desc: '+1 arm on Deep Spell and a wider gold zone on the charge bar.' },
+  { id: 'boneplate', name: 'Bone Plate Pads', kind: 'Gear', rarity: 'epic', cost: 140, desc: 'On defense, every Wraith roll is 2 lower.' },
+  { id: 'stoneskin', name: 'Tome of Stoneskin', kind: 'Spell', rarity: 'rare', cost: 90, desc: 'Learn Stoneskin: every roll this play swings 3 your way. 25 mana, offense or defense.' },
+  { id: 'fireball', name: 'Tome of Fireball', kind: 'Spell', rarity: 'epic', cost: 120, desc: 'Learn Fireball: blast the first defender off his feet at the snap. 30 mana, offense.' },
+  { id: 'frost', name: 'Tome of Frost Nova', kind: 'Spell', rarity: 'epic', cost: 120, desc: 'Learn Frost Nova: their offense moves at two-thirds speed. 30 mana, defense.' },
+  { id: 'manawell', name: 'Mana Well', kind: 'Relic', rarity: 'rare', cost: 100, desc: '+40 max mana.' },
+  { id: 'oldhorn', name: 'Horn of Old Horns', kind: 'Relic', rarity: 'legendary', cost: 220, desc: 'Old Horns can charge at 70% Rally instead of 100%.' }
+];
 
 /* ================= simulation (yards: x across, y upfield) ================= */
 let ents = [], play = null, mode = null, ts = 1, tsT = 1, chargeHeld = false;
@@ -280,6 +410,7 @@ function stepEnt(e, dt) {
   }
   if (e.state === 'down') { const k = Math.pow(.03, dt); e.vx *= k; e.vy *= k; e.x += e.vx * dt; e.y += e.vy * dt; return; }
   if (e.ai) e.ai(e, dt);
+  if (play && play.frost && !play.closed && e.team === 'B') { e.vx *= .67; e.vy *= .67; }
   e.x = clamp(e.x + e.vx * dt, -1, FIELD_W + 1); e.y += e.vy * dt;
   e.sp = Math.hypot(e.vx, e.vy);
   if (!e.lock && e.sp > .4) {
@@ -325,6 +456,23 @@ lantern.diffuse = col('#ffe7c2'); lantern.specular = C3.Black(); lantern.intensi
 const torchLights = [0, 1, 2, 3].map(i => { const l = new B.PointLight('tl' + i, V3.Zero(), scene); l.diffuse = col(C.torch); l.specular = C3.Black(); l.range = 17; l.intensity = 1.1; return l; });
 const glow = new B.GlowLayer('glow', scene, { mainTextureSamples: 1, blurKernelSize: 32 });
 glow.intensity = .75;
+let pipe = null;
+try {
+  pipe = new B.DefaultRenderingPipeline('pipe', true, scene, [camera]);
+  pipe.fxaaEnabled = true;
+  pipe.bloomEnabled = true; pipe.bloomThreshold = .6; pipe.bloomWeight = .4; pipe.bloomKernel = 48; pipe.bloomScale = .5;
+  pipe.imageProcessingEnabled = true;
+  const ip = pipe.imageProcessing;
+  ip.toneMappingEnabled = true; ip.toneMappingType = B.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  ip.exposure = 1.35; ip.contrast = 1.18;
+  ip.vignetteEnabled = true; ip.vignetteWeight = 2.4; ip.vignetteColor = new B.Color4(0, 0, 0, 0);
+  pipe.chromaticAberrationEnabled = true; pipe.chromaticAberration.aberrationAmount = 10;
+  pipe.grainEnabled = true; pipe.grain.intensity = 7; pipe.grain.animated = true;
+} catch (_) { pipe = null; }
+function lowFX() {
+  if (pipe) { pipe.bloomEnabled = false; pipe.chromaticAberrationEnabled = false; pipe.grainEnabled = false; }
+  glow.intensity = .5; engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 1.5));
+}
 
 const mat = (name, hex, o = {}) => {
   const m = new B.StandardMaterial(name, scene);
@@ -435,7 +583,7 @@ function bannerDraw(team) {
   };
 }
 
-const torches = [], flameInst = [];
+const torches = [], flameInst = [], crowdEyes = [], blinks = [];
 let losLine, fdLine;
 const emberAt = new V3(0, 0, 25);
 function buildArena() {
@@ -460,6 +608,17 @@ function buildArena() {
     const w = MB.CreateBox('bwall', { width: WX * 2 + 1.6, height: 9, depth: 1.6, faceUV: Array(6).fill(new B.Vector4(0, 0, 9, 2.2)) }, scene);
     w.position.set(0, 4.5, z); stone.push(w);
   });
+  for (let z = -10; z <= 110; z += 20) {
+    const R = WX - .8, path = [];
+    for (let i = 0; i <= 24; i++) { const a = Math.PI * i / 24; path.push(new V3(-Math.cos(a) * R, 8.6 + Math.sin(a) * R * .55, z)); }
+    stone.push(MB.CreateTube('arch', { path, radius: .65, tessellation: 8, cap: B.Mesh.CAP_ALL }, scene));
+  }
+  [-1, 1].forEach(sd => {
+    for (let i = 1; i <= 5; i++) {
+      const h = 9 + i * 1.5, st = MB.CreateBox('stand', { width: 1.6, height: h, depth: 150, faceUV: Array(6).fill(new B.Vector4(0, 0, 20, 2)) }, scene);
+      st.position.set(sd * (WX + .8 + 1.6 * i), h / 2, 50); stone.push(st);
+    }
+  });
   merge(stone, 'stone', STONE).freezeWorldMatrix();
   const iron = [];
   torches.forEach(p => {
@@ -479,9 +638,28 @@ function buildArena() {
     const leg = MB.CreateCylinder('leg', { diameter: .2, height: 1.3, tessellation: 6 }, scene); leg.position.set(x, .6, z); iron.push(leg);
     torches.push(new V3(x, 2.1, z));
   });
+  for (let z = 10; z <= 90; z += 20) {
+    const ring = MB.CreateTorus('chand', { diameter: 3, thickness: .14, tessellation: 24 }, scene); ring.position.set(0, 14, z); iron.push(ring);
+    const chain = MB.CreateCylinder('chain', { diameter: .08, height: 12, tessellation: 4 }, scene); chain.position.set(0, 20, z); iron.push(chain);
+  }
   merge(iron, 'iron', IRON).freezeWorldMatrix();
   const flame = MB.CreateSphere('flame', { diameter: .5, segments: 6 }, scene); flame.material = FLAME; flame.isVisible = false;
   torches.forEach((p, i) => { const f = flame.createInstance('f' + i); f.position.copyFrom(p); f.big = p.y < 3; flameInst.push(f); });
+  for (let z = 10; z <= 90; z += 20) {
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, f = flame.createInstance('cf'); f.position.set(Math.cos(a) * 1.5, 14.3, z + Math.sin(a) * 1.5); f.small = true; flameInst.push(f); }
+    torches.push(new V3(0, 13.4, z));
+  }
+  const mkEyes = (hex) => { const m = merge([part(MB.CreateSphere('a', { diameter: .15, segments: 4 }, scene), null, 0, 0, -.12), part(MB.CreateSphere('b', { diameter: .15, segments: 4 }, scene), null, 0, 0, .12)], 'crowd', mat('ce' + hex, hex, { em: hex, flat: true })); m.isVisible = false; return m; };
+  const eyeT = mkEyes(C.wraith), eyeR = mkEyes('#ff6a3d');
+  [-1, 1].forEach(sd => {
+    for (let i = 1; i <= 5; i++) {
+      const x = sd * (WX + .3 + 1.6 * i), y = 9 + i * 1.5 + .7;
+      for (let z = -20; z <= 120; z += 1.25) {
+        if (rng() < .45) continue;
+        const inst = (rng() < .14 ? eyeR : eyeT).createInstance('ce'); inst.position.set(x, y + rng() * .3, z + rng() * .4); crowdEyes.push(inst);
+      }
+    }
+  });
   const banB = mat('banB', '#ffffff'), banW = mat('banW', '#ffffff');
   banB.diffuseTexture = canvasTex('bB', 128, 256, bannerDraw('B'), true); banB.useAlphaFromDiffuseTexture = true; banB.backFaceCulling = false;
   banW.diffuseTexture = canvasTex('bW', 128, 256, bannerDraw('W'), true); banW.useAlphaFromDiffuseTexture = true; banW.backFaceCulling = false;
@@ -632,8 +810,85 @@ spellPS.blendMode = B.ParticleSystem.BLENDMODE_ONEONE; spellPS.start();
 const ringMesh = hex => { const r = MB.CreateTorus('ring', { diameter: 1.7, thickness: .07, tessellation: 36 }, scene); r.material = mat('rm' + hex, hex, { em: hex, flat: true }); r.position.y = .05; r.isVisible = false; return r; };
 const rings = { carrier: ringMesh(C.torch), target: ringMesh(C.chalk), active: ringMesh(C.bad) };
 
+/* ---------- spell and impact effects ---------- */
+const C4 = (h, a) => { const c = col(h); return new B.Color4(c.r, c.g, c.b, a); };
+function mkBurst(name, c1, c2, o) {
+  const ps = new B.ParticleSystem(name, o.cap || 300, scene);
+  ps.particleTexture = dotTex; ps.emitter = new V3(0, -50, 0);
+  ps.minEmitBox = new V3(-.3, 0, -.3); ps.maxEmitBox = new V3(.3, .4, .3);
+  ps.color1 = c1; ps.color2 = c2; ps.colorDead = new B.Color4(0, 0, 0, 0);
+  ps.minSize = o.s0; ps.maxSize = o.s1; ps.minLifeTime = o.l0; ps.maxLifeTime = o.l1;
+  ps.direction1 = new V3(-1, o.u0, -1); ps.direction2 = new V3(1, o.u1, 1); ps.minEmitPower = o.p0; ps.maxEmitPower = o.p1;
+  ps.gravity = new V3(0, o.g, 0); ps.emitRate = 0; ps.manualEmitCount = 0;
+  ps.blendMode = o.add ? B.ParticleSystem.BLENDMODE_ONEONE : B.ParticleSystem.BLENDMODE_STANDARD;
+  ps.start(); return ps;
+}
+const BURSTS = {
+  fire:   mkBurst('fire', C4('#ffc06a', 1), C4('#ff4d1a', .9), { s0: .3, s1: .8, l0: .3, l1: .8, u0: .2, u1: 1.6, p0: 2, p1: 7, g: 1.5, add: true, cap: 600 }),
+  frost:  mkBurst('frostP', C4('#e6fbff', 1), C4('#6cc8ff', .8), { s0: .15, s1: .45, l0: .5, l1: 1.2, u0: .1, u1: 1, p0: 2, p1: 8, g: -1, add: true, cap: 500 }),
+  arcane: mkBurst('arcane', C4('#e2c8ff', 1), C4('#8f5bff', .8), { s0: .15, s1: .4, l0: .5, l1: 1.1, u0: .6, u1: 2.4, p0: 1, p1: 4, g: .5, add: true }),
+  spark:  mkBurst('spark', C4('#fff0b8', 1), C4('#f2a23a', 1), { s0: .06, s1: .15, l0: .2, l1: .5, u0: .5, u1: 2, p0: 3, p1: 7, g: -9, add: true }),
+  dust:   mkBurst('dust', C4('#8a8270', .45), C4('#4b4a3d', .3), { s0: .5, s1: 1.2, l0: .5, l1: 1.2, u0: .1, u1: .6, p0: .6, p1: 2, g: .3, add: false }),
+  gold:   mkBurst('goldP', C4('#ffd36b', 1), C4('#ff8a3d', 1), { s0: .15, s1: .35, l0: .9, l1: 1.9, u0: 1.5, u1: 4, p0: 5, p1: 11, g: -6, add: true, cap: 700 })
+};
+function burstAt(k, x, y, h, n) {
+  const ps = BURSTS[k]; if (!ps) return;
+  ps.emitter = new V3(RX(x), h, RZ(y)); ps.manualEmitCount = reduce ? Math.min(n, 12) : n;
+}
+let shakeAmt = 0;
+const shake = a => { if (!reduce) shakeAmt = Math.max(shakeAmt, a); };
+const runeTex = canvasTex('rune', 512, 512, g => {
+  g.clearRect(0, 0, 512, 512); g.strokeStyle = '#fff'; g.lineCap = 'round';
+  [[240, 10], [204, 5], [120, 6], [96, 3]].forEach(([r, w]) => { g.lineWidth = w; g.beginPath(); g.arc(256, 256, r, 0, Math.PI * 2); g.stroke(); });
+  g.lineWidth = 5;
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3, b = a + Math.PI * 2 / 3; g.beginPath(); g.moveTo(256 + Math.cos(a) * 204, 256 + Math.sin(a) * 204); g.lineTo(256 + Math.cos(b) * 204, 256 + Math.sin(b) * 204); g.stroke(); }
+  g.lineWidth = 4;
+  for (let i = 0; i < 20; i++) {
+    const a = i / 20 * Math.PI * 2; g.save(); g.translate(256 + Math.cos(a) * 222, 256 + Math.sin(a) * 222); g.rotate(a);
+    g.beginPath(); g.moveTo(0, -11); g.lineTo(0, 11); const k = rng(); g.moveTo(0, -11); g.lineTo(k < .5 ? 8 : -8, -2); if (k > .3) { g.moveTo(0, 2); g.lineTo(k < .6 ? -7 : 7, 10); } g.stroke(); g.restore();
+  }
+}, true);
+const RUNEM = mat('runem', '#000000', { flat: true }); RUNEM.opacityTexture = runeTex; RUNEM.emissiveColor = C3.White(); RUNEM.backFaceCulling = false; RUNEM.alpha = 0;
+const runeDisc = MB.CreateGround('runeDisc', { width: 1, height: 1 }, scene); runeDisc.material = RUNEM; runeDisc.position.y = .07; runeDisc.isVisible = false;
+const FROSTM = mat('frostm', '#cff2ff', { em: '#8fdcff', flat: true });
+const frostRing = MB.CreateTorus('frostRing', { diameter: 2, thickness: .3, tessellation: 48 }, scene); frostRing.material = FROSTM; frostRing.isVisible = false;
+const fbMesh = MB.CreateSphere('fireballMesh', { diameter: .7, segments: 8 }, scene); fbMesh.material = FLAME; fbMesh.isVisible = false;
+const fbTrail = mkBurst('fbTrail', C4('#ffcf7a', 1), C4('#ff4d1a', .8), { s0: .25, s1: .6, l0: .15, l1: .4, u0: -.2, u1: .4, p0: .2, p1: .8, g: 1, add: true, cap: 400 });
+fbTrail.emitter = fbMesh;
+let runeT = -1, frostT = -1, fbState = null;
+function castFX(k) {
+  const sp = SPELLS[k], y = S.ball + (isD() ? 3 : -3.5);
+  RUNEM.emissiveColor = col(sp.color); runeT = 0; runeDisc.isVisible = true;
+  runeDisc.position.x = RX(S.bx); runeDisc.position.z = RZ(y);
+  burstAt(k === 'fireball' ? 'fire' : k === 'frost' ? 'frost' : 'arcane', S.bx, y, .3, 90);
+  if (k === 'frost') { frostT = 0; frostRing.isVisible = true; frostRing.position.set(RX(S.bx), .25, RZ(S.ball - 2)); burstAt('frost', S.bx, S.ball - 4, .5, 260); }
+}
+function fireballFX(from, to, onHit) { fbState = { t: 0, dur: .38, fx: from.x, fy: from.y, to, onHit }; fbMesh.isVisible = true; fbTrail.emitRate = reduce ? 0 : 420; }
+function updateFX(now, dt, rdt) {
+  if (runeT >= 0) {
+    runeT += rdt; const u = runeT / 1.6, sc_ = 2 + Math.min(1, u * 2.5) * 8;
+    runeDisc.scaling.set(sc_, 1, sc_); runeDisc.rotation.y += rdt * 1.2;
+    RUNEM.alpha = u < .15 ? u / .15 : Math.max(0, 1 - (u - .15) / .85);
+    if (u >= 1) { runeT = -1; runeDisc.isVisible = false; }
+  }
+  if (frostT >= 0) {
+    frostT += rdt; const u = frostT / .7, sc_ = 1 + u * 13;
+    frostRing.scaling.set(sc_, 1, sc_); FROSTM.alpha = Math.max(0, 1 - u);
+    if (u >= 1) { frostT = -1; frostRing.isVisible = false; }
+  }
+  if (fbState) {
+    const f = fbState; f.t += dt; const u = Math.min(1, f.t / f.dur), x = f.fx + (f.to.x - f.fx) * u, y = f.fy + (f.to.y - f.fy) * u;
+    fbMesh.position.set(RX(x), 2 + Math.sin(u * Math.PI) * 2.5, RZ(y));
+    if (u >= 1) { fbState = null; fbMesh.isVisible = false; fbTrail.emitRate = 0; burstAt('fire', f.to.x, f.to.y, 1, 320); burstAt('spark', f.to.x, f.to.y, 1, 60); f.onHit(); }
+  }
+  if (crowdEyes.length) {
+    if (Math.random() < .7) { const e = crowdEyes[(Math.random() * crowdEyes.length) | 0]; if (e.scaling.y === 1) { e.scaling.y = .1; blinks.push([e, now + 150]); } }
+    for (let i = blinks.length - 1; i >= 0; i--) if (blinks[i][1] < now) { blinks[i][0].scaling.y = 1; blinks.splice(i, 1); }
+  }
+}
+
 const RT = mat('ringT', C.torch, { em: C.torch, flat: true }), RB = mat('ringB', C.bad, { em: C.bad, flat: true });
-function syncVisuals(now, dt) {
+function syncVisuals(now, dt, rdt) {
   const seen = new Set();
   for (const e of ents) {
     const v = modelOf(e); seen.add(v);
@@ -694,12 +949,13 @@ function syncVisuals(now, dt) {
   placeRing(rings.active, P && P.prompt && up(P.active) ? P.active : null);
   losLine.isVisible = !S.over; losLine.position.z = RZ(S.ball);
   fdLine.position.z = RZ(Math.min(100, S.ball + S.toGo)); fdLine.isVisible = !S.over && S.ball + S.toGo < 100;
-  flameInst.forEach((f, i) => { const k = 1 + Math.sin(now / 90 + i * 1.7) * .12 + Math.sin(now / 37 + i) * .06, b = f.big ? 2.2 : 1; f.scaling.set(k * b, k * 1.6 * b, k * b); });
+  flameInst.forEach((f, i) => { const k = 1 + Math.sin(now / 90 + i * 1.7) * .12 + Math.sin(now / 37 + i) * .06, b = f.big ? 2.2 : f.small ? .5 : 1; f.scaling.set(k * b, k * 1.6 * b, k * b); });
   const tx = RX(cam.x), tz = RZ(cam.y);
   const near = torches.map((p, i) => [(p.x - tx) ** 2 + (p.z - tz) ** 2, i]).sort((a, b) => a[0] - b[0]);
   torchLights.forEach((l, j) => { l.position.copyFrom(torches[near[j][1]]); l.intensity = 1.05 + Math.sin(now / 70 + j * 2) * .12; });
   lantern.position.set(tx, 11, tz + 2);
   emberAt.set(tx, 0, tz);
+  updateFX(now, dt, rdt);
 }
 function updateCam(rdt) {
   const zoom = play && !play.closed ? play.zoom : 23;
@@ -708,7 +964,8 @@ function updateCam(rdt) {
   cam.x += (clamp(f.x, 8, FIELD_W - 8) - cam.x) * k;
   cam.y += (f.y - cam.y) * k;
   const tx = RX(cam.x), tz = RZ(cam.y);
-  camera.position.set(tx - cam.zy * .42, cam.zy * .38, tz - cam.zy * .42);
+  const j = shakeAmt; shakeAmt *= Math.exp(-rdt * 7);
+  camera.position.set(tx - cam.zy * .42 + (Math.random() - .5) * j, cam.zy * .38 + (Math.random() - .5) * j, tz - cam.zy * .42);
   camera.setTarget(new V3(tx + cam.zy * .05, 0, tz + cam.zy * .06));
 }
 const projM = B.Matrix.Identity();
@@ -776,7 +1033,7 @@ function frame() {
   const dt = rdt * ts;
   if (play && !play.closed) tickPlay(play, dt);
   for (const e of ents) stepEnt(e, dt);
-  updateBall(dt); updateCam(rdt); syncVisuals(now, dt);
+  updateBall(dt); updateCam(rdt); syncVisuals(now, dt, rdt);
   scene.render();
   ctx.clearRect(0, 0, W, H);
   if (mode && mode.draw) mode.draw(now);
@@ -872,7 +1129,7 @@ function startCatchHUD(P, wr) {
 
 function startChargeHUD(P) {
   let pressing = false, tp = 0, lvl = 0;
-  const MAX = 1.3, SWEET = [.74, .92], PERF = [.8, .86];
+  const MAX = 1.3, SWEET = has('runeball') ? [.7, .95] : [.74, .92], PERF = [.8, .86];
   setTop('Deep spell', 'Hold to charge. Release in the gold before the rush gets home.');
   const release = () => {
     if (!pressing) return; pressing = false; chargeHeld = false;
@@ -928,6 +1185,8 @@ function applySnap(P, q) {
     if (q === 'perfect') { adv--; P.mods.push(['you jumped the snap', -2]); S.perf++; addMom(6); }
     else if (q === 'good') P.mods.push(['quick get-off', -1]);
     else if (q === 'miss') P.mods.push(['late off the ball', 2]);
+    if (has('horns') && P.kind === 'run') P.mods.push(['your horns', -1]);
+    if (has('boneplate')) P.mods.push(['bone plate', -2]);
     P.match = m; P.adv = Math.sign(adv);
     P.push = { perfect: -.9, good: -.3, auto: .3, miss: 1.3 }[q] + (P.kind === 'run' ? 0 : -1);
     return;
@@ -972,7 +1231,8 @@ function release(P, dn, ai) {
 }
 function startCarrier(P, e, lane) {
   P.carrier = e; ball.carrier = e; ball.fl = null; ball.spell = false;
-  e.ai = carrierAI; e.lane = lane; e.top = e.role === 'RB' ? 7.2 : 7.6; e.spd = Math.max(3, e.sp || 0); e.lock = false;
+  e.ai = carrierAI; e.lane = lane; e.top = e.role === 'RB' ? 7.2 : 7.6;
+  if (!isD()) { if (P.spell === 'haste') e.top += 1.4; if (has('cleats')) e.top += .8; } e.spd = Math.max(3, e.sp || 0); e.lock = false;
 }
 function carrierAI(e, dt) {
   const P = play; if (!P) return;
@@ -989,7 +1249,7 @@ function carrierAI(e, dt) {
   vx = clamp(vx, -6.5, 6.5);
   e.vx = vx; e.vy = Math.sqrt(Math.max(0, e.spd * e.spd - Math.min(vx * vx, e.spd * e.spd * .6)));
   if (e.y >= 100 && !P.out) {
-    popAt(e.x, 102, 'TOUCHDOWN', '', C.torch);
+    popAt(e.x, 102, 'TOUCHDOWN', '', C.torch); burstAt('gold', e.x, 101, 1.5, 420); burstAt('fire', e.x, 101, 1, 160); shake(.4);
     P.finish({ td: true, y: 100 - S.ball, kind: 'good', head: 'Touchdown!',
       text: P.jukes ? `${P.jukes} juke${P.jukes > 1 ? 's' : ''} and #${e.num} is in the end zone.` : `Nobody lays a hand on #${e.num}.` }, 1.4);
   }
@@ -1025,7 +1285,7 @@ function contact(P) {
   if (P.auto) { resolveContact(P, 'auto', dir); return; }
   if (S.side === 'D') { tackleHUD(P, c, a, dir); return; }
   tsT = .05; ts = Math.min(ts, .25);
-  const t0 = performance.now(), win = 1000; let fired = false;
+  const t0 = performance.now(), win = 1000 + (P.spell === 'haste' ? 400 : 0) + (has('cleats') ? 200 : 0); let fired = false;
   setTop('Juke!', dir === 'up' ? `Swipe up to spin past #${a.num}` : `Swipe ${dir} past #${a.num}`);
   const done = q => { if (fired) return; fired = true; mode = null; resolveContact(P, q, dir); };
   mode = {
@@ -1068,12 +1328,13 @@ function resolveContact(P, q, dir) {
     : roll(P, `${dir === 'up' ? 'Spin' : 'Juke'} vs #${a.num}`, [[ql, qm]], 12 + 3 * P.contacts, c, dir === 'up' ? 'SPUN!' : 'JUKED!', 'HIT!');
   P.contacts++; P.prompt = false; P.cool = P.t + .2;
   if (q === 'perfect') S.perf++;
-  if (D ? r.nat <= (q === 'perfect' ? 3 : 1) : (r.nat === 1 && q !== 'perfect' && q !== 'good')) { fumble(P, c, a); return; }
+  if (D ? r.nat <= (q === 'perfect' ? 3 : 1) : (r.nat === 1 && q !== 'perfect' && q !== 'good' && !has('gauntlets'))) { fumble(P, c, a); return; }
   if (D && !r.ok) addMom(q === 'perfect' ? 8 : 4);
   if (r.ok) {
     P.jukes++; if (!D) addMom(q === 'perfect' ? 8 : q === 'good' ? 5 : 2); buzz(15);
     const sgn = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
     c.cut = { vx: sgn * 6.5, t: .32 }; if (!sgn) c.spinT = .35;
+    burstAt('spark', c.x, c.y, 1.2, 22);
     whiff(P, a, c);
     if (r.crit) { const n = ents.find(d => d !== a && d.team === 'W' && up(d) && !d.blocked && dist(d, c) < 7); if (n) whiff(P, n, c); }
     nextTackler(P);
@@ -1090,6 +1351,7 @@ function tackle(P, c, a) {
   P.later.push([P.t + .14, () => {
     knockDown(c, c.hd); c.vx = Math.cos(c.hd) * 2.2; c.vy = Math.sin(c.hd) * 2.2;
     knockDown(a, a.hd); a.vx = c.vx; a.vy = c.vy;
+    burstAt('dust', c.x, c.y, .3, 40); burstAt('spark', c.x, c.y, 1.2, 18); shake(.35);
   }]);
   P.later.push([P.t + .55, () => {
     const spot = clamp(Math.round(c.y), 1, 99), y = spot - S.ball;
@@ -1111,7 +1373,7 @@ function intercept(P, d, wr) {
   ball.fl = null; ball.spell = false; ball.carrier = d; d.blocked = false; d.lock = false;
   d.ai = e => steer(e, e.x + 1, e.y - 40, 7.2);
   wr.ai = e => steer(e, d.x, d.y, 7);
-  popAt(d.x, d.y, 'PICKED OFF', '', C.bad); buzz([60, 40, 60]);
+  popAt(d.x, d.y, 'PICKED OFF', '', C.bad); buzz([60, 40, 60]); burstAt('arcane', d.x, d.y, 1.4, 120);
   P.finish({ to: true, y: 0, kind: 'bad', head: 'Intercepted!', text: `#${d.num} picks it off and heads the other way.` }, 1.6);
 }
 function incomplete(P, wr, cov, q) {
@@ -1140,7 +1402,7 @@ function resolveCatch(P, wr, cov, dc, qmap, labels, nextNum) {
 
 function makeRun(def) {
   const P = newPlay('run', def), c = S.bx, L = S.ball, qb = get(7), rb = get(34);
-  P.stat = 3; P.statName = 'power'; P.zoom = 20;
+  P.stat = 3 + (!isD() && has('horns') ? 1 : 0); P.statName = 'power'; P.zoom = 20;
   const lane = clamp(c + pick([-1.8, 1.8, -3.2, 3.2]), 3, FIELD_W - 3);
   P.focus = () => P.carrier ? { x: P.carrier.x, y: P.carrier.y + 2 } : { x: c, y: L };
   P.begin = () => {
@@ -1178,7 +1440,7 @@ function afterThrow(P, skip) {
 
 function makeShort(def) {
   const P = newPlay('short', def), c = S.bx, L = S.ball, qb = get(7), wr = get(81), cb = get(21);
-  P.stat = 2; P.statName = 'hands'; P.zoom = 24; P.target = wr;
+  P.stat = 2 + (!isD() && has('gauntlets') ? 1 : 0); P.statName = 'hands'; P.zoom = 24; P.target = wr;
   const x0 = wr.x, y0 = wr.y, tThrow = 1.05, fl = .5;
   const route = t => { if (t < .25) return [x0, y0]; const u = t - .25; if (u < .45) return [x0, y0 + u / .45 * 3]; const s = (u - .45) * 7.4; return [x0 + .62 * s, y0 + 3 + .78 * s]; };
   P.focus = () => P.carrier ? { x: P.carrier.x, y: P.carrier.y + 2 } : P.thrown ? { x: ball.x, y: ball.y } : { x: (qb.x + wr.x) / 2, y: L + 1 };
@@ -1214,7 +1476,7 @@ function makeShort(def) {
 
 function makeDeep(def) {
   const P = newPlay('deep', def), c = S.bx, L = S.ball, qb = get(7), wr = get(88), cb = get(24), sf = get(33);
-  P.stat = 1; P.statName = 'arm'; P.zoom = 27; P.target = wr;
+  P.stat = 1 + (!isD() && has('runeball') ? 1 : 0); P.statName = 'arm'; P.zoom = 27; P.target = wr;
   const x0 = wr.x, y0 = wr.y;
   const route = t => t < .25 ? [x0, y0] : [x0 - Math.min(2.5, (t - .25) * 1.3), y0 + (t - .25) * 8.2];
   P.route = route;
@@ -1277,7 +1539,7 @@ function sackQB(P, qb) {
   if (mode && (mode.kind === 'charge' || mode.kind === 'rush')) mode = null;
   setTop('', '');
   const rz = P.rusher; rz.ai = x => steer(x, qb.x, qb.y, 8); rz.dive = true;
-  P.later.push([P.t + .1, () => { knockDown(qb, -Math.PI / 2); qb.vy = -2; knockDown(rz, rz.hd); popAt(qb.x, qb.y, 'SACKED', '', C.bad); buzz(90); }]);
+  P.later.push([P.t + .1, () => { knockDown(qb, -Math.PI / 2); qb.vy = -2; knockDown(rz, rz.hd); popAt(qb.x, qb.y, 'SACKED', '', C.bad); buzz(90); burstAt('dust', qb.x, qb.y, .3, 50); shake(.45); }]);
   P.later.push([P.t + .65, () => {
     const spot = clamp(Math.round(qb.y), 1, 99), y = spot - S.ball;
     P.finish({ y, x: qb.x, kind: 'bad', head: `Sacked, loss of ${-y}`, text: `#${rz.num} gets home before the spell goes off. Release sooner.` }, .6);
@@ -1344,7 +1606,7 @@ function makeRally() {
 const panel = $('panel');
 function showPanel(html) { panel.innerHTML = html; panel.hidden = false; panel.scrollTop = 0; }
 function addPanel(html) { panel.insertAdjacentHTML('beforeend', html); panel.scrollTop = panel.scrollHeight; }
-panel.addEventListener('click', e => { if (e.target.closest('#next')) newDrive(S.side === 'O' ? 'D' : 'O', true); else if (e.target.closest('#newgame')) newDrive('O', false); });
+panel.addEventListener('click', e => { if (e.target.closest('#next')) newDrive(S.side === 'O' ? 'D' : 'O', true); else if (e.target.closest('#newgame')) newDrive('O', false); else if (e.target.closest('#openShop2')) openShop(); });
 const modsTxt = mods => mods.filter(m => m[1]).map(([n, v]) => ` ${v < 0 ? '−' : '+'} ${Math.abs(v)} ${n}`).join('');
 
 function showSummary(P, out) {
@@ -1393,7 +1655,7 @@ function pickOffense() {
 async function runDefense(def) {
   if (S.phase !== 'choose' || S.over) return;
   S.phase = 'busy'; panel.hidden = true; play = null; render();
-  const auto = $('auto').checked, fgDist = 100 - S.ball + 17;
+  const auto = $('auto').checked, fgDist = 100 - S.ball + 17, perf0 = S.perf;
   if (S.down === 4 && fgDist <= 50) {
     setup('fg', null); await lineUp();
     popAt(S.bx, S.ball, 'FIELD GOAL TRY', `${fgDist} yards`, C.wraith);
@@ -1401,22 +1663,25 @@ async function runDefense(def) {
     const out = await P.done;
     showSummary(P, flipOut(out)); S.plays++; endDrive(out.fg ? 'fg' : 'fgmiss'); return;
   }
-  const type = pickOffense();
+  const type = S.nextOff || pickOffense(), spell = takeSpell(); S.nextOff = null; S.reveal = null; render();
   setup(type, def); await lineUp();
   let q = 'auto';
   if (!auto) q = (await meter({ title: 'Jump the snap', hint: 'Tap when the needle hits the green', green: .22, perfect: .06, speed: 1.05 })).q;
   setTop('', '');
   const P = (type === 'run' ? makeRun : type === 'short' ? makeShort : makeDeep)(def);
-  applySnap(P, q);
+  applySnap(P, q); applySpell(P, spell);
   play = P; P.begin();
   popAt(S.bx, S.ball - 2, OFFNAME[type].toUpperCase(), 'Wraiths play', C.wraith);
   const out = await P.done;
   showSummary(P, flipOut(out));
   if (out.x != null) S.bx = clamp(out.x, HASH_L, HASH_R);
+  if (/^Sacked/.test(out.head)) S.earn += 15;
+  regen(perf0);
   apply(out, false);
 }
 function newDrive(side, keep) {
-  S = Object.assign(fresh(), keep ? { score: S.score, mom: S.mom } : {}, { side });
+  S = Object.assign(fresh(), keep ? { score: S.score, mom: S.mom, mana: S.mana } : {}, { side });
+  if (S.mana == null) S.mana = maxMana();
   fx.length = 0; pops.length = 0; play = null; mode = null; tsT = 1; chargeHeld = false;
   setup('run', 'zone', true); cam.x = S.bx; cam.y = S.ball + (side === 'D' ? 4 : -3);
   render(); (side === 'D' ? introD : intro)();
@@ -1445,9 +1710,41 @@ function pickDefense() {
   return 'blitz';
 }
 
+function takeSpell() { const k = S.armed; S.armed = null; if (k && S.mana >= SPELLS[k].cost) { S.mana -= SPELLS[k].cost; return k; } return null; }
+function applySpell(P, k) {
+  if (!k) return; P.spell = k;
+  if (k === 'stoneskin') P.mods.push(['stoneskin', isD() ? -3 : 3]);
+  if (k === 'frost') P.frost = true;
+  castFX(k); popAt(S.bx, S.ball + (isD() ? 4 : -5), SPELLS[k].name.toUpperCase(), '', SPELLS[k].color);
+}
+function regen(perf0) { S.mana = Math.min(maxMana(), S.mana + 12 + 4 * (S.perf - perf0)); }
+function castPre(k) {
+  if (S.phase !== 'choose' || S.over) return;
+  const sp = SPELLS[k];
+  if (k === 'foresight') {
+    if (S.mana < sp.cost || S.reveal) return;
+    S.mana -= sp.cost;
+    if (isD()) { S.nextOff = pickOffense(); S.reveal = `They’ll run ${OFFNAME[S.nextOff]}`; }
+    else { S.nextDef = pickDefense(); S.reveal = `They’re in ${DEFS[S.nextDef].name}`; }
+    castFX(k); buzz(20); render(); return;
+  }
+  S.armed = S.armed === k ? null : S.mana >= sp.cost ? k : null; render();
+}
+function fireball(P) {
+  const qb = get(7), first = (P.tq || []).map(get).filter(d => up(d) && !d.blocked)[0];
+  const t = first || ents.filter(d => d.team === 'W' && up(d) && !d.blocked).sort((a, b) => dist(a, qb) - dist(b, qb))[0];
+  if (!t || !up(qb)) return;
+  fireballFX(qb, t, () => {
+    for (const d of ents) if (d.team === 'W' && up(d) && !d.blocked && dist(d, t) < 2.6) {
+      d.ai = null; d.fly = { vx: (d.x - t.x) * 2 + (Math.random() - .5) * 4, vy: 4 + Math.random() * 3, z: 0, vz: 6 + Math.random() * 2, spin: 0 };
+    }
+    popAt(t.x, t.y, 'FIREBALL!', '', C.torch); shake(.6); buzz([40, 30, 60]);
+  });
+}
 async function runPlay(type) {
   if (S.phase !== 'choose' || S.over) return;
   S.phase = 'busy'; panel.hidden = true; play = null; render();
+  const perf0 = S.perf;
   const auto = $('auto').checked;
   if (type === 'rally') {
     S.mom = 0; render();
@@ -1473,7 +1770,7 @@ async function runPlay(type) {
     const out = await P.done;
     showSummary(P, out); S.plays++; endDrive(out.fg ? 'fg' : 'fgmiss'); return;
   }
-  const def = pickDefense();
+  const def = S.nextDef || pickDefense(), spell = takeSpell(); S.nextDef = null; S.reveal = null; render();
   setup(type, def); await lineUp();
   const fr = S.fright; S.fright = false;
   let q = 'auto';
@@ -1482,12 +1779,14 @@ async function runPlay(type) {
     green: fr ? .12 : .22, perfect: fr ? .035 : .06, speed: 1.05 })).q;
   setTop('', '');
   const P = (type === 'run' ? makeRun : type === 'short' ? makeShort : makeDeep)(def);
-  applySnap(P, q);
+  applySnap(P, q); applySpell(P, spell);
   play = P; P.begin();
+  if (spell === 'fireball') P.later.push([.3, () => fireball(P)]);
   popAt(S.bx, S.ball + 9, DEFS[def].name.toUpperCase(), MATCH[type][def] > 0 ? 'your play beats it' : MATCH[type][def] < 0 ? 'they read it' : 'even matchup', C.wraith);
   const out = await P.done;
   showSummary(P, out);
   if (out.x != null) S.bx = clamp(out.x, HASH_L, HASH_R);
+  regen(perf0);
   apply(out, false);
 }
 
@@ -1500,13 +1799,14 @@ function apply(out, noMom) {
   S.ball = Math.max(1, S.ball);
   if (out.y > 0) { S.fail = 0; if (!noMom && !D) addMom(out.y * 2); } else S.fail++;
   if (D && out.y <= 2) addMom(8);
+  if (D && out.y <= 0 && !out.td) S.earn += 8;
   const notes = [];
   if (out.y >= S.toGo) {
     S.down = 1; S.toGo = Math.min(10, 100 - S.ball);
     if (D) notes.push('<p class="note wraith">First down, Wraiths.</p>');
     else {
       if (!noMom) addMom(8);
-      notes.push('<p class="note good">First down!</p>');
+      notes.push('<p class="note good">First down! +10 gold</p>'); S.earn += 10;
       if (!S.wraithRally) {
         S.wraithRally = true; S.fright = true;
         notes.push('<p class="note wraith">Nobody, the Wraiths\u2019 headless horseman, rides the sideline. Fright: your next snap window shrinks.</p>');
@@ -1532,13 +1832,16 @@ function endHTML(kind) {
   return `<div class="end ${win ? 'win' : 'loss'}"><h3>${h}</h3>` +
     `<p>${t} ${S.plays} play${S.plays === 1 ? '' : 's'}, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>` +
     `<p class="small">Score: Bulls ${S.score.B}, Wraiths ${S.score.W}.</p>` +
-    `<div class="btns"><button class="again" id="next" type="button">${side === 'O' ? 'Play defense' : 'Back to offense'}</button><button class="again alt" id="newgame" type="button">New game</button></div></div>`;
+    `<p class="loot"><i class="coin"></i>+${S.earn} gold \u00b7 ${TEAM.gold} in your purse</p>` +
+    `<div class="btns"><button class="again" id="next" type="button">${side === 'O' ? 'Play defense' : 'Back to offense'}</button><button class="again alt" id="openShop2" type="button">Shop</button><button class="again alt" id="newgame" type="button">New game</button></div></div>`;
 }
 function endDrive(kind) {
   S.over = true; S.phase = 'over'; S.result = kind;
   const pts = kind === 'td' ? 7 : kind === 'fg' ? 3 : 0;
   if (pts) S.score[S.side === 'O' ? 'B' : 'W'] += pts;
   if (S.side === 'D' && kind === 'to') addMom(25);
+  S.earn += ({ O: { td: 60, fg: 25 }, D: { to: 50, downs: 40, fgmiss: 20 } }[S.side][kind] || 0) + 3 * S.perf;
+  TEAM.gold += S.earn; saveTeam();
   render(); addPanel(endHTML(kind));
   if (WIN[S.side].includes(kind)) { burst(); buzz([30, 50, 30, 50, 60]); }
 }
@@ -1559,12 +1862,18 @@ function render() {
   $('downTxt').textContent = S.over ? 'Final' : `${ORD[S.down]} & ${S.ball + S.toGo >= 100 ? 'Goal' : S.toGo}`;
   $('spotTxt').textContent = spot(S.ball);
   document.querySelector('.matchup .bulls').classList.toggle('poss', !D); document.querySelector('.matchup .wraiths').classList.toggle('poss', D);
-  $('momFill').style.width = S.mom + '%';
-  $('momPct').textContent = Math.round(S.mom) + '%';
+  $('momFill').style.width = Math.min(100, S.mom / rallyAt() * 100) + '%';
+  $('momPct').textContent = Math.round(Math.min(100, S.mom / rallyAt() * 100)) + '%';
+  $('manaFill').style.width = (S.mana / maxMana() * 100) + '%'; $('manaTxt').textContent = Math.round(S.mana);
+  $('goldTxt').textContent = TEAM.gold; $('shopBtn').disabled = S.phase === 'busy';
   $('ball').style.left = pct(fp(S.ball)); $('los').style.left = pct(fp(S.ball));
   $('ltg').style.left = pct(fp(Math.min(100, S.ball + S.toGo))); $('ltg').hidden = S.over;
-  $('stats').textContent = `Play ${S.plays} \u00b7 ${S.yards} yds`;
   const busy = S.phase !== 'choose' || S.over;
+  const avail = Object.keys(SPELLS).filter(k => known(k) && SPELLS[k].sides.includes(S.side));
+  $('spells').innerHTML = avail.map(k => {
+    const sp = SPELLS[k], armed = S.armed === k, ok = !busy && (armed || (S.mana >= sp.cost && !(k === 'foresight' && S.reveal)));
+    return `<button class="spell${armed ? ' armed' : ''}" type="button" data-s="${k}" style="--c:${sp.color}" title="${sp.desc}" aria-pressed="${armed}"${ok ? '' : ' disabled'}>${RUNE[k]}<span><b>${sp.name}</b><small>${sp.cost} mana</small></span></button>`;
+  }).join('') + (S.reveal ? `<span class="reveal">${S.reveal}</span>` : '');
   if (D) {
     $('cards').innerHTML = ['stop', 'zone', 'blitz'].map(k => `<button class="card" type="button" data-k="${k}"${busy ? ' disabled' : ''}><b>${DCARDS[k].name}</b><small>${DCARDS[k].sub}</small></button>`).join('');
     return;
@@ -1574,17 +1883,41 @@ function render() {
   list.push('rally');
   $('cards').innerHTML = list.map(k => {
     const p = PLAYS[k]; let sub = p.sub, dis = busy, cls = 'card';
-    if (k === 'rally') { const ready = S.mom >= 100; dis = busy || !ready; cls += ready ? ' rally ready' : ' rally'; if (!ready) sub = `Rally at ${Math.round(S.mom)}%`; }
+    if (k === 'rally') { const ready = S.mom >= rallyAt(); dis = busy || !ready; cls += ready ? ' rally ready' : ' rally'; if (!ready) sub = `Rally at ${Math.round(Math.min(100, S.mom / rallyAt() * 100))}%`; }
     if (k === 'fg') sub = `${fgDist}-yard try`;
     return `<button class="${cls}" type="button" data-k="${k}"${dis ? ' disabled' : ''}><b>${p.name}</b><small>${sub}</small></button>`;
   }).join('');
 }
 $('cards').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && !b.disabled) (isD() ? runDefense : runPlay)(b.dataset.k); });
+$('spells').addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (b && !b.disabled) castPre(b.dataset.s); });
+function renderShop(msg) {
+  $('shopGold').textContent = TEAM.gold;
+  $('shopList').innerHTML = [['Gear', 'Gear'], ['Spell', 'Spell tomes'], ['Relic', 'Relics']].map(([kind, title]) =>
+    `<section class="shop-group"><h3>${title}</h3><div class="items">${ITEMS.filter(i => i.kind === kind).map(i => {
+      const own = has(i.id);
+      return `<article class="item${own ? ' owned' : ''}" style="--c:${RARITY[i.rarity]}"><h4>${i.name}</h4><span class="tag">${i.rarity}</span><p>${i.desc}</p>` +
+        `<button class="buy" type="button" data-buy="${i.id}"${own || TEAM.gold < i.cost ? ' disabled' : ''} aria-label="${own ? 'Owned' : `Buy ${i.name} for ${i.cost} gold`}">${own ? 'Owned' : `<i class="coin"></i>${i.cost}`}</button></article>`;
+    }).join('')}</div></section>`).join('');
+  $('shopMsg').textContent = msg || '';
+}
+function openShop() { if (S.phase === 'busy') return; renderShop(); $('shop').hidden = false; $('shopClose').focus(); }
+function closeShop() { $('shop').hidden = true; render(); $('shopBtn').focus(); }
+$('shopList').addEventListener('click', e => {
+  const b = e.target.closest('[data-buy]'); if (!b || b.disabled) return;
+  const it = ITEMS.find(i => i.id === b.dataset.buy); if (!it || has(it.id) || TEAM.gold < it.cost) return;
+  TEAM.gold -= it.cost; TEAM.owned[it.id] = true;
+  if (it.id === 'manawell') S.mana = Math.min(maxMana(), S.mana + 40);
+  saveTeam(); buzz(25); renderShop(`${it.name} is yours.`); render();
+});
+$('shopBtn').addEventListener('click', openShop);
+$('shopClose').addEventListener('click', closeShop);
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('shop').hidden) closeShop(); });
 
 /* ================= boot ================= */
 async function start(data) {
   if (data && data.S) { S = Object.assign(fresh(), data.S); if (S.phase === 'busy') S.phase = 'choose'; }
-  buildTicks(); render();
+  if (S.mana == null) S.mana = maxMana();
+  buildTicks(); render(); connectStore();
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch (_) {}
   buildArena();
   setup('run', 'zone', true);
@@ -1595,6 +1928,7 @@ async function start(data) {
   else { setTop('', ''); showPanel('<p class="flavor">Back in the huddle. Pick a play.</p>'); }
   last = performance.now();
   engine.runRenderLoop(frame);
+  [6000, 12000].forEach(t => setTimeout(() => { if (!document.hidden && engine.getFps() < 28) lowFX(); }, t));
 }
 try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (_) {}
 if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
