@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Gridiron & Glory</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Chivo+Mono:wght@500;700&family=Grenze+Gotisch:wght@600;800&display=swap">
+<style>
+/* Layout: one-screen night game. Scoreboard, field strip, touch stage, play cards. */
+:root{
+  color-scheme: dark;
+  --night:#0b1712; --turf:#143326; --turf-2:#1a3f2f; --chalk:#eef2e6; --dim:#97ab9e;
+  --torch:#f2a23a; --bulls:#d6533a; --wraith:#8fd8c8; --leather:#a8693a;
+  --good:#8cd894; --bad:#ff7461; --line:rgba(238,242,230,.14); --faint:rgba(238,242,230,.26);
+  --f-display:"Grenze Gotisch",Georgia,"Times New Roman",serif;
+  --f-body:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-num:"Chivo Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html{box-sizing:border-box;height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-body);font-size:15px}
+.app{display:flex;flex-direction:column;gap:10px;height:100%;max-width:540px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 12px}
+
+.board{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:end;flex:none}
+.matchup{font-family:var(--f-display);font-weight:800;font-size:21px;line-height:1.05}
+.matchup span{display:block}
+.matchup .bulls{color:var(--bulls)}
+.matchup .wraiths{color:var(--wraith)}
+.matchup small{font-family:var(--f-body);font-weight:600;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+.situ{text-align:right;font-family:var(--f-num);font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.situ b{display:block;color:var(--chalk);font-size:19px;font-weight:700}
+.mom{grid-column:1/-1;display:flex;align-items:center;gap:8px}
+.lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
+.bar{flex:1;height:8px;border-radius:99px;background:var(--turf);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--bulls),var(--torch));transition:width .4s}
+.pct{font-family:var(--f-num);font-size:12px;color:var(--dim);min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
+
+.strip{position:relative;height:42px;border-radius:8px;overflow:hidden;flex:none;border:1px solid var(--line);
+  background:repeating-linear-gradient(90deg,var(--turf) 0 calc(100%/24),var(--turf-2) calc(100%/24) calc(100%/12))}
+.ez{position:absolute;top:0;bottom:0;width:calc(100%/12);display:grid;place-items:center}
+.ez.l{left:0;background:color-mix(in srgb,var(--bulls) 62%,var(--turf))}
+.ez.r{right:0;background:color-mix(in srgb,var(--wraith) 38%,var(--turf))}
+.ez span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--chalk)}
+.tick{position:absolute;top:0;bottom:0;width:1px;background:var(--faint)}
+.tick em{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-style:normal;font-family:var(--f-num);font-size:9px;color:var(--dim)}
+.los,.ltg{position:absolute;top:0;bottom:0;transition:left .5s}
+.los{width:2px;margin-left:-1px;background:var(--chalk)}
+.ltg{width:3px;margin-left:-1.5px;background:var(--torch)}
+.ball{position:absolute;top:38%;width:14px;height:9px;margin:-4.5px 0 0 -7px;border-radius:50%;background:var(--leather);box-shadow:0 0 0 2px var(--night);transition:left .5s}
+
+.stage{position:relative;flex:1 1 auto;min-height:300px;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(ellipse at 50% -10%,color-mix(in srgb,var(--torch) 20%,transparent),transparent 62%),var(--turf)}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;padding:14px;pointer-events:none}
+.top{display:flex;flex-direction:column;gap:2px}
+#ovTitle{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1;color:var(--torch)}
+#ovHint{font-size:15px;color:var(--chalk);opacity:.85}
+.panel{margin-top:auto;pointer-events:auto;max-height:100%;overflow-y:auto;overscroll-behavior:contain;
+  background:color-mix(in srgb,var(--night) 88%,transparent);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.dice{display:flex;align-items:center;justify-content:center;gap:16px}
+.dwrap{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
+.die{width:58px;height:64px;display:grid;place-items:center;font-family:var(--f-num);font-weight:700;font-size:24px;color:var(--night);
+  background:var(--torch);clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);font-variant-numeric:tabular-nums}
+.die.def{background:var(--wraith)}
+.die.dc{background:var(--chalk)}
+.die.nat20{background:var(--good)}
+.die.nat1{background:var(--bad)}
+.vs{font-family:var(--f-display);font-size:20px;color:var(--dim)}
+.rest{display:flex;flex-direction:column;gap:8px}
+.calc{margin:0;font-family:var(--f-num);font-size:12px;line-height:1.55;color:var(--dim)}
+.calc b{color:var(--chalk)}
+.call{margin:0;font-size:14px;line-height:1.35}
+.call b{color:var(--wraith)}
+.head{margin:0;font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1;color:var(--chalk);text-wrap:balance}
+.head.good{color:var(--torch)}
+.head.bad{color:var(--bad)}
+.flavor{margin:0;font-size:15px;line-height:1.35}
+.small{font-size:13px;color:var(--dim)}
+.how{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.3}
+.how b{color:var(--torch)}
+.note{margin:0;font-weight:600}
+.note.good{color:var(--good)}
+.note.wraith{color:var(--wraith)}
+.end{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.end h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:36px;line-height:1;color:var(--torch)}
+.end.loss h3{color:var(--bad)}
+.end p{margin:0}
+.again{align-self:flex-start;appearance:none;border:0;border-radius:10px;padding:10px 18px;background:var(--torch);color:var(--night);
+  font:700 16px var(--f-body);cursor:pointer;touch-action:manipulation}
+.again:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
+
+.cards{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;flex:none}
+.card{appearance:none;display:flex;flex-direction:column;gap:3px;min-height:64px;padding:10px 8px;text-align:left;
+  border:1px solid var(--line);border-radius:10px;background:var(--turf);color:var(--chalk);font:inherit;cursor:pointer;
+  touch-action:manipulation;transition:transform .08s}
+.card b{font-family:var(--f-display);font-weight:800;font-size:18px;line-height:1;color:var(--torch)}
+.card small{font-size:12px;line-height:1.15;color:var(--dim)}
+.card:active:not(:disabled){transform:scale(.96)}
+.card:disabled{opacity:.42;cursor:default}
+.card.rally b{color:var(--bulls)}
+.card.rally.ready{background:color-mix(in srgb,var(--bulls) 42%,var(--turf));border-color:var(--bulls)}
+.card.rally.ready b,.card.rally.ready small{color:var(--chalk)}
+.card:focus-visible{outline:2px solid var(--torch);outline-offset:2px}
+
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex:none;font-size:13px;color:var(--dim)}
+.auto{display:flex;align-items:center;gap:6px}
+.auto input{accent-color:var(--torch);width:16px;height:16px}
+#stats{font-family:var(--f-num);font-size:12px;font-variant-numeric:tabular-nums}
+
+@media (prefers-reduced-motion: reduce){
+  .los,.ltg,.ball,.bar i,.card{transition:none}
+}
+</style>
+
+<div class="app">
+  <header class="board">
+    <div class="matchup"><span class="bulls">Labyrinth Bulls</span><span class="wraiths"><small>vs</small> Hollowmere Wraiths</span></div>
+    <div class="situ"><b id="downTxt">1st &amp; 10</b><span id="spotTxt">Own 25</span></div>
+    <div class="mom"><span class="lbl">Momentum</span><div class="bar"><i id="momFill"></i></div><span class="pct" id="momPct">0%</span></div>
+  </header>
+
+  <div class="strip" aria-hidden="true">
+    <div class="ez l"><span>BULLS</span></div>
+    <div class="ez r"><span>WRAITHS</span></div>
+    <div id="ticks"></div>
+    <div class="los" id="los"></div>
+    <div class="ltg" id="ltg"></div>
+    <div class="ball" id="ball"></div>
+  </div>
+
+  <section class="stage" id="stage" aria-label="Play field. Tap, hold or swipe here during a play.">
+    <canvas id="cv"></canvas>
+    <div class="ov">
+      <div class="top" aria-live="polite"><div id="ovTitle"></div><div id="ovHint"></div></div>
+      <div class="panel" id="panel" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <div class="cards" id="cards"></div>
+
+  <footer class="foot">
+    <label class="auto" for="auto"><input type="checkbox" id="auto"> Auto mode (dice only)</label>
+    <span id="stats">Play 0 · 0 yds</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+let W = 0, H = 0;
+function resize() {
+  const r = stage.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 3);
+  W = r.width; H = r.height;
+  cv.width = Math.max(1, Math.round(W * d)); cv.height = Math.max(1, Math.round(H * d));
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+const css = getComputedStyle(document.documentElement);
+const C = {};
+['torch','bulls','wraith','chalk','dim','good','bad','night','turf','leather'].forEach(k => C[k] = css.getPropertyValue('--' + k).trim());
+const FONT = css.getPropertyValue('--f-display').trim();
+
+const d20 = () => 1 + Math.floor(Math.random() * 20);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const tri = x => { const p = x % 2; return p < 1 ? p : 2 - p; };
+function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (_) {} }
+
+const PLAYS = {
+  run:   { name: 'Bull Run',    sub: 'Swipe to juke',  stat: 3, statName: 'power' },
+  short: { name: 'Quick Slant', sub: 'Tap the catch',  stat: 2, statName: 'hands' },
+  deep:  { name: 'Deep Spell',  sub: 'Hold to charge', stat: 1, statName: 'arm' },
+  fg:    { name: 'Field Goal',  sub: 'Two taps' },
+  rally: { name: 'Old Horns',   sub: 'Rally: auto 1st down' }
+};
+const DEFS = {
+  stop:  { name: 'Bone Wall',   desc: 'a run stop' },
+  zone:  { name: 'Fog Zone',    desc: 'deep zone coverage' },
+  blitz: { name: 'Grave Blitz', desc: 'an all-out blitz' }
+};
+const MATCH = { run: { stop: -1, zone: 1, blitz: 0 }, short: { stop: 0, zone: -1, blitz: 1 }, deep: { stop: 1, zone: -1, blitz: 0 } };
+const DEF_STAT = 2;
+const ORD = ['', '1st', '2nd', '3rd', '4th'];
+const DIRS = ['left', 'right', 'up'];
+
+const fresh = () => ({ ball: 25, down: 1, toGo: 10, mom: 0, fail: 0, plays: 0, yards: 0, perf: 0,
+  fright: false, wraithRally: false, over: false, result: null, phase: 'choose' });
+let S = fresh();
+const addMom = v => { S.mom = clamp(S.mom + v, 0, 100); };
+
+/* ---------- canvas ---------- */
+let mode = null;
+const fx = [];
+function rr(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0.1), 0, Math.PI * 2); ctx.stroke(); }
+function label(t, x, y, col, size) {
+  ctx.font = `800 ${size || 34}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = col; ctx.fillText(t, x, y);
+}
+const qCol = q => q === 'perfect' ? C.good : (q === 'good' || q === 'ok') ? C.torch : C.bad;
+function drawTurf() {
+  ctx.save(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 2; ctx.globalAlpha = .07;
+  for (let i = 1; i < 6; i++) { const y = H * i / 6; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.globalAlpha = .12;
+  for (let i = 1; i < 30; i++) { const y = H * i / 30; [W * .3, W * .7].forEach(x => { ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x + 6, y); ctx.stroke(); }); }
+  ctx.restore();
+}
+function football(x, y, s) {
+  ctx.save(); ctx.fillStyle = C.leather; ctx.beginPath(); ctx.ellipse(x, y, s, s * .62, -.5, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(x, y); ctx.rotate(-.5); ctx.strokeStyle = C.chalk; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-s * .45, 0); ctx.lineTo(s * .45, 0); ctx.stroke();
+  for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * s * .16, -s * .14); ctx.lineTo(i * s * .16, s * .14); ctx.stroke(); }
+  ctx.restore();
+}
+function arrow(x, y, s, dir) {
+  const rot = { right: 0, left: Math.PI, up: -Math.PI / 2, down: Math.PI / 2 }[dir];
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = C.torch; ctx.beginPath();
+  ctx.moveTo(-s * .7, -s * .17); ctx.lineTo(s * .05, -s * .17); ctx.lineTo(s * .05, -s * .45); ctx.lineTo(s * .75, 0);
+  ctx.lineTo(s * .05, s * .45); ctx.lineTo(s * .05, s * .17); ctx.lineTo(-s * .7, s * .17); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function burst() {
+  if (reduce) return;
+  const cols = [C.torch, C.bulls, C.chalk];
+  for (let i = 0; i < 90; i++) fx.push({ x: W / 2, y: H * .3, vx: (Math.random() - .5) * 9, vy: -2 - Math.random() * 7, r: Math.random() * 6, c: pick(cols), l: 1 });
+}
+function drawFx() {
+  for (let i = fx.length - 1; i >= 0; i--) {
+    const p = fx[i]; p.vy += .2; p.x += p.vx; p.y += p.vy; p.r += .2; p.l -= .01;
+    if (p.l <= 0 || p.y > H + 20) { fx.splice(i, 1); continue; }
+    ctx.save(); ctx.globalAlpha = Math.min(1, p.l * 2); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+    ctx.fillStyle = p.c; ctx.fillRect(-4, -2, 8, 4); ctx.restore();
+  }
+}
+function frame(now) {
+  ctx.clearRect(0, 0, W, H); drawTurf();
+  if (mode && mode.draw) mode.draw(now);
+  drawFx();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- input ---------- */
+let ptr = null, keyHeld = false;
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault(); ptr = { x: e.clientX, y: e.clientY, sw: false };
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  if (mode && mode.onDown) mode.onDown();
+});
+cv.addEventListener('pointermove', e => {
+  if (!ptr || ptr.sw) return;
+  const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+  if (Math.hypot(dx, dy) > 26) {
+    ptr.sw = true;
+    const d = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    if (mode && mode.onSwipe) mode.onSwipe(d);
+  }
+});
+const lift = () => { if (!ptr) return; ptr = null; if (mode && mode.onUp) mode.onUp(); };
+cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
+addEventListener('keydown', e => {
+  if (!mode) return;
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!keyHeld) { keyHeld = true; if (mode.onDown) mode.onDown(); } }
+  const k = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.key];
+  if (k) { e.preventDefault(); if (!e.repeat && mode.onSwipe) mode.onSwipe(k); }
+});
+addEventListener('keyup', e => {
+  if (e.key === ' ' || e.key === 'Enter') { keyHeld = false; if (mode && mode.onUp) mode.onUp(); }
+});
+
+/* ---------- touch moments ---------- */
+function setTop(t, h) { $('ovTitle').textContent = t || ''; $('ovHint').textContent = h || ''; }
+
+function meter(o) {
+  return new Promise(res => {
+    const t0 = performance.now() + 350, c = .28 + Math.random() * .44;
+    let pos = 0, done = null, at = 0;
+    setTop(o.title, o.hint);
+    const finish = q => {
+      if (done) return;
+      const e = Math.abs(pos - c);
+      q = q || (e <= o.perfect / 2 ? 'perfect' : e <= o.green / 2 ? 'good' : 'miss');
+      done = { q }; at = performance.now(); buzz(q === 'miss' ? 60 : q === 'perfect' ? [15, 40, 15] : 20);
+    };
+    mode = {
+      draw(now) {
+        if (!done) { pos = now < t0 ? 0 : tri((now - t0) / 1000 * o.speed * 2); if (now - t0 > (o.timeout || 3200)) finish('miss'); }
+        const x0 = W * .1, w = W * .8, y = H * .56, h = 30;
+        ctx.fillStyle = C.night; ctx.globalAlpha = .8; rr(x0, y - h / 2, w, h, 8); ctx.fill();
+        ctx.fillStyle = C.good; ctx.globalAlpha = .45; ctx.fillRect(x0 + w * (c - o.green / 2), y - h / 2, w * o.green, h);
+        ctx.globalAlpha = 1; ctx.fillRect(x0 + w * (c - o.perfect / 2), y - h / 2, w * o.perfect, h);
+        const nx = x0 + w * pos;
+        ctx.fillStyle = done ? qCol(done.q) : C.chalk; ctx.fillRect(nx - 2.5, y - h / 2 - 14, 5, h + 28);
+        if (done) {
+          label(done.q === 'perfect' ? 'PERFECT' : done.q === 'good' ? 'GOOD' : 'MISS', W / 2, y + h / 2 + 44, qCol(done.q));
+          if (now - at > 520) { mode = null; res(done); }
+        } else if (now < t0) label('READY', W / 2, y + h / 2 + 44, C.dim, 24);
+      },
+      onDown() { if (!done && performance.now() >= t0) finish(); }
+    };
+  });
+}
+
+function juke() {
+  return new Promise(res => {
+    const wins = [1150, 950, 800];
+    let i = 0, hits = 0, cur = pick(DIRS), start = performance.now() + 350, end = null, endAt = 0;
+    setTop('Juke', 'Swipe the way each arrow points');
+    const finish = ok => { end = { hits }; endAt = performance.now(); buzz(ok ? [15, 30, 15, 30, 15] : 60); };
+    mode = {
+      draw(now) {
+        const R = Math.min(W, H) * .28, cx = W / 2, cy = H * .54;
+        for (let k = 0; k < 3; k++) {
+          ctx.beginPath(); ctx.arc(cx + (k - 1) * 28, cy + R + 30, 8, 0, Math.PI * 2);
+          ctx.fillStyle = k < hits ? C.torch : C.night; ctx.fill(); ctx.strokeStyle = C.torch; ctx.lineWidth = 2; ctx.stroke();
+        }
+        if (end) {
+          label(hits === 3 ? 'BREAKAWAY' : hits ? `${hits} JUKE${hits > 1 ? 'S' : ''}` : 'TACKLED', cx, cy, hits === 3 ? C.good : hits ? C.torch : C.bad);
+          if (now - endAt > 620) { mode = null; res(end); }
+          return;
+        }
+        if (now < start) { label(i ? '' : 'READY', cx, cy, C.dim, 24); return; }
+        const left = 1 - (now - start) / wins[i];
+        if (left <= 0) { finish(false); return; }
+        ctx.strokeStyle = C.wraith; ctx.lineWidth = 6; ctx.beginPath();
+        ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left); ctx.stroke();
+        arrow(cx, cy, R * .62, cur);
+      },
+      onSwipe(d) {
+        const now = performance.now();
+        if (end || now < start) return;
+        if (d === cur) {
+          hits++; i++; buzz(15);
+          if (i >= 3) finish(true);
+          else { let n; do { n = pick(DIRS); } while (n === cur); cur = n; start = now + 220; }
+        } else finish(false);
+      }
+    };
+  });
+}
+
+function catchRing() {
+  return new Promise(res => {
+    const t0 = performance.now() + 400 + Math.random() * 500, dur = 1250;
+    let done = null, at = 0, r = 0;
+    setTop('Catch', 'Tap when the gold ring meets the white circle');
+    const R0 = () => Math.min(W, H) * .42;
+    const finish = q => {
+      if (done) return;
+      const e = Math.abs(r - R0() * .3) / R0();
+      q = q || (e < .035 ? 'perfect' : e < .09 ? 'good' : e < .16 ? 'ok' : 'miss');
+      done = { q }; at = performance.now(); buzz(q === 'miss' ? 60 : q === 'perfect' ? [15, 40, 15] : 20);
+    };
+    mode = {
+      draw(now) {
+        const R = R0(), rt = R * .3, cx = W / 2, cy = H * .55;
+        if (!done) { r = now < t0 ? R : R * (1 - (now - t0) / dur); if (r <= 0) { r = 0; finish('miss'); } }
+        ctx.setLineDash([6, 6]); ctx.strokeStyle = C.chalk; ctx.lineWidth = 3; circle(cx, cy, rt); ctx.setLineDash([]);
+        football(cx, cy, rt * .55);
+        ctx.strokeStyle = done ? qCol(done.q) : C.torch; ctx.lineWidth = 5; circle(cx, cy, r);
+        if (done) {
+          label({ perfect: 'PERFECT', good: 'CLEAN', ok: 'BOBBLED', miss: 'MISSED' }[done.q], cx, cy + R * .62 + 20, qCol(done.q));
+          if (now - at > 520) { mode = null; res(done); }
+        }
+      },
+      onDown() { if (!done && performance.now() >= t0) finish(); }
+    };
+  });
+}
+
+function charge() {
+  return new Promise(res => {
+    const t0 = performance.now(), MAX = 1.3, SW = [.74, .92], PF = [.8, .86];
+    let pressing = false, tp = 0, lvl = 0, done = null, at = 0;
+    setTop('Deep spell', 'Hold anywhere to charge. Release in the gold.');
+    const finish = () => {
+      if (done) return;
+      const q = lvl >= PF[0] && lvl <= PF[1] ? 'perfect' : lvl >= SW[0] && lvl <= SW[1] ? 'good' : lvl > 1 ? 'over' : lvl > SW[1] ? 'long' : 'weak';
+      done = { q }; at = performance.now(); buzz(q === 'over' ? [40, 30, 40] : q === 'perfect' ? [15, 40, 15] : 20);
+    };
+    mode = {
+      draw(now) {
+        if (!done) {
+          if (pressing) { lvl = (now - tp) / 1400; if (lvl >= MAX) { lvl = MAX; finish(); } }
+          else if (now - t0 > 4500) { lvl = .35; finish(); }
+        }
+        const bw = 40, x = W / 2 - bw / 2, top = H * .26, bot = H * .9, hh = bot - top;
+        const Y = v => bot - (v / MAX) * hh;
+        ctx.fillStyle = C.night; ctx.globalAlpha = .8; rr(x, top, bw, hh, 10); ctx.fill();
+        ctx.globalAlpha = .5; ctx.fillStyle = C.bad; ctx.fillRect(x, top, bw, Y(1) - top);
+        ctx.fillStyle = C.torch; ctx.fillRect(x, Y(SW[1]), bw, Y(SW[0]) - Y(SW[1]));
+        ctx.globalAlpha = 1; ctx.fillRect(x, Y(PF[1]), bw, Y(PF[0]) - Y(PF[1]));
+        ctx.globalAlpha = .9; ctx.fillStyle = C.wraith; ctx.fillRect(x + 8, Y(lvl), bw - 16, bot - Y(lvl)); ctx.globalAlpha = 1;
+        ctx.font = `600 13px ${css.getPropertyValue('--f-body')}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = C.dim; ctx.fillText('overcharge', x + bw + 10, (top + Y(1)) / 2); ctx.fillText('sweet spot', x + bw + 10, Y((SW[0] + SW[1]) / 2));
+        if (done) {
+          const L = { perfect: ['PERFECT', C.good], good: ['CLEAN', C.torch], long: ['A BIT LONG', C.torch], weak: ['UNDERPOWERED', C.bad], over: ['OVERCHARGED', C.bad] }[done.q];
+          label(L[0], W / 2, top - 26, L[1]);
+          if (now - at > 560) { mode = null; res(done); }
+        } else if (!pressing) label('HOLD', W / 2, top - 26, C.chalk, 26);
+      },
+      onDown() { if (!done && !pressing) { pressing = true; tp = performance.now(); } },
+      onUp() { if (pressing && !done) finish(); }
+    };
+  });
+}
+
+/* ---------- panel ---------- */
+const panel = $('panel');
+function showPanel(html) { panel.innerHTML = html; panel.hidden = false; panel.scrollTop = 0; }
+function addPanel(html) { panel.insertAdjacentHTML('beforeend', html); panel.scrollTop = panel.scrollHeight; }
+panel.addEventListener('click', e => { if (e.target.closest('#again')) reset(); });
+const modsTxt = mods => mods.filter(m => m[1]).map(([n, v]) => ` ${v < 0 ? '−' : '+'} ${Math.abs(v)} ${n}`).join('');
+
+function rollDice(offFinal, defFinal, defIsDC) {
+  return new Promise(res => {
+    const a = $('dOff'), b = $('dDef'), t0 = performance.now(), dur = reduce ? 120 : 760;
+    const tick = () => {
+      if (performance.now() - t0 < dur) { a.textContent = d20(); if (!defIsDC) b.textContent = d20(); setTimeout(tick, 55); }
+      else {
+        a.textContent = offFinal; b.textContent = defFinal;
+        a.classList.toggle('nat20', offFinal === 20); a.classList.toggle('nat1', offFinal === 1);
+        buzz(25); res();
+      }
+    };
+    tick();
+  });
+}
+async function showRoll(r) {
+  setTop('', '');
+  showPanel(`<div class="dice"><div class="dwrap"><div class="die" id="dOff">?</div>${r.offLabel}</div><div class="vs">vs</div>` +
+    `<div class="dwrap"><div class="die ${r.defIsDC ? 'dc' : 'def'}" id="dDef">${r.defIsDC ? r.defVal : '?'}</div>${r.defLabel}</div></div><div class="rest" id="rest" hidden></div>`);
+  await rollDice(r.nat, r.defShown, r.defIsDC);
+  const rest = $('rest');
+  rest.innerHTML = `<p class="calc">${r.calcOff}<br>${r.calcDef}</p>${r.call ? `<p class="call">${r.call}</p>` : ''}` +
+    `<h2 class="head ${r.out.kind || ''}">${r.out.head}</h2><p class="flavor">${r.out.text}</p>`;
+  rest.hidden = false;
+}
+
+function intro() {
+  setTop('Huddle', 'Season opener, drive 1');
+  showPanel(`<h2 class="head">Bulls ball, own 25</h2>
+    <p class="flavor">Score on this drive against the Hollowmere Wraiths. Every play: tap the snap, make your touch move, then the dice decide.</p>
+    <ul class="how">
+      <li><b>Bull Run</b> Swipe with the arrows to juke. Three in a row is a breakaway.</li>
+      <li><b>Quick Slant</b> Tap when the rings line up.</li>
+      <li><b>Deep Spell</b> Hold to charge, release in the gold. Overcharge and it can get picked off.</li>
+    </ul>
+    <p class="flavor small">Gains fill Momentum. At 100% you can call Old Horns for a guaranteed first down.</p>`);
+}
+
+/* ---------- rules ---------- */
+function pickDefense() {
+  const w = { stop: 1, zone: 1, blitz: .8 };
+  if (S.toGo <= 3) w.stop += 1.2;
+  if (S.toGo >= 8) w.zone += .8;
+  if (S.down >= 3) w.blitz += .6;
+  if (100 - S.ball <= 10) w.stop += .5;
+  let t = Math.random() * (w.stop + w.zone + w.blitz);
+  for (const k of ['stop', 'zone', 'blitz']) { t -= w[k]; if (t <= 0) return k; }
+  return 'blitz';
+}
+
+function resolve(type, o) {
+  const { nat, margin, def, perfect, critMin, breakaway, over } = o;
+  const toGoal = 100 - S.ball;
+  if (nat >= critMin) return { td: true, y: toGoal, kind: 'good', head: 'Touchdown!',
+    text: type === 'run' ? `Natural ${nat}, a crit. Nobody catches a minotaur in a straight line.` : `Natural ${nat}, a crit. The ball drops in stride and the receiver is gone.` };
+  if (nat === 1) {
+    if (perfect) return { y: 0, head: 'Saved by skill', text: 'Natural 1, but your perfect input turned the disaster into a plain miss.' };
+    return { to: true, y: 0, kind: 'bad', head: type === 'run' ? 'Fumble!' : 'Intercepted!',
+      text: type === 'run' ? 'Natural 1. The ball squirts loose and a Wraith falls on it.' : 'Natural 1. A Wraith phases through your receiver and takes it the other way.' };
+  }
+  let y = 0, head, text, kind;
+  if (type === 'run') {
+    if (margin >= 0) {
+      y = 2 + Math.round(margin * .8) + rnd(0, 2) + (breakaway ? 6 : 0);
+      text = breakaway ? 'Three jukes and he is through the second level.' : margin >= 8 ? 'The Bulls bowl over the Wraiths.' : 'Hard yards up the middle.';
+    } else {
+      y = -Math.min(4, 1 + Math.floor(-margin / 4));
+      text = def === 'stop' ? 'The Bone Wall holds. Stopped behind the line.' : 'Wrapped up in the backfield.';
+    }
+  } else if (type === 'short') {
+    if (margin >= 0) { y = 4 + Math.round(margin * .7) + rnd(0, 2); text = 'Caught on the slant and turned upfield.'; }
+    else if (margin <= -10) return { to: true, y: 0, kind: 'bad', head: 'Intercepted!', text: 'Jumped the route. Wraiths ball.' };
+    else { head = 'Incomplete'; text = 'Broken up at the last second.'; }
+  } else {
+    if (def === 'blitz' && margin <= -4) { y = -(5 + rnd(0, 3)); head = `Sacked, loss of ${-y}`; kind = 'bad'; text = 'The Grave Blitz gets home before the spell goes off.'; }
+    else if (margin >= 2) { y = 16 + Math.round(margin * 1.3) + rnd(0, 4); text = 'The spell pass streaks downfield and lands in stride.'; }
+    else if (margin <= -9 || (over && margin <= -4)) return { to: true, y: 0, kind: 'bad', head: 'Intercepted!', text: over ? 'The overcharged spell wobbles and a Wraith plucks it out of the air.' : 'Underthrown into the Fog Zone. Picked off.' };
+    else { head = 'Incomplete'; text = 'Overthrown. The spell fizzles out of bounds.'; }
+  }
+  y = clamp(y, -(S.ball - 1), toGoal);
+  if (S.ball + y >= 100) return { td: true, y, kind: 'good', head: 'Touchdown!', text: text + ' Into the end zone!' };
+  if (!head) head = y > 0 ? `Gain of ${y}` : y < 0 ? `Loss of ${-y}` : 'No gain';
+  if (!kind) kind = y > 0 ? 'good' : y < 0 ? 'bad' : '';
+  return { y, head, text, kind };
+}
+
+async function runPlay(type) {
+  if (S.phase !== 'choose' || S.over) return;
+  S.phase = 'busy'; panel.hidden = true; render();
+  if (type === 'rally') return doRally();
+  if (type === 'fg') return doFG();
+  const auto = $('auto').checked, def = pickDefense(), mods = [];
+  let adv = 0, perfect = false, critMin = 20, breakaway = false, over = false;
+  const fr = S.fright; S.fright = false;
+  if (!auto) {
+    const s = await meter({ title: fr ? 'Snap, frightened' : 'Snap',
+      hint: fr ? 'Nobody’s fright shrank the green. Tap inside it.' : 'Tap when the needle hits the green',
+      green: fr ? .12 : .22, perfect: fr ? .035 : .06, speed: 1.05 });
+    if (s.q === 'perfect') { adv++; mods.push(['perfect snap', 2]); perfect = true; S.perf++; addMom(10); }
+    else if (s.q === 'good') mods.push(['snap', 2]);
+    else mods.push(['late snap', -2]);
+    if (type === 'run') {
+      const j = await juke();
+      if (j.hits) mods.push([j.hits > 1 ? 'jukes' : 'juke', j.hits]);
+      addMom(6 * j.hits);
+      if (j.hits === 3) { breakaway = true; critMin = 18; perfect = true; S.perf++; }
+    } else if (type === 'short') {
+      const c = await catchRing();
+      mods.push([{ perfect: 'perfect catch', good: 'clean catch', ok: 'bobbled catch', miss: 'missed timing' }[c.q], { perfect: 4, good: 2, ok: 0, miss: -3 }[c.q]]);
+      if (c.q === 'perfect') { perfect = true; S.perf++; }
+    } else {
+      const c = await charge();
+      const [v, n, cm] = { perfect: [4, 'perfect spell', 17], good: [2, 'clean spell', 18], long: [0, 'long spell', 20], weak: [-2, 'weak spell', 20], over: [-3, 'overcharged', 20] }[c.q];
+      mods.push([n, v]); critMin = Math.min(critMin, cm);
+      if (c.q === 'over') over = true;
+      if (c.q === 'perfect') { perfect = true; S.perf++; }
+    }
+  }
+  const m = MATCH[type][def]; adv += m;
+  if (S.fail >= 3) mods.push(['pity timer', 2]);
+  const a = d20(), b = d20(), nat = adv > 0 ? Math.max(a, b) : adv < 0 ? Math.min(a, b) : a;
+  const p = PLAYS[type], bonus = mods.reduce((s, x) => s + x[1], 0);
+  const off = nat + p.stat + bonus, dr = d20(), dtot = dr + DEF_STAT, margin = off - dtot;
+  const out = resolve(type, { nat, margin, def, perfect, critMin, breakaway, over });
+  const advTxt = adv !== 0 ? ` (rolled ${a} and ${b}, kept ${adv > 0 ? 'higher' : 'lower'})` : '';
+  const matchTxt = m > 0 ? `Your ${p.name} beats it.` : m < 0 ? 'They read it.' : 'Even matchup.';
+  const rollTxt = adv > 0 ? 'You roll with advantage.' : adv < 0 ? 'You roll with disadvantage.' : 'Straight roll.';
+  await showRoll({
+    nat, defShown: dr, offLabel: 'Bulls', defLabel: 'Wraiths',
+    calcOff: `<b>Bulls ${off}</b> = d20 ${nat}${advTxt} + ${p.stat} ${p.statName}${modsTxt(mods)}`,
+    calcDef: `<b>Wraiths ${dtot}</b> = d20 ${dr} + ${DEF_STAT} defense · margin ${margin >= 0 ? '+' : ''}${margin}${critMin < 20 ? ` · crit on ${critMin}–20` : ''}`,
+    call: `Wraiths called <b>${DEFS[def].name}</b>, ${DEFS[def].desc}. ${matchTxt} ${rollTxt}`,
+    out
+  });
+  apply(out, false);
+}
+
+function apply(out, noMom) {
+  S.plays++;
+  if (out.to) { endDrive('to'); return; }
+  S.ball += out.y; S.yards += out.y;
+  if (out.td || S.ball >= 100) { S.ball = 100; endDrive('td'); return; }
+  S.ball = Math.max(1, S.ball);
+  if (out.y > 0) { S.fail = 0; if (!noMom) addMom(out.y * 2); } else S.fail++;
+  const notes = [];
+  if (out.y >= S.toGo) {
+    S.down = 1; S.toGo = Math.min(10, 100 - S.ball);
+    if (!noMom) addMom(8);
+    notes.push('<p class="note good">First down!</p>');
+    if (!S.wraithRally) {
+      S.wraithRally = true; S.fright = true;
+      notes.push('<p class="note wraith">Nobody, the Wraiths’ headless horseman, rides the sideline. Fright: your next snap window shrinks.</p>');
+    }
+  } else {
+    S.down++; S.toGo -= out.y;
+    if (S.down > 4) { endDrive('downs'); return; }
+    if (S.down === 4) notes.push(`<p class="note">Fourth down. Go for it${100 - S.ball + 17 <= 55 ? ' or kick the field goal' : ''}.</p>`);
+  }
+  if (notes.length) addPanel(notes.join(''));
+  S.phase = 'choose'; setTop('Huddle', 'Pick your next play'); render();
+}
+
+function doRally() {
+  S.mom = 0;
+  const y = Math.min(S.toGo, 100 - S.ball), td = S.ball + y >= 100;
+  setTop('', '');
+  showPanel(`<h2 class="head good">Old Horns charges!</h2><p class="flavor">The Bulls’ giant bull mascot thunders out of the tunnel. Bull rush: ${y} yards and a guaranteed first down${td ? ', all the way into the end zone' : ''}.</p>`);
+  buzz([30, 40, 30]);
+  apply({ y, td }, true);
+}
+
+async function doFG() {
+  const dist = 100 - S.ball + 17, auto = $('auto').checked, mods = [];
+  if (!auto) {
+    const pw = await meter({ title: 'Kick: power', hint: 'Tap in the green for power', green: .22, perfect: .06, speed: 1.2, timeout: 4000 });
+    const am = await meter({ title: 'Kick: aim', hint: 'Tap in the green to aim', green: .16, perfect: .05, speed: 1.6, timeout: 4000 });
+    [[pw, 'power'], [am, 'aim']].forEach(([r, n]) => {
+      mods.push([`${r.q === 'perfect' ? 'perfect ' : r.q === 'miss' ? 'bad ' : ''}${n}`, { perfect: 3, good: 1, miss: -3 }[r.q]]);
+      if (r.q === 'perfect') S.perf++;
+    });
+  }
+  const dc = Math.round(4 + (dist - 18) * .42), nat = d20(), tot = nat + 2 + mods.reduce((s, x) => s + x[1], 0);
+  const good = nat === 20 || (nat !== 1 && tot >= dc);
+  await showRoll({
+    nat, defShown: dc, defVal: dc, defIsDC: true, offLabel: 'Kick', defLabel: 'Needs',
+    calcOff: `<b>Kick ${tot}</b> = d20 ${nat} + 2 leg${modsTxt(mods)}`,
+    calcDef: `<b>Needs ${dc}</b> for a ${dist}-yard try`,
+    out: { kind: good ? 'good' : 'bad', head: good ? 'It’s good!' : 'No good',
+      text: good ? (nat === 20 ? 'Natural 20. Right down the middle.' : 'Through the uprights.') : (nat === 1 ? 'Natural 1. Shanked.' : 'Wide of the uprights.') }
+  });
+  S.plays++; endDrive(good ? 'fg' : 'fgmiss');
+}
+
+const ENDS = {
+  td: ['Touchdown!', 'Six points for the Labyrinth Bulls.'],
+  fg: ['Three points', 'The Bulls settle for a field goal.'],
+  fgmiss: ['Missed kick', 'Wraiths ball.'],
+  to: ['Turnover', 'The Wraiths take over.'],
+  downs: ['Turnover on downs', 'Stopped on fourth down.']
+};
+function endHTML(kind) {
+  const [h, t] = ENDS[kind] || ENDS.to;
+  return `<div class="end ${kind === 'td' || kind === 'fg' ? 'win' : 'loss'}"><h3>${h}</h3>` +
+    `<p>${t} ${S.plays} plays, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>` +
+    `<button class="again" id="again" type="button">Run it back</button></div>`;
+}
+function endDrive(kind) {
+  S.over = true; S.phase = 'over'; S.result = kind;
+  setTop('Final', ''); render(); addPanel(endHTML(kind));
+  if (kind === 'td' || kind === 'fg') { burst(); buzz([30, 50, 30, 50, 60]); }
+}
+function reset() { S = fresh(); fx.length = 0; render(); intro(); }
+
+/* ---------- render ---------- */
+const pct = y => `${(10 + y) / 120 * 100}%`;
+function buildTicks() {
+  let h = '';
+  for (let y = 10; y <= 90; y += 10) h += `<i class="tick" style="left:${pct(y)}"><em>${y <= 50 ? y : 100 - y}</em></i>`;
+  $('ticks').innerHTML = h;
+}
+const spot = b => b >= 100 ? 'End zone' : b < 50 ? `Own ${b}` : b === 50 ? 'Midfield' : `Wraiths ${100 - b}`;
+function render() {
+  $('downTxt').textContent = S.over ? 'Final' : `${ORD[S.down]} & ${S.ball + S.toGo >= 100 ? 'Goal' : S.toGo}`;
+  $('spotTxt').textContent = spot(S.ball);
+  $('momFill').style.width = S.mom + '%';
+  $('momPct').textContent = Math.round(S.mom) + '%';
+  $('ball').style.left = pct(S.ball); $('los').style.left = pct(S.ball);
+  $('ltg').style.left = pct(Math.min(100, S.ball + S.toGo)); $('ltg').hidden = S.over;
+  $('stats').textContent = `Play ${S.plays} · ${S.yards} yds`;
+  const busy = S.phase !== 'choose' || S.over, list = ['run', 'short', 'deep'], fgDist = 100 - S.ball + 17;
+  if (S.down === 4 && fgDist <= 55 && !S.over) list.push('fg');
+  list.push('rally');
+  $('cards').innerHTML = list.map(k => {
+    const p = PLAYS[k]; let sub = p.sub, dis = busy, cls = 'card';
+    if (k === 'rally') { const ready = S.mom >= 100; dis = busy || !ready; cls += ready ? ' rally ready' : ' rally'; if (!ready) sub = `Rally at ${Math.round(S.mom)}%`; }
+    if (k === 'fg') sub = `${fgDist}-yard try`;
+    return `<button class="${cls}" type="button" data-k="${k}"${dis ? ' disabled' : ''}><b>${p.name}</b><small>${sub}</small></button>`;
+  }).join('');
+}
+$('cards').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && !b.disabled) runPlay(b.dataset.k); });
+
+/* ---------- boot ---------- */
+function start(data) {
+  if (data && data.S) { S = Object.assign(fresh(), data.S); if (S.phase === 'busy') S.phase = 'choose'; }
+  buildTicks(); render();
+  if (S.over) { setTop('Final', ''); showPanel(''); addPanel(endHTML(S.result)); }
+  else if (S.plays === 0) intro();
+  else { setTop('Huddle', 'Pick your next play'); showPanel('<p class="flavor">Back in the huddle. Pick a play.</p>'); }
+}
+try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (_) {}
+if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>
