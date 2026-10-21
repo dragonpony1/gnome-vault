@@ -12,11 +12,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Chivo+Mono:wght@500;700&family=Grenze+Gotisch:wght@600;800&display=swap">
 <style>
-/* Layout: one-screen night game. Scoreboard, field strip, touch stage, play cards. */
+/* Layout: one-screen night game. Scoreboard, field strip, live animated field, play cards. */
 :root{
   color-scheme: dark;
-  --night:#0b1712; --turf:#143326; --turf-2:#1a3f2f; --chalk:#eef2e6; --dim:#97ab9e;
+  --night:#0b1712; --sideline:#0f241a; --turf:#17392a; --turf-2:#1b4231; --chalk:#eef2e6; --dim:#97ab9e;
   --torch:#f2a23a; --bulls:#d6533a; --wraith:#8fd8c8; --leather:#a8693a;
+  --fur:#6b4329; --snout:#a07a5c; --horn:#f1e6c8; --robe:#2c4245; --hood:#152123;
   --good:#8cd894; --bad:#ff7461; --line:rgba(238,242,230,.14); --faint:rgba(238,242,230,.26);
   --f-display:"Grenze Gotisch",Georgia,"Times New Roman",serif;
   --f-body:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
@@ -42,41 +43,27 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--bulls),var(--torch));transition:width .4s}
 .pct{font-family:var(--f-num);font-size:12px;color:var(--dim);min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
 
-.strip{position:relative;height:42px;border-radius:8px;overflow:hidden;flex:none;border:1px solid var(--line);
+.strip{position:relative;height:30px;border-radius:8px;overflow:hidden;flex:none;border:1px solid var(--line);
   background:repeating-linear-gradient(90deg,var(--turf) 0 calc(100%/24),var(--turf-2) calc(100%/24) calc(100%/12))}
 .ez{position:absolute;top:0;bottom:0;width:calc(100%/12);display:grid;place-items:center}
 .ez.l{left:0;background:color-mix(in srgb,var(--bulls) 62%,var(--turf))}
 .ez.r{right:0;background:color-mix(in srgb,var(--wraith) 38%,var(--turf))}
-.ez span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--chalk)}
 .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--faint)}
-.tick em{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-style:normal;font-family:var(--f-num);font-size:9px;color:var(--dim)}
+.tick em{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);font-style:normal;font-family:var(--f-num);font-size:8px;color:var(--dim)}
 .los,.ltg{position:absolute;top:0;bottom:0;transition:left .5s}
 .los{width:2px;margin-left:-1px;background:var(--chalk)}
 .ltg{width:3px;margin-left:-1.5px;background:var(--torch)}
-.ball{position:absolute;top:38%;width:14px;height:9px;margin:-4.5px 0 0 -7px;border-radius:50%;background:var(--leather);box-shadow:0 0 0 2px var(--night);transition:left .5s}
+.ball{position:absolute;top:36%;width:12px;height:8px;margin:-4px 0 0 -6px;border-radius:50%;background:var(--leather);box-shadow:0 0 0 2px var(--night);transition:left .5s}
 
-.stage{position:relative;flex:1 1 auto;min-height:300px;border-radius:14px;overflow:hidden;border:1px solid var(--line);
-  background:radial-gradient(ellipse at 50% -10%,color-mix(in srgb,var(--torch) 20%,transparent),transparent 62%),var(--turf)}
+.stage{position:relative;flex:1 1 auto;min-height:340px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--sideline)}
 #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.ov{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;padding:14px;pointer-events:none}
-.top{display:flex;flex-direction:column;gap:2px}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;pointer-events:none}
+.top{display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 6px var(--night),0 0 2px var(--night)}
 #ovTitle{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1;color:var(--torch)}
-#ovHint{font-size:15px;color:var(--chalk);opacity:.85}
-.panel{margin-top:auto;pointer-events:auto;max-height:100%;overflow-y:auto;overscroll-behavior:contain;
-  background:color-mix(in srgb,var(--night) 88%,transparent);border:1px solid var(--line);border-radius:12px;
+#ovHint{font-size:15px;font-weight:600;color:var(--chalk)}
+.panel{margin-top:auto;pointer-events:auto;max-height:62%;overflow-y:auto;overscroll-behavior:contain;
+  background:color-mix(in srgb,var(--night) 90%,transparent);border:1px solid var(--line);border-radius:12px;
   padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-.dice{display:flex;align-items:center;justify-content:center;gap:16px}
-.dwrap{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
-.die{width:58px;height:64px;display:grid;place-items:center;font-family:var(--f-num);font-weight:700;font-size:24px;color:var(--night);
-  background:var(--torch);clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);font-variant-numeric:tabular-nums}
-.die.def{background:var(--wraith)}
-.die.dc{background:var(--chalk)}
-.die.nat20{background:var(--good)}
-.die.nat1{background:var(--bad)}
-.vs{font-family:var(--f-display);font-size:20px;color:var(--dim)}
-.rest{display:flex;flex-direction:column;gap:8px}
-.calc{margin:0;font-family:var(--f-num);font-size:12px;line-height:1.55;color:var(--dim)}
-.calc b{color:var(--chalk)}
 .call{margin:0;font-size:14px;line-height:1.35}
 .call b{color:var(--wraith)}
 .head{margin:0;font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1;color:var(--chalk);text-wrap:balance}
@@ -86,6 +73,10 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 .small{font-size:13px;color:var(--dim)}
 .how{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.3}
 .how b{color:var(--torch)}
+.rolls{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-family:var(--f-num);font-size:11.5px;line-height:1.45;color:var(--dim)}
+.rolls li{padding-left:10px;border-left:3px solid var(--bad)}
+.rolls li.ok{border-left-color:var(--good)}
+.rolls b{color:var(--chalk)}
 .note{margin:0;font-weight:600}
 .note.good{color:var(--good)}
 .note.wraith{color:var(--wraith)}
@@ -98,7 +89,7 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 .again:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
 
 .cards{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;flex:none}
-.card{appearance:none;display:flex;flex-direction:column;gap:3px;min-height:64px;padding:10px 8px;text-align:left;
+.card{appearance:none;display:flex;flex-direction:column;gap:3px;min-height:62px;padding:10px 8px;text-align:left;
   border:1px solid var(--line);border-radius:10px;background:var(--turf);color:var(--chalk);font:inherit;cursor:pointer;
   touch-action:manipulation;transition:transform .08s}
 .card b{font-family:var(--f-display);font-weight:800;font-size:18px;line-height:1;color:var(--torch)}
@@ -128,15 +119,15 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
   </header>
 
   <div class="strip" aria-hidden="true">
-    <div class="ez l"><span>BULLS</span></div>
-    <div class="ez r"><span>WRAITHS</span></div>
+    <div class="ez l"></div>
+    <div class="ez r"></div>
     <div id="ticks"></div>
     <div class="los" id="los"></div>
     <div class="ltg" id="ltg"></div>
     <div class="ball" id="ball"></div>
   </div>
 
-  <section class="stage" id="stage" aria-label="Play field. Tap, hold or swipe here during a play.">
+  <section class="stage" id="stage" aria-label="Live field. Tap, hold or swipe here during a play.">
     <canvas id="cv"></canvas>
     <div class="ov">
       <div class="top" aria-live="polite"><div id="ovTitle"></div><div id="ovHint"></div></div>
@@ -168,8 +159,11 @@ new ResizeObserver(resize).observe(stage); resize();
 
 const css = getComputedStyle(document.documentElement);
 const C = {};
-['torch','bulls','wraith','chalk','dim','good','bad','night','turf','leather'].forEach(k => C[k] = css.getPropertyValue('--' + k).trim());
-const FONT = css.getPropertyValue('--f-display').trim();
+['torch','bulls','wraith','chalk','dim','good','bad','night','sideline','turf','turf-2','leather','fur','snout','horn','robe','hood']
+  .forEach(k => C[k.replace('-', '')] = css.getPropertyValue('--' + k).trim());
+const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * t + parseInt(b.substr(i, 2), 16) * (1 - t)).toString(16).padStart(2, '0')).join('');
+const EZ_B = mix(C.bulls, C.turf, .45), EZ_W = mix(C.wraith, C.turf, .25);
+const FD = css.getPropertyValue('--f-display').trim(), FB = css.getPropertyValue('--f-body').trim(), FN = css.getPropertyValue('--f-num').trim();
 
 const d20 = () => 1 + Math.floor(Math.random() * 20);
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -179,9 +173,9 @@ const tri = x => { const p = x % 2; return p < 1 ? p : 2 - p; };
 function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (_) {} }
 
 const PLAYS = {
-  run:   { name: 'Bull Run',    sub: 'Swipe to juke',  stat: 3, statName: 'power' },
-  short: { name: 'Quick Slant', sub: 'Tap the catch',  stat: 2, statName: 'hands' },
-  deep:  { name: 'Deep Spell',  sub: 'Hold to charge', stat: 1, statName: 'arm' },
+  run:   { name: 'Bull Run',    sub: 'Swipe to juke' },
+  short: { name: 'Quick Slant', sub: 'Tap the catch' },
+  deep:  { name: 'Deep Spell',  sub: 'Hold, beat the rush' },
   fg:    { name: 'Field Goal',  sub: 'Two taps' },
   rally: { name: 'Old Horns',   sub: 'Rally: auto 1st down' }
 };
@@ -191,43 +185,276 @@ const DEFS = {
   blitz: { name: 'Grave Blitz', desc: 'an all-out blitz' }
 };
 const MATCH = { run: { stop: -1, zone: 1, blitz: 0 }, short: { stop: 0, zone: -1, blitz: 1 }, deep: { stop: 1, zone: -1, blitz: 0 } };
-const DEF_STAT = 2;
 const ORD = ['', '1st', '2nd', '3rd', '4th'];
 const DIRS = ['left', 'right', 'up'];
+const FIELD_W = 53.3, MID = 26.65, HASH_L = 23.6, HASH_R = 29.7;
 
-const fresh = () => ({ ball: 25, down: 1, toGo: 10, mom: 0, fail: 0, plays: 0, yards: 0, perf: 0,
+const fresh = () => ({ ball: 25, bx: MID, down: 1, toGo: 10, mom: 0, fail: 0, plays: 0, yards: 0, perf: 0,
   fright: false, wraithRally: false, over: false, result: null, phase: 'choose' });
 let S = fresh();
 const addMom = v => { S.mom = clamp(S.mom + v, 0, 100); };
 
-/* ---------- canvas ---------- */
-let mode = null;
-const fx = [];
-function rr(x, y, w, h, r) {
-  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+/* ================= world ================= */
+let ents = [], play = null, mode = null, ts = 1, tsT = 1, sc = 16;
+const cam = { x: MID, y: 30, zy: 23 };
+const ball = { x: MID, y: 25, h: 0, carrier: null, fl: null, trail: [], spell: false };
+const pops = [], fx = [];
+
+const mk = (team, num, role, x, y, size) => ({ team, num, role, x, y, sx: x, sy: y, vx: 0, vy: 0, sp: 0,
+  hd: team === 'W' ? -Math.PI / 2 : Math.PI / 2, size, state: 'up', ai: null, fall: 0, fly: null, lock: false });
+const get = n => ents.find(e => e.num === n);
+const up = e => e && e.state === 'up' && !e.fly;
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const w2s = (x, y) => [W / 2 + (x - cam.x) * sc, H / 2 - (y - cam.y) * sc];
+
+function steer(e, tx, ty, speed) {
+  const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy);
+  if (d < .02) { e.vx = 0; e.vy = 0; return d; }
+  const s = Math.min(speed, d * 6);
+  e.vx = dx / d * s; e.vy = dy / d * s; return d;
 }
-function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0.1), 0, Math.PI * 2); ctx.stroke(); }
-function label(t, x, y, col, size) {
-  ctx.font = `800 ${size || 34}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = col; ctx.fillText(t, x, y);
+const settle = e => { e.vx *= .85; e.vy *= .85; };
+const chaseBall = (speed, lead = .3) => e => {
+  const c = ball.carrier;
+  if (c) steer(e, c.x + c.vx * lead, c.y + c.vy * lead, speed);
+  else if (ball.fl) steer(e, ball.fl.x1, ball.fl.y1, speed);
+  else steer(e, ball.x, ball.y, speed);
+};
+const chaseAI = (speed, lead) => e => { const c = play && play.carrier; if (c) steer(e, c.x + c.vx * lead, c.y + c.vy * lead, speed); };
+function knockDown(e, ang) { e.state = 'down'; e.fall = ang == null ? e.hd : ang; e.ai = null; e.lock = false; }
+
+function spots(kind, def) {
+  const c = S.bx, L = S.ball, out = [];
+  const B = (n, r, dx, dy, s) => out.push(['B', n, r, c + dx, L + dy, s]);
+  const D = (n, r, dx, dy, s) => out.push(['W', n, r, c + dx, L + dy, s]);
+  B(72, 'OL', -2.4, -.7, 1.25); B(64, 'OL', -1.2, -.7, 1.25); B(55, 'OL', 0, -.6, 1.25); B(61, 'OL', 1.2, -.7, 1.25); B(77, 'OL', 2.4, -.7, 1.25);
+  if (kind === 'fg') {
+    B(85, 'TE', 3.7, -.9, 1.1); B(81, 'TE', -3.7, -.9, 1.1); B(34, 'RB', -1.5, -2.3, 1.1); B(88, 'RB', 1.5, -2.3, 1.1);
+    B(7, 'H', 0, -7, 1); B(3, 'K', -1.6, -9.6, 1);
+    [[90, -1], [99, 1], [93, -3], [96, 3], [57, -5], [52, 5], [50, 0], [21, -7], [24, 7], [31, -2], [33, 2]]
+      .forEach(([n, dx], i) => D(n, 'DL', dx, i < 9 ? 1.1 : 3, 1.1));
+    return out;
+  }
+  B(85, 'TE', 3.7, -.9, 1.1); B(7, 'QB', 0, -4, 1);
+  if (kind === 'run') B(34, 'RB', 0, -6, 1.1); else B(34, 'RB', -1.4, -4.3, 1.1);
+  B(81, 'WR', -13, -.8, .95); B(88, 'WR', 12, -.8, .95); B(11, 'WR', -8, -1.3, .95);
+  const lbY = def === 'stop' ? 3.4 : def === 'blitz' ? 2.3 : 4.6, cbY = def === 'blitz' ? 2.6 : def === 'zone' ? 8 : 6, sY = def === 'zone' ? 15 : def === 'stop' ? 9 : 12;
+  D(90, 'DL', -3.1, 1.1, 1.2); D(99, 'DL', -1, 1.1, 1.2); D(93, 'DL', 1, 1.1, 1.2); D(96, 'DL', 3.1, 1.1, 1.2);
+  D(57, 'LB', def === 'blitz' ? -2.2 : -4, lbY, 1.05); D(52, 'LB', 0, lbY + .3, 1.05); D(50, 'LB', def === 'blitz' ? 2.2 : 4, lbY, 1.05);
+  D(21, 'CB', -13, cbY, .95); D(24, 'CB', 12, cbY, .95); D(31, 'S', -6, sY, 1); D(33, 'S', 6, sY, 1);
+  return out;
+}
+function setup(kind, def, instant) {
+  const old = new Map(ents.map(e => [e.num, e]));
+  ents = spots(kind, def).map(([t, n, r, x, y, s]) => {
+    const e = mk(t, n, r, x, y, s), o = old.get(n);
+    if (o && !instant && o.team !== 'M') { e.x = o.x; e.y = o.y; e.ai = gotoSpot; }
+    return e;
+  });
+  ball.carrier = null; ball.fl = null; ball.trail.length = 0; ball.spell = false;
+  ball.x = S.bx; ball.y = S.ball - .6; ball.h = 0;
+}
+function gotoSpot(e) {
+  if (steer(e, e.sx, e.sy, 12) < .06) { e.ai = null; e.vx = e.vy = 0; e.hd = e.team === 'W' ? -Math.PI / 2 : Math.PI / 2; }
+}
+function lineUp() {
+  return new Promise(res => {
+    const t0 = performance.now();
+    const chk = () => {
+      if (ents.every(e => !e.ai) || performance.now() - t0 > 1100) {
+        ents.forEach(e => { e.x = e.sx; e.y = e.sy; e.ai = null; e.vx = e.vy = 0; e.hd = e.team === 'W' ? -Math.PI / 2 : Math.PI / 2; });
+        res();
+      } else requestAnimationFrame(chk);
+    };
+    chk();
+  });
+}
+
+function stepEnt(e, dt) {
+  if (e.fly) {
+    const f = e.fly; e.x += f.vx * dt; e.y += f.vy * dt; f.z += f.vz * dt; f.vz -= 22 * dt; f.spin += dt * 12;
+    if (f.z <= 0) { e.fly = null; knockDown(e, Math.atan2(f.vy, f.vx)); e.vx = f.vx * .3; e.vy = f.vy * .3; }
+    return;
+  }
+  if (e.state === 'down') { const k = Math.pow(.03, dt); e.vx *= k; e.vy *= k; e.x += e.vx * dt; e.y += e.vy * dt; return; }
+  if (e.ai) e.ai(e, dt);
+  e.x = clamp(e.x + e.vx * dt, -1, FIELD_W + 1); e.y += e.vy * dt;
+  e.sp = Math.hypot(e.vx, e.vy);
+  if (!e.lock && e.sp > .4) {
+    const t = Math.atan2(e.vy, e.vx); let d = t - e.hd; d = Math.atan2(Math.sin(d), Math.cos(d));
+    e.hd += d * Math.min(1, dt * 12);
+  }
+}
+function updateBall(dt) {
+  if (ball.fl) {
+    const f = ball.fl; f.u += dt / f.dur; const u = Math.min(f.u, 1.15);
+    ball.x = f.x0 + (f.x1 - f.x0) * u; ball.y = f.y0 + (f.y1 - f.y0) * u;
+    ball.h = Math.max(0, 4 * f.apex * u * (1 - u) + (f.h0 || 0) * (1 - Math.min(u, 1)));
+    if (ball.spell) { ball.trail.push([ball.x, ball.y, ball.h]); if (ball.trail.length > 16) ball.trail.shift(); }
+  } else if (ball.carrier) {
+    const c = ball.carrier; ball.x = c.x; ball.y = c.y; ball.h = .6;
+  }
+}
+function focus() {
+  if (play && !play.closed && play.focus) return play.focus();
+  if (play && play.closed) return { x: ball.x, y: ball.y - 4 };
+  return S.phase === 'busy' ? { x: S.bx, y: S.ball + 4 } : { x: S.bx, y: S.ball - 5 };
+}
+function updateCam(rdt) {
+  cam.zy += ((play && !play.closed ? play.zoom : 23) - cam.zy) * Math.min(1, rdt * 3);
+  sc = W / cam.zy;
+  const f = focus(), half = W / 2 / sc, k = Math.min(1, rdt * 4.5);
+  cam.x += (clamp(f.x, half - 1.5, FIELD_W - half + 1.5) - cam.x) * k;
+  cam.y += (f.y - cam.y) * k;
+}
+
+/* ================= drawing ================= */
+function ell(x, y, rx, ry, rot) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(.1, rx), Math.max(.1, ry), rot || 0, 0, Math.PI * 2); }
+function label(t, x, y, col, size, font) {
+  ctx.font = `800 ${size || 32}px ${font || FD}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 4; ctx.strokeStyle = C.night; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y);
 }
 const qCol = q => q === 'perfect' ? C.good : (q === 'good' || q === 'ok') ? C.torch : C.bad;
-function drawTurf() {
-  ctx.save(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 2; ctx.globalAlpha = .07;
-  for (let i = 1; i < 6; i++) { const y = H * i / 6; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  ctx.globalAlpha = .12;
-  for (let i = 1; i < 30; i++) { const y = H * i / 30; [W * .3, W * .7].forEach(x => { ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x + 6, y); ctx.stroke(); }); }
-  ctx.restore();
+
+function drawField() {
+  ctx.fillStyle = C.sideline; ctx.fillRect(0, 0, W, H);
+  const top = cam.y + H / 2 / sc + 1, bot = cam.y - H / 2 / sc - 1;
+  const [lx] = w2s(0, 0), [rx] = w2s(FIELD_W, 0), fw = rx - lx;
+  for (let y = Math.floor(bot / 5) * 5; y < top; y += 5) {
+    if (y < -10 || y >= 110) continue;
+    const [, sy] = w2s(0, y + 5);
+    ctx.fillStyle = y < 0 ? EZ_B : y >= 100 ? EZ_W : (Math.floor(y / 5) % 2 ? C.turf2 : C.turf);
+    ctx.fillRect(lx, sy, fw, 5 * sc + 1);
+  }
+  ctx.strokeStyle = C.chalk;
+  for (let y = Math.max(0, Math.ceil(bot / 5) * 5); y <= Math.min(100, top); y += 5) {
+    const [, sy] = w2s(0, y); ctx.globalAlpha = .5; ctx.lineWidth = y % 50 === 0 ? 3 : 1.5;
+    ctx.beginPath(); ctx.moveTo(lx, sy); ctx.lineTo(rx, sy); ctx.stroke();
+    if (y % 10 === 0 && y > 0 && y < 100) {
+      ctx.globalAlpha = .4; ctx.font = `700 ${Math.round(sc * 1.4)}px ${FN}`; ctx.fillStyle = C.chalk; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const n = String(y <= 50 ? y : 100 - y);
+      ctx.fillText(n, w2s(9, 0)[0], sy - sc * 1.1); ctx.fillText(n, w2s(FIELD_W - 9, 0)[0], sy - sc * 1.1);
+    }
+  }
+  ctx.globalAlpha = .35; ctx.lineWidth = 1.5;
+  for (let y = Math.max(1, Math.ceil(bot)); y < Math.min(100, top); y++) {
+    if (y % 5 === 0) continue;
+    const [, sy] = w2s(0, y);
+    [1, HASH_L, HASH_R, FIELD_W - 1].forEach(x => { const [sx] = w2s(x, 0); ctx.beginPath(); ctx.moveTo(sx - sc * .3, sy); ctx.lineTo(sx + sc * .3, sy); ctx.stroke(); });
+  }
+  ctx.globalAlpha = .9; ctx.lineWidth = 3; ctx.strokeRect(lx, w2s(0, 110)[1], fw, 120 * sc);
+  ctx.globalAlpha = .55;
+  [[-5, 'BULLS', C.chalk], [105, 'WRAITHS', C.chalk]].forEach(([y, t, col]) => {
+    if (y > bot - 6 && y < top + 6) { const [, sy] = w2s(0, y); ctx.font = `800 ${Math.round(sc * 3.2)}px ${FD}`; ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, (lx + rx) / 2, sy); }
+  });
+  ctx.globalAlpha = 1;
+  if (!S.over) {
+    const [, ly] = w2s(0, S.ball); ctx.strokeStyle = C.chalk; ctx.globalAlpha = .7; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ly); ctx.stroke();
+    const tg = Math.min(100, S.ball + S.toGo);
+    if (tg < 100) { const [, gy] = w2s(0, tg); ctx.strokeStyle = C.torch; ctx.globalAlpha = .9; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx, gy); ctx.lineTo(rx, gy); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  const [p1, py] = w2s(MID - 3.08, 110), [p2] = w2s(MID + 3.08, 110);
+  if (py > -sc * 6 && py < H + 20) {
+    ctx.strokeStyle = C.torch; ctx.lineWidth = Math.max(2, sc * .22); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(p1, py); ctx.lineTo(p2, py); ctx.moveTo(p1, py); ctx.lineTo(p1, py - sc * 5); ctx.moveTo(p2, py); ctx.lineTo(p2, py - sc * 5); ctx.stroke();
+  }
 }
-function football(x, y, s) {
-  ctx.save(); ctx.fillStyle = C.leather; ctx.beginPath(); ctx.ellipse(x, y, s, s * .62, -.5, 0, Math.PI * 2); ctx.fill();
-  ctx.translate(x, y); ctx.rotate(-.5); ctx.strokeStyle = C.chalk; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(-s * .45, 0); ctx.lineTo(s * .45, 0); ctx.stroke();
-  for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * s * .16, -s * .14); ctx.lineTo(i * s * .16, s * .14); ctx.stroke(); }
-  ctx.restore();
+
+function drawMino(r, e) {
+  ctx.lineWidth = Math.max(1, r * .12); ctx.strokeStyle = C.night;
+  ctx.fillStyle = e.team === 'M' ? C.torch : C.bulls; ell(-r * .12, 0, r * .62, r * 1.0); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C.fur; ell(r * .12, -r * .92, r * .26, r * .26); ctx.fill(); ell(r * .12, r * .92, r * .26, r * .26); ctx.fill();
+  ell(r * .3, 0, r * .48, r * .42); ctx.fill();
+  ctx.fillStyle = C.snout; ell(r * .7, 0, r * .2, r * .26); ctx.fill();
+  ctx.strokeStyle = C.horn; ctx.lineWidth = Math.max(1.5, r * .2); ctx.lineCap = 'round';
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(r * .25, s * r * .32); ctx.quadraticCurveTo(r * .05, s * r * 1.05, r * .8, s * r * .95); ctx.stroke(); }
 }
-function arrow(x, y, s, dir) {
+function drawWraith(r, e, now) {
+  const w = Math.sin(now / 140 + e.num) * r * .35;
+  ctx.fillStyle = C.robe; ctx.beginPath(); ctx.moveTo(r * .55, 0);
+  ctx.bezierCurveTo(r * .55, -r * .95, -r * .4, -r * 1.05, -r * 1.55, w);
+  ctx.bezierCurveTo(-r * .4, r * 1.05, r * .55, r * .95, r * .55, 0); ctx.fill();
+  ctx.strokeStyle = C.wraith; ctx.globalAlpha = .55; ctx.lineWidth = Math.max(1, r * .1); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = C.hood; ell(r * .2, 0, r * .46, r * .46); ctx.fill();
+  ctx.fillStyle = C.wraith; ctx.shadowColor = C.wraith; ctx.shadowBlur = r * .8;
+  ell(r * .48, -r * .17, r * .09, r * .09); ctx.fill(); ell(r * .48, r * .17, r * .09, r * .09); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+function drawShadow(e) {
+  const [sx, sy] = w2s(e.x, e.y), r = .55 * e.size * sc, z = e.fly ? e.fly.z : 0;
+  ctx.fillStyle = C.night; ctx.globalAlpha = e.team === 'W' ? .3 : .45;
+  ell(sx, sy, r * (1.05 - Math.min(.5, z * .1)), r * .55); ctx.fill(); ctx.globalAlpha = 1;
+}
+function drawPlayer(e, now) {
+  const [sx, sy0] = w2s(e.x, e.y), r = .55 * e.size * sc;
+  const hover = e.team === 'W' && e.state === 'up' ? (2 + Math.sin(now / 260 + e.num) * 1.5) * r / 9 : 0;
+  const lift = (e.fly ? e.fly.z * sc * .5 : 0) + hover;
+  const bob = e.state === 'up' && e.sp > 1 ? Math.abs(Math.sin(now / 85 + e.num)) * r * .14 : 0;
+  const sy = sy0 - lift - bob - r * .2;
+  ctx.save(); ctx.translate(sx, sy);
+  if (e.state === 'down') {
+    ctx.rotate(-e.fall); ctx.globalAlpha = .92;
+    ctx.fillStyle = e.team === 'W' ? C.robe : e.team === 'M' ? C.torch : C.bulls; ell(-r * .2, 0, r * 1.15, r * .62); ctx.fill();
+    ctx.fillStyle = e.team === 'W' ? C.hood : C.fur; ell(r * .95, 0, r * .42, r * .38); ctx.fill();
+    if (e.team !== 'W') { ctx.strokeStyle = C.horn; ctx.lineWidth = Math.max(1.5, r * .18); ctx.beginPath(); ctx.moveTo(r * .95, -r * .3); ctx.lineTo(r * 1.35, -r * .7); ctx.moveTo(r * .95, r * .3); ctx.lineTo(r * 1.35, r * .7); ctx.stroke(); }
+    ctx.restore(); return;
+  }
+  if (e.fly) ctx.rotate(e.fly.spin);
+  ctx.rotate(-e.hd);
+  if (e.team === 'W') drawWraith(r, e, now); else drawMino(r, e);
+  if (ball.carrier === e) { ctx.fillStyle = C.leather; ell(r * .15, r * .78, r * .42, r * .26, .3); ctx.fill(); ctx.strokeStyle = C.chalk; ctx.lineWidth = 1; ctx.stroke(); }
+  ctx.restore();
+  if (r > 6.5 && e.team !== 'M') {
+    const bx = sx - Math.cos(-e.hd) * r * .3, by = sy - Math.sin(-e.hd) * r * .3;
+    ctx.font = `700 ${Math.max(8, Math.round(r * .62))}px ${FN}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = e.team === 'W' ? C.wraith : C.chalk; ctx.globalAlpha = .85; ctx.fillText(e.num, bx, by); ctx.globalAlpha = 1;
+  }
+}
+function ring(e, col, dash) {
+  const [sx, sy] = w2s(e.x, e.y), r = .55 * e.size * sc * 1.5;
+  ctx.strokeStyle = col; ctx.lineWidth = 2.5; if (dash) ctx.setLineDash([5, 5]);
+  ell(sx, sy, r, r * .55); ctx.stroke(); ctx.setLineDash([]);
+}
+function drawBall() {
+  if (ball.carrier) return;
+  const [sx, sy] = w2s(ball.x, ball.y), lift = ball.h * sc * .7;
+  ctx.fillStyle = C.night; ctx.globalAlpha = .45; ell(sx, sy, sc * .32, sc * .18); ctx.fill(); ctx.globalAlpha = 1;
+  if (ball.spell) ball.trail.forEach(([x, y, h], i) => {
+    const [tx, ty] = w2s(x, y); ctx.fillStyle = C.torch; ctx.globalAlpha = i / ball.trail.length * .55;
+    ell(tx, ty - h * sc * .7, sc * .3 * i / ball.trail.length + 1, sc * .3 * i / ball.trail.length + 1); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  const f = ball.fl, rot = f ? -Math.atan2(f.y1 - f.y0, f.x1 - f.x0) : 0;
+  if (ball.spell) { ctx.shadowColor = C.torch; ctx.shadowBlur = 14; }
+  ctx.fillStyle = C.leather; ell(sx, sy - lift, sc * .34, sc * .21, rot); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = C.chalk; ctx.lineWidth = 1; ctx.stroke();
+}
+function drawWorld(now) {
+  const list = ents.slice().sort((a, b) => b.y - a.y);
+  list.forEach(drawShadow);
+  if (play && !play.closed) {
+    if (play.carrier && up(play.carrier)) ring(play.carrier, C.torch);
+    if (play.target && !play.thrown) ring(play.target, C.torch, true);
+    if (play.prompt && up(play.active)) ring(play.active, C.bad);
+  }
+  list.forEach(e => drawPlayer(e, now));
+  drawBall();
+}
+function popAt(x, y, text, sub, col) { pops.push({ x, y, text, sub, col, t0: performance.now() }); }
+function drawPops(now) {
+  for (let i = pops.length - 1; i >= 0; i--) {
+    const p = pops[i], age = (now - p.t0) / 1000;
+    if (age > 1.7) { pops.splice(i, 1); continue; }
+    const [sx0, sy0] = w2s(p.x, p.y), sx = clamp(sx0, 70, W - 70), sy = clamp(sy0, 70, H - 40) - 24 - age * 22;
+    ctx.globalAlpha = age < 1.2 ? 1 : 1 - (age - 1.2) / .5;
+    label(p.text, sx, sy, p.col, 28);
+    if (p.sub) label(p.sub, sx, sy + 22, C.chalk, 13, FN);
+    ctx.globalAlpha = 1;
+  }
+}
+function arrowShape(x, y, s, dir) {
   const rot = { right: 0, left: Math.PI, up: -Math.PI / 2, down: Math.PI / 2 }[dir];
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = C.torch; ctx.beginPath();
   ctx.moveTo(-s * .7, -s * .17); ctx.lineTo(s * .05, -s * .17); ctx.lineTo(s * .05, -s * .45); ctx.lineTo(s * .75, 0);
@@ -246,15 +473,35 @@ function drawFx() {
     ctx.fillStyle = p.c; ctx.fillRect(-4, -2, 8, 4); ctx.restore();
   }
 }
+
+/* ================= main loop ================= */
+let last = performance.now();
+function tickPlay(P, dt) {
+  P.t += dt;
+  if (!P.got && P.snapTo && ball.fl && ball.fl.u >= 1) { P.got = true; ball.fl = null; ball.carrier = P.snapTo; }
+  for (let i = P.later.length - 1; i >= 0; i--) if (P.later[i][0] <= P.t) { const f = P.later[i][1]; P.later.splice(i, 1); f(); }
+  if (P.update) P.update(dt);
+  checkContact(P);
+  if (P.endAt != null && P.t >= P.endAt) {
+    P.closed = true; P.endAt = null;
+    ents.forEach(e => { if (e.state === 'up') { e.ai = settle; e.lock = false; } });
+    P.res(P.out);
+  }
+}
 function frame(now) {
-  ctx.clearRect(0, 0, W, H); drawTurf();
+  const rdt = Math.min(.05, (now - last) / 1000); last = now;
+  ts += (tsT - ts) * Math.min(1, rdt * 14);
+  const dt = rdt * ts;
+  if (play && !play.closed) tickPlay(play, dt);
+  for (const e of ents) stepEnt(e, dt);
+  updateBall(dt); updateCam(rdt);
+  drawField(); drawWorld(now);
   if (mode && mode.draw) mode.draw(now);
-  drawFx();
+  drawPops(now); drawFx();
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
 
-/* ---------- input ---------- */
+/* ================= input ================= */
 let ptr = null, keyHeld = false;
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); ptr = { x: e.clientX, y: e.clientY, sw: false };
@@ -264,7 +511,7 @@ cv.addEventListener('pointerdown', e => {
 cv.addEventListener('pointermove', e => {
   if (!ptr || ptr.sw) return;
   const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
-  if (Math.hypot(dx, dy) > 26) {
+  if (Math.hypot(dx, dy) > 24) {
     ptr.sw = true;
     const d = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
     if (mode && mode.onSwipe) mode.onSwipe(d);
@@ -278,13 +525,11 @@ addEventListener('keydown', e => {
   const k = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.key];
   if (k) { e.preventDefault(); if (!e.repeat && mode.onSwipe) mode.onSwipe(k); }
 });
-addEventListener('keyup', e => {
-  if (e.key === ' ' || e.key === 'Enter') { keyHeld = false; if (mode && mode.onUp) mode.onUp(); }
-});
+addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') { keyHeld = false; if (mode && mode.onUp) mode.onUp(); } });
 
-/* ---------- touch moments ---------- */
 function setTop(t, h) { $('ovTitle').textContent = t || ''; $('ovHint').textContent = h || ''; }
 
+/* ================= touch moments ================= */
 function meter(o) {
   return new Promise(res => {
     const t0 = performance.now() + 350, c = .28 + Math.random() * .44;
@@ -299,171 +544,487 @@ function meter(o) {
     mode = {
       draw(now) {
         if (!done) { pos = now < t0 ? 0 : tri((now - t0) / 1000 * o.speed * 2); if (now - t0 > (o.timeout || 3200)) finish('miss'); }
-        const x0 = W * .1, w = W * .8, y = H * .56, h = 30;
-        ctx.fillStyle = C.night; ctx.globalAlpha = .8; rr(x0, y - h / 2, w, h, 8); ctx.fill();
+        const x0 = W * .1, w = W * .8, y = H - 64, h = 26;
+        ctx.fillStyle = C.night; ctx.globalAlpha = .85; ctx.fillRect(x0 - 8, y - h / 2 - 8, w + 16, h + 16); ctx.globalAlpha = 1;
         ctx.fillStyle = C.good; ctx.globalAlpha = .45; ctx.fillRect(x0 + w * (c - o.green / 2), y - h / 2, w * o.green, h);
         ctx.globalAlpha = 1; ctx.fillRect(x0 + w * (c - o.perfect / 2), y - h / 2, w * o.perfect, h);
-        const nx = x0 + w * pos;
-        ctx.fillStyle = done ? qCol(done.q) : C.chalk; ctx.fillRect(nx - 2.5, y - h / 2 - 14, 5, h + 28);
+        ctx.strokeStyle = C.dim; ctx.lineWidth = 1; ctx.strokeRect(x0, y - h / 2, w, h);
+        ctx.fillStyle = done ? qCol(done.q) : C.chalk; ctx.fillRect(x0 + w * pos - 2.5, y - h / 2 - 10, 5, h + 20);
         if (done) {
-          label(done.q === 'perfect' ? 'PERFECT' : done.q === 'good' ? 'GOOD' : 'MISS', W / 2, y + h / 2 + 44, qCol(done.q));
-          if (now - at > 520) { mode = null; res(done); }
-        } else if (now < t0) label('READY', W / 2, y + h / 2 + 44, C.dim, 24);
+          label(done.q === 'perfect' ? 'PERFECT' : done.q === 'good' ? 'GOOD' : 'MISS', W / 2, y - 44, qCol(done.q));
+          if (now - at > 480) { mode = null; res(done); }
+        } else if (now < t0) label('READY', W / 2, y - 44, C.dim, 22);
       },
       onDown() { if (!done && performance.now() >= t0) finish(); }
     };
   });
 }
 
-function juke() {
-  return new Promise(res => {
-    const wins = [1150, 950, 800];
-    let i = 0, hits = 0, cur = pick(DIRS), start = performance.now() + 350, end = null, endAt = 0;
-    setTop('Juke', 'Swipe the way each arrow points');
-    const finish = ok => { end = { hits }; endAt = performance.now(); buzz(ok ? [15, 30, 15, 30, 15] : 60); };
-    mode = {
-      draw(now) {
-        const R = Math.min(W, H) * .28, cx = W / 2, cy = H * .54;
-        for (let k = 0; k < 3; k++) {
-          ctx.beginPath(); ctx.arc(cx + (k - 1) * 28, cy + R + 30, 8, 0, Math.PI * 2);
-          ctx.fillStyle = k < hits ? C.torch : C.night; ctx.fill(); ctx.strokeStyle = C.torch; ctx.lineWidth = 2; ctx.stroke();
-        }
-        if (end) {
-          label(hits === 3 ? 'BREAKAWAY' : hits ? `${hits} JUKE${hits > 1 ? 'S' : ''}` : 'TACKLED', cx, cy, hits === 3 ? C.good : hits ? C.torch : C.bad);
-          if (now - endAt > 620) { mode = null; res(end); }
-          return;
-        }
-        if (now < start) { label(i ? '' : 'READY', cx, cy, C.dim, 24); return; }
-        const left = 1 - (now - start) / wins[i];
-        if (left <= 0) { finish(false); return; }
-        ctx.strokeStyle = C.wraith; ctx.lineWidth = 6; ctx.beginPath();
-        ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left); ctx.stroke();
-        arrow(cx, cy, R * .62, cur);
-      },
-      onSwipe(d) {
-        const now = performance.now();
-        if (end || now < start) return;
-        if (d === cur) {
-          hits++; i++; buzz(15);
-          if (i >= 3) finish(true);
-          else { let n; do { n = pick(DIRS); } while (n === cur); cur = n; start = now + 220; }
-        } else finish(false);
+function startCatchHUD(P, wr) {
+  if (P.auto) { P.catchQ = 'auto'; return; }
+  tsT = .4;
+  setTop('Catch!', 'Tap when the gold ring meets the white circle');
+  mode = {
+    kind: 'catch',
+    draw() {
+      const f = ball.fl; if (!f || P.landed) return;
+      const [sx, sy] = w2s(wr.x, wr.y), R0 = 66, rt = 20, r = Math.max(2, rt + (R0 - rt) * (1 - f.u));
+      ctx.setLineDash([5, 5]); ctx.strokeStyle = C.chalk; ctx.lineWidth = 3; ell(sx, sy - 6, rt, rt); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = P.catchQ ? qCol(P.catchQ) : C.torch; ctx.lineWidth = 5; ell(sx, sy - 6, r, r); ctx.stroke();
+    },
+    onDown() {
+      if (P.catchQ || !ball.fl) return;
+      const e = Math.abs(1 - ball.fl.u) * .7;
+      P.catchQ = e < .035 ? 'perfect' : e < .09 ? 'good' : e < .16 ? 'ok' : 'miss';
+      buzz(P.catchQ === 'miss' ? 60 : P.catchQ === 'perfect' ? [15, 40, 15] : 20);
+    }
+  };
+}
+
+function startChargeHUD(P) {
+  let pressing = false, tp = 0, lvl = 0;
+  const MAX = 1.3, SWEET = [.74, .92], PERF = [.8, .86];
+  setTop('Deep spell', 'Hold to charge. Release in the gold before the rush gets home.');
+  const release = () => {
+    if (!pressing) return; pressing = false;
+    const q = lvl >= PERF[0] && lvl <= PERF[1] ? 'perfect' : lvl >= SWEET[0] && lvl <= SWEET[1] ? 'good' : lvl > 1 ? 'over' : lvl > SWEET[1] ? 'long' : 'weak';
+    buzz(q === 'over' ? [40, 30, 40] : q === 'perfect' ? [15, 40, 15] : 20);
+    throwDeep(P, q);
+  };
+  mode = {
+    kind: 'charge',
+    draw(now) {
+      if (P.thrown || P.sacked) { mode = null; return; }
+      if (pressing) { lvl = (now - tp) / 1400; if (lvl >= MAX) { lvl = MAX; release(); return; } }
+      const bw = 26, x = W - bw - 18, top = H * .2, bot = H * .8, hh = bot - top, Y = v => bot - v / MAX * hh;
+      ctx.fillStyle = C.night; ctx.globalAlpha = .85; ctx.fillRect(x - 6, top - 6, bw + 12, hh + 12);
+      ctx.globalAlpha = .55; ctx.fillStyle = C.bad; ctx.fillRect(x, top, bw, Y(1) - top);
+      ctx.fillStyle = C.torch; ctx.fillRect(x, Y(SWEET[1]), bw, Y(SWEET[0]) - Y(SWEET[1]));
+      ctx.globalAlpha = 1; ctx.fillRect(x, Y(PERF[1]), bw, Y(PERF[0]) - Y(PERF[1]));
+      ctx.globalAlpha = .9; ctx.fillStyle = C.wraith; ctx.fillRect(x + 6, Y(lvl), bw - 12, bot - Y(lvl)); ctx.globalAlpha = 1;
+      label(pressing ? 'MANA' : 'HOLD', x + bw / 2, top - 22, pressing ? C.wraith : C.chalk, 18, FB);
+    },
+    onDown() { if (!P.got || P.thrown || P.sacked || pressing) return; pressing = true; tp = performance.now(); },
+    onUp() { release(); }
+  };
+}
+
+/* ================= plays ================= */
+function newPlay(kind, def) {
+  const P = { kind, def, t: 0, rolls: [], mods: [], adv: 0, push: 0, contacts: 0, jukes: 0, carrier: null, active: null,
+    tq: [], prompt: false, cool: 0, later: [], out: null, endAt: null, closed: false, zoom: 23, critMin: 20, auto: $('auto').checked };
+  P.done = new Promise(r => { P.res = r; });
+  P.finish = (out, delay) => { if (P.out) return; P.out = out; P.endAt = P.t + (delay == null ? .9 : delay); };
+  return P;
+}
+function applySnap(P, q) {
+  P.snapQ = q;
+  const m = MATCH[P.kind][P.def]; let adv = m;
+  if (q === 'perfect') { adv++; P.mods.push(['perfect snap', 2]); S.perf++; addMom(10); }
+  else if (q === 'good') P.mods.push(['snap', 2]);
+  else if (q === 'miss') P.mods.push(['late snap', -2]);
+  if (S.fail >= 3) P.mods.push(['pity timer', 2]);
+  P.match = m; P.adv = Math.sign(adv);
+  P.push = { perfect: 1.3, good: .6, auto: .3, miss: -.9 }[q] + (P.kind === 'run' ? 0 : -1);
+}
+function snapBall(P, to) {
+  P.snapTo = to;
+  ball.carrier = null; ball.fl = { x0: S.bx, y0: S.ball - .6, x1: to.x, y1: to.y + .3, dur: to.role === 'H' ? .35 : .22, apex: .3, u: 0 };
+}
+function blocks(P, pairs) {
+  P.pairs = pairs.map(([on, dn]) => {
+    const o = get(on), d = get(dn), pr = { o, d, eng: false, rel: false, mx: 0, my: 0 };
+    d.blocked = true;
+    o.ai = (e, dt) => {
+      if (pr.rel) { settle(e); return; }
+      if (!pr.eng) {
+        steer(e, d.x, d.y - .95, 5);
+        if (dist(e, d) < 1.25) { pr.eng = true; pr.mx = (e.x + d.x) / 2; pr.my = (e.y + d.y) / 2; }
+        return;
       }
+      pr.my += P.push * dt;
+      e.x = pr.mx + Math.sin(P.t * 13 + on) * .06; e.y = pr.my - .5; e.vx = 0; e.vy = 0; e.lock = true; e.hd = Math.PI / 2;
     };
+    d.ai = e => {
+      if (pr.rel) return;
+      if (!pr.eng) { steer(e, o.x, o.y + .95, 4.5); return; }
+      e.x = pr.mx - Math.sin(P.t * 13 + on) * .06; e.y = pr.my + .5; e.vx = 0; e.vy = 0; e.lock = true; e.hd = -Math.PI / 2;
+    };
+    return pr;
   });
 }
-
-function catchRing() {
-  return new Promise(res => {
-    const t0 = performance.now() + 400 + Math.random() * 500, dur = 1250;
-    let done = null, at = 0, r = 0;
-    setTop('Catch', 'Tap when the gold ring meets the white circle');
-    const R0 = () => Math.min(W, H) * .42;
-    const finish = q => {
-      if (done) return;
-      const e = Math.abs(r - R0() * .3) / R0();
-      q = q || (e < .035 ? 'perfect' : e < .09 ? 'good' : e < .16 ? 'ok' : 'miss');
-      done = { q }; at = performance.now(); buzz(q === 'miss' ? 60 : q === 'perfect' ? [15, 40, 15] : 20);
-    };
-    mode = {
-      draw(now) {
-        const R = R0(), rt = R * .3, cx = W / 2, cy = H * .55;
-        if (!done) { r = now < t0 ? R : R * (1 - (now - t0) / dur); if (r <= 0) { r = 0; finish('miss'); } }
-        ctx.setLineDash([6, 6]); ctx.strokeStyle = C.chalk; ctx.lineWidth = 3; circle(cx, cy, rt); ctx.setLineDash([]);
-        football(cx, cy, rt * .55);
-        ctx.strokeStyle = done ? qCol(done.q) : C.torch; ctx.lineWidth = 5; circle(cx, cy, r);
-        if (done) {
-          label({ perfect: 'PERFECT', good: 'CLEAN', ok: 'BOBBLED', miss: 'MISSED' }[done.q], cx, cy + R * .62 + 20, qCol(done.q));
-          if (now - at > 520) { mode = null; res(done); }
-        }
-      },
-      onDown() { if (!done && performance.now() >= t0) finish(); }
-    };
-  });
+function release(P, dn, ai) {
+  const pr = (P.pairs || []).find(p => p.d.num === dn); if (!pr) return;
+  pr.rel = true; pr.d.blocked = false; pr.d.lock = false; pr.o.lock = false; pr.d.ai = ai;
+}
+function startCarrier(P, e, lane) {
+  P.carrier = e; ball.carrier = e; ball.fl = null; ball.spell = false;
+  e.ai = carrierAI; e.lane = lane; e.top = e.role === 'RB' ? 7.2 : 7.6; e.spd = Math.max(3, e.sp || 0); e.lock = false;
+}
+function carrierAI(e, dt) {
+  const P = play; if (!P) return;
+  e.spd = Math.min(e.y > 103 ? 1 : e.top, e.spd + 9 * dt);
+  let vx = 0;
+  if (e.lane != null && e.y < S.ball + 1.5) vx = (e.lane - e.x) * 2.2;
+  else for (const d of ents) {
+    if (d.team !== 'W' || !up(d) || d === P.active) continue;
+    const dx = e.x - d.x, dy = d.y - e.y, dd = Math.hypot(dx, dy);
+    if (dy > -1 && dd < 5) vx += Math.sign(dx || 1) * (5 - dd) * .7;
+  }
+  if (e.x < 4) vx += 2.5; if (e.x > FIELD_W - 4) vx -= 2.5;
+  if (e.cut) { e.cut.t -= dt; vx += e.cut.vx; if (e.cut.t <= 0) e.cut = null; }
+  vx = clamp(vx, -6.5, 6.5);
+  e.vx = vx; e.vy = Math.sqrt(Math.max(0, e.spd * e.spd - Math.min(vx * vx, e.spd * e.spd * .6)));
+  if (e.y >= 100 && !P.out) {
+    popAt(e.x, 102, 'TOUCHDOWN', '', C.torch);
+    P.finish({ td: true, y: 100 - S.ball, kind: 'good', head: 'Touchdown!',
+      text: P.jukes ? `${P.jukes} juke${P.jukes > 1 ? 's' : ''} and #${e.num} is in the end zone.` : `Nobody lays a hand on #${e.num}.` }, 1.4);
+  }
+}
+function nextTackler(P) {
+  P.active = null; let extra = false;
+  while (P.tq.length) { const e = get(P.tq.shift()); if (up(e) && !e.blocked) { P.active = e; break; } }
+  if (!P.active && P.carrier) {
+    extra = true; let bd = 1e9;
+    for (const d of ents) if (d.team === 'W' && up(d) && !d.blocked) { const dd = dist(d, P.carrier); if (dd < bd) { bd = dd; P.active = d; } }
+  }
+  if (P.active) P.active.ai = chaseAI(extra ? 7.9 : 6.9, .25);
+}
+function roll(P, label, extra, dc, at, okText, noText) {
+  const a = d20(), b = d20(), nat = P.adv > 0 ? Math.max(a, b) : P.adv < 0 ? Math.min(a, b) : a;
+  const mods = extra.concat(P.mods), base = [P.stat, P.statName];
+  const total = nat + base[0] + mods.reduce((s, m) => s + m[1], 0);
+  const crit = nat >= P.critMin, ok = crit || (nat !== 1 && total >= dc);
+  const r = { label, a, b, nat, adv: P.adv, base, mods, total, dc, ok, crit };
+  P.rolls.push(r);
+  if (okText) popAt(at.x, at.y + 1.8, crit ? 'CRIT!' : nat === 1 ? 'NAT 1' : ok ? okText : noText, `rolled ${total} vs ${dc}`, ok ? C.good : C.bad);
+  return r;
+}
+function checkContact(P) {
+  const c = P.carrier;
+  if (!c || P.prompt || P.out || c.state !== 'up' || P.t < P.cool) return;
+  if (!up(P.active)) { nextTackler(P); return; }
+  if (dist(c, P.active) < 1.7) contact(P);
+}
+function contact(P) {
+  P.prompt = true;
+  const c = P.carrier, a = P.active, dir = pick(DIRS);
+  if (P.auto) { resolveContact(P, 'auto', dir); return; }
+  tsT = .05; ts = Math.min(ts, .25);
+  const t0 = performance.now(), win = 1000; let fired = false;
+  setTop('Juke!', dir === 'up' ? `Swipe up to spin past #${a.num}` : `Swipe ${dir} past #${a.num}`);
+  const done = q => { if (fired) return; fired = true; mode = null; resolveContact(P, q, dir); };
+  mode = {
+    kind: 'juke',
+    draw(now) {
+      const left = 1 - (now - t0) / win;
+      if (left <= 0) { done('late'); return; }
+      const [sx, sy0] = w2s(c.x, c.y), sy = clamp(sy0 - 64, 46, H - 46);
+      ctx.fillStyle = C.night; ctx.globalAlpha = .82; ell(sx, sy, 36, 36); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.wraith; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(sx, sy, 36, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left); ctx.stroke();
+      arrowShape(sx, sy, 34, dir);
+    },
+    onSwipe(d) { const el = performance.now() - t0; done(d === dir ? (el < win * .45 ? 'perfect' : 'good') : 'wrong'); }
+  };
+}
+function resolveContact(P, q, dir) {
+  tsT = 1; setTop('', '');
+  const c = P.carrier, a = P.active;
+  const qm = { perfect: 5, good: 3, auto: 0, wrong: -4, late: -6 }[q];
+  const ql = { perfect: 'perfect juke', good: 'juke', auto: 'auto', wrong: 'wrong way', late: 'too slow' }[q];
+  const r = roll(P, `${dir === 'up' ? 'Spin' : 'Juke'} vs #${a.num}`, [[ql, qm]], 12 + 3 * P.contacts, c, dir === 'up' ? 'SPUN!' : 'JUKED!', 'HIT!');
+  P.contacts++; P.prompt = false; P.cool = P.t + .2;
+  if (q === 'perfect') S.perf++;
+  if (r.nat === 1 && q !== 'perfect' && q !== 'good') { fumble(P, c, a); return; }
+  if (r.ok) {
+    P.jukes++; addMom(q === 'perfect' ? 8 : q === 'good' ? 5 : 2); buzz(15);
+    const sgn = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+    c.cut = { vx: sgn * 6.5, t: .32 };
+    whiff(P, a, c);
+    if (r.crit) { const n = ents.find(d => d !== a && d.team === 'W' && up(d) && !d.blocked && dist(d, c) < 7); if (n) whiff(P, n, c); }
+    nextTackler(P);
+  } else tackle(P, c, a);
+}
+function whiff(P, a, c) {
+  const dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy) || 1;
+  a.ai = null; a.lock = false; a.vx = dx / d * 7.5; a.vy = dy / d * 7.5;
+  P.later.push([P.t + .3, () => knockDown(a, Math.atan2(a.vy, a.vx))]);
+}
+function tackle(P, c, a) {
+  c.tackled = true; c.ai = settle; buzz(70);
+  a.ai = e => steer(e, c.x, c.y, 8);
+  P.later.push([P.t + .14, () => {
+    knockDown(c, c.hd); c.vx = Math.cos(c.hd) * 2.2; c.vy = Math.sin(c.hd) * 2.2;
+    knockDown(a, a.hd); a.vx = c.vx; a.vy = c.vy;
+  }]);
+  P.later.push([P.t + .55, () => {
+    const spot = clamp(Math.round(c.y), 1, 99), y = spot - S.ball;
+    P.finish({ y, x: c.x, kind: y > 0 ? 'good' : y < 0 ? 'bad' : '', head: y > 0 ? `Gain of ${y}` : y < 0 ? `Loss of ${-y}` : 'No gain',
+      text: `Brought down by #${a.num}${P.jukes ? ` after ${P.jukes} juke${P.jukes > 1 ? 's' : ''}` : ''}.` }, .6);
+  }]);
+}
+function fumble(P, c, a) {
+  c.tackled = true; c.ai = settle; buzz([60, 40, 60]);
+  P.later.push([P.t + .1, () => {
+    knockDown(c, c.hd); knockDown(a, a.hd);
+    ball.carrier = null; ball.fl = { x0: c.x, y0: c.y, x1: c.x + (Math.random() - .5) * 4, y1: c.y + 2.5, dur: .6, apex: 1, u: 0 };
+    const rec = ents.find(d => d.team === 'W' && up(d) && d !== a) || a;
+    if (up(rec)) rec.ai = e => steer(e, ball.x, ball.y, 7);
+  }]);
+  P.finish({ to: true, y: 0, kind: 'bad', head: 'Fumble!', text: `Natural 1. #${a.num} jars the ball loose and the Wraiths fall on it.` }, 1.4);
+}
+function intercept(P, d, wr) {
+  ball.fl = null; ball.spell = false; ball.carrier = d; d.blocked = false; d.lock = false;
+  d.ai = e => steer(e, e.x + 1, e.y - 40, 7.2);
+  wr.ai = e => steer(e, d.x, d.y, 7);
+  popAt(d.x, d.y + 2, 'PICKED OFF', '', C.bad); buzz([60, 40, 60]);
+  P.finish({ to: true, y: 0, kind: 'bad', head: 'Intercepted!', text: `#${d.num} picks it off and heads the other way.` }, 1.6);
+}
+function incomplete(P, wr, cov, q) {
+  const f = ball.fl, dx = f ? (f.x1 - f.x0) * .12 : 0, dy = f ? (f.y1 - f.y0) * .12 : 1;
+  ball.carrier = null; ball.spell = false; ball.fl = { x0: ball.x, y0: ball.y, x1: ball.x + dx, y1: ball.y + dy + 1, dur: .45, apex: .6, h0: ball.h, u: 0 };
+  wr.ai = settle; if (cov) cov.ai = settle;
+  P.finish({ y: 0, head: 'Incomplete', kind: '', text: q === 'miss' || q === 'weak' || q === 'over' ? 'Bad timing. It falls to the turf.' : `#${cov.num} gets a hand on it.` }, 1);
+}
+function resolveCatch(P, wr, cov, dc, qmap, labels, nextNum) {
+  if (mode && mode.kind === 'catch') mode = null;
+  tsT = 1; setTop('', '');
+  const q = P.catchQ || 'miss';
+  const r = roll(P, P.kind === 'deep' ? 'Deep catch' : 'Catch', [[labels[q], qmap[q]]], dc, wr, 'CAUGHT!', 'NO CATCH');
+  P.critMin = 20;
+  if (q === 'perfect') S.perf++;
+  const pick6 = (r.nat === 1 && q !== 'perfect') || r.total <= dc - 9 || (q === 'over' && r.total <= dc - 4);
+  if (pick6 && up(cov)) { intercept(P, cov, wr); return; }
+  if (!r.ok) { incomplete(P, wr, cov, q); return; }
+  P.caught = true; startCarrier(P, wr, null); wr.spd = 6.5;
+  P.tq = [cov.num, nextNum, 57];
+  if (r.crit && up(cov)) whiff(P, cov, wr);
+  nextTackler(P);
 }
 
-function charge() {
-  return new Promise(res => {
-    const t0 = performance.now(), MAX = 1.3, SW = [.74, .92], PF = [.8, .86];
-    let pressing = false, tp = 0, lvl = 0, done = null, at = 0;
-    setTop('Deep spell', 'Hold anywhere to charge. Release in the gold.');
-    const finish = () => {
-      if (done) return;
-      const q = lvl >= PF[0] && lvl <= PF[1] ? 'perfect' : lvl >= SW[0] && lvl <= SW[1] ? 'good' : lvl > 1 ? 'over' : lvl > SW[1] ? 'long' : 'weak';
-      done = { q }; at = performance.now(); buzz(q === 'over' ? [40, 30, 40] : q === 'perfect' ? [15, 40, 15] : 20);
-    };
-    mode = {
-      draw(now) {
-        if (!done) {
-          if (pressing) { lvl = (now - tp) / 1400; if (lvl >= MAX) { lvl = MAX; finish(); } }
-          else if (now - t0 > 4500) { lvl = .35; finish(); }
-        }
-        const bw = 40, x = W / 2 - bw / 2, top = H * .26, bot = H * .9, hh = bot - top;
-        const Y = v => bot - (v / MAX) * hh;
-        ctx.fillStyle = C.night; ctx.globalAlpha = .8; rr(x, top, bw, hh, 10); ctx.fill();
-        ctx.globalAlpha = .5; ctx.fillStyle = C.bad; ctx.fillRect(x, top, bw, Y(1) - top);
-        ctx.fillStyle = C.torch; ctx.fillRect(x, Y(SW[1]), bw, Y(SW[0]) - Y(SW[1]));
-        ctx.globalAlpha = 1; ctx.fillRect(x, Y(PF[1]), bw, Y(PF[0]) - Y(PF[1]));
-        ctx.globalAlpha = .9; ctx.fillStyle = C.wraith; ctx.fillRect(x + 8, Y(lvl), bw - 16, bot - Y(lvl)); ctx.globalAlpha = 1;
-        ctx.font = `600 13px ${css.getPropertyValue('--f-body')}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = C.dim; ctx.fillText('overcharge', x + bw + 10, (top + Y(1)) / 2); ctx.fillText('sweet spot', x + bw + 10, Y((SW[0] + SW[1]) / 2));
-        if (done) {
-          const L = { perfect: ['PERFECT', C.good], good: ['CLEAN', C.torch], long: ['A BIT LONG', C.torch], weak: ['UNDERPOWERED', C.bad], over: ['OVERCHARGED', C.bad] }[done.q];
-          label(L[0], W / 2, top - 26, L[1]);
-          if (now - at > 560) { mode = null; res(done); }
-        } else if (!pressing) label('HOLD', W / 2, top - 26, C.chalk, 26);
-      },
-      onDown() { if (!done && !pressing) { pressing = true; tp = performance.now(); } },
-      onUp() { if (pressing && !done) finish(); }
-    };
-  });
+function makeRun(def) {
+  const P = newPlay('run', def), c = S.bx, L = S.ball, qb = get(7), rb = get(34);
+  P.stat = 3; P.statName = 'power'; P.zoom = 21;
+  const lane = clamp(c + pick([-1.8, 1.8, -3.2, 3.2]), 3, FIELD_W - 3);
+  P.focus = () => P.carrier ? { x: P.carrier.x, y: P.carrier.y + 4 } : { x: c, y: L + 2 };
+  P.begin = () => {
+    snapBall(P, qb);
+    blocks(P, [[72, 90], [64, 99], [61, 93], [77, 96], [55, 52], [85, 50]]);
+    P.tq = { stop: [57, 31, 21], blitz: [57, 31, 24], zone: [57, 33, 31] }[def].slice();
+    if (def === 'stop' || P.snapQ === 'miss') { P.later.push([.3, () => release(P, 99, chaseBall(6.4))]); P.tq.unshift(99); }
+    [81, 88, 11].forEach(n => { const e = get(n), tx = e.x, ty = L + 6; e.ai = x => steer(x, tx, ty, 6.5); });
+    [[21, 81], [24, 88]].forEach(([dn, on]) => { const w = get(on); get(dn).ai = x => steer(x, w.x, w.y + 1.4, 6.2); });
+    [31, 33].forEach(n => { get(n).ai = x => P.t < .5 ? steer(x, x.x, x.y + 1, 2) : chaseBall(5)(x); });
+    get(57).ai = def === 'blitz' ? chaseBall(6.6) : x => { if (P.t < .35) { x.vx = x.vy = 0; } else chaseBall(5.4)(x); };
+    qb.ai = x => steer(x, c, L - 4, 2);
+    rb.ai = x => steer(x, c + (lane > c ? .75 : -.75), L - 3.6, 6.5);
+  };
+  P.update = () => {
+    if (!P.handed && P.got && (dist(qb, rb) < 1.15 || P.t > 1.3)) {
+      P.handed = true; startCarrier(P, rb, lane);
+      qb.ai = x => steer(x, c - 3, L - 5.5, 3);
+      nextTackler(P);
+    }
+  };
+  return P;
 }
 
-/* ---------- panel ---------- */
+function passCommon(P, c, L, skip) {
+  const zoneDrop = n => { if (skip.includes(n)) return; const e = get(n), tx = e.x * .8 + c * .2, ty = L + (e.role === 'S' ? 14 : 6.5); e.ai = x => steer(x, tx, ty, 4); };
+  [57, 52, 50, 31, 33, 21, 24].forEach(zoneDrop);
+  get(55).ai = x => steer(x, c, L - 1.8, 2);
+  get(34).ai = x => steer(x, c - 1.6, L - 4.6, 3);
+  get(85).ai = x => steer(x, c + 7, L + 5, 6);
+}
+function afterThrow(P, skip) {
+  ents.forEach(e => { if (e.team === 'W' && up(e) && !e.blocked && !skip.includes(e.num)) e.ai = chaseBall(5.2); });
+}
+
+function makeShort(def) {
+  const P = newPlay('short', def), c = S.bx, L = S.ball, qb = get(7), wr = get(81), cb = get(21);
+  P.stat = 2; P.statName = 'hands'; P.zoom = 25; P.target = wr;
+  const x0 = wr.x, y0 = wr.y, tThrow = 1.05, fl = .5;
+  const route = t => { if (t < .25) return [x0, y0]; const u = t - .25; if (u < .45) return [x0, y0 + u / .45 * 3]; const s = (u - .45) * 7.4; return [x0 + .62 * s, y0 + 3 + .78 * s]; };
+  P.focus = () => P.carrier ? { x: P.carrier.x, y: P.carrier.y + 4 } : P.thrown ? { x: ball.x, y: ball.y + 2 } : { x: (qb.x + wr.x) / 2, y: L + 3 };
+  P.begin = () => {
+    snapBall(P, qb);
+    blocks(P, [[72, 90], [64, 99], [61, 93], [77, 96]]);
+    passCommon(P, c, L, [21, 24]);
+    qb.ai = x => steer(x, c, L - 5.5, 3.5);
+    get(88).ai = x => steer(x, x.x - 1, L + 30, 7.6);
+    get(11).ai = x => steer(x, x.x - 3, L + 7, 6.5);
+    get(24).ai = x => { const w = get(88); steer(x, w.x, w.y + 2, 7); };
+    wr.ai = x => { const [tx, ty] = route(P.t + .06); steer(x, tx, ty, 9); };
+    cb.ai = def === 'zone' ? (x => steer(x, x0 + 3, L + 7, 3.5)) : (x => { const [tx, ty] = route(Math.max(0, P.t - .2)); steer(x, tx - .5, ty - .4, 7.6); });
+  };
+  P.update = () => {
+    if (!P.thrown && P.got && P.t >= tThrow) {
+      P.thrown = true; const [tx, ty] = route(P.t + fl);
+      ball.carrier = null; ball.fl = { x0: qb.x, y0: qb.y, x1: tx, y1: ty, dur: fl, apex: 2.2, h0: 1.2, u: 0 };
+      wr.ai = x => steer(x, tx, ty, 9);
+      if (def === 'zone') cb.ai = x => steer(x, tx, ty + .8, 7);
+      afterThrow(P, [21, 24]);
+      startCatchHUD(P, wr);
+    }
+    if (P.thrown && !P.landed && ball.fl && ball.fl.u >= 1 && (P.catchQ || ball.fl.u >= 1.12)) {
+      P.landed = true;
+      resolveCatch(P, wr, cb, 10, { perfect: 4, good: 2, ok: 0, auto: 0, miss: -3 },
+        { perfect: 'perfect catch', good: 'clean catch', ok: 'bobbled catch', miss: 'missed timing', auto: 'auto' }, 31);
+    }
+  };
+  return P;
+}
+
+function makeDeep(def) {
+  const P = newPlay('deep', def), c = S.bx, L = S.ball, qb = get(7), wr = get(88), cb = get(24), sf = get(33);
+  P.stat = 1; P.statName = 'arm'; P.zoom = 27; P.target = wr;
+  const x0 = wr.x, y0 = wr.y;
+  const route = t => t < .25 ? [x0, y0] : [x0 - Math.min(2.5, (t - .25) * 1.3), y0 + (t - .25) * 8.2];
+  P.route = route;
+  P.focus = () => P.carrier ? { x: P.carrier.x, y: P.carrier.y + 4 } : P.thrown && ball.fl ? { x: ball.x, y: ball.y + 3 } : { x: qb.x * .62 + wr.x * .38, y: L + 1 };
+  P.begin = () => {
+    P.tSack = { stop: 3.1, zone: 2.9, blitz: 2.25 }[def] + (P.snapQ === 'perfect' ? .35 : P.snapQ === 'miss' ? -.45 : 0);
+    snapBall(P, qb);
+    blocks(P, [[72, 90], [64, 99], [61, 93], [77, 96]]);
+    passCommon(P, c, L, [24, 33, def === 'blitz' ? 57 : -1]);
+    qb.ai = x => steer(x, c, L - 7, 4.4);
+    get(81).ai = x => steer(x, x.x + 6, L + 8, 7);
+    get(11).ai = x => steer(x, x.x, L + 20, 7.2);
+    P.rusher = get(def === 'blitz' ? 57 : 90);
+    const rushAI = x => { const left = Math.max(.05, P.tSack - P.t); steer(x, qb.x, qb.y, Math.max(2.5, dist(x, qb) / left)); };
+    if (def === 'blitz') P.rusher.ai = rushAI; else P.later.push([P.tSack - 1, () => release(P, 90, rushAI)]);
+    wr.ai = x => { const [tx, ty] = route(P.t + .06); steer(x, tx, ty, 9.5); };
+    cb.ai = def === 'zone' ? (x => steer(x, x0 - 1, L + 9, 3.5)) : (x => { const [tx, ty] = route(Math.max(0, P.t - .3)); steer(x, tx + .6, ty - .6, 8.2); });
+    sf.ai = def === 'zone' ? (x => steer(x, wr.x - 1, Math.max(L + 16, wr.y + 4), 7.4)) : (x => steer(x, x0 - 5, L + 15, 4));
+    if (!P.auto) startChargeHUD(P);
+  };
+  P.update = () => {
+    if (!P.thrown && !P.sacked) {
+      if (P.t >= P.tSack) { sackQB(P, qb); return; }
+      if (P.auto && P.got && P.t >= 1.5) throwDeep(P, 'auto');
+    }
+    if (P.thrown && !P.landed && ball.fl && ball.fl.u >= 1) {
+      P.landed = true;
+      resolveCatch(P, wr, def === 'zone' ? sf : cb, 13, { perfect: 4, good: 2, long: 0, weak: -2, over: -3, auto: 0 },
+        { perfect: 'perfect spell', good: 'clean spell', long: 'long spell', weak: 'weak spell', over: 'overcharged', auto: 'auto' }, 31);
+    }
+  };
+  return P;
+}
+function throwDeep(P, q) {
+  if (P.thrown || P.sacked) return;
+  if (mode && mode.kind === 'charge') mode = null;
+  setTop('', '');
+  const qb = get(7), wr = get(88), fl = 1.05;
+  P.thrown = true; P.catchQ = q; P.critMin = q === 'perfect' ? 17 : q === 'good' ? 18 : 20;
+  let [tx, ty] = P.route(P.t + fl);
+  if (q === 'weak') ty -= 5;
+  if (q === 'over') { tx += pick([-1, 1]) * 2.4; ty += 1.5; }
+  ball.carrier = null; ball.spell = true; ball.trail.length = 0;
+  ball.fl = { x0: qb.x, y0: qb.y, x1: tx, y1: ty, dur: fl, apex: 6, h0: 1.4, u: 0 };
+  wr.ai = x => steer(x, tx, ty, 9.5);
+  const cov = P.def === 'zone' ? get(33) : get(24);
+  if (up(cov)) cov.ai = x => steer(x, tx, ty + 1, 8.4);
+  afterThrow(P, [cov.num, P.rusher.num]);
+  const rz = P.rusher;
+  if (up(rz)) rz.ai = x => { if (steer(x, qb.x, qb.y, 6) < 1 && up(qb)) { knockDown(qb, -Math.PI / 2); x.ai = settle; } };
+  if (q !== 'auto') popAt(qb.x, qb.y + 2, { perfect: 'PERFECT', good: 'CLEAN', long: 'LONG', weak: 'WEAK', over: 'OVERCHARGED' }[q], '', qCol(q === 'long' ? 'ok' : q === 'weak' || q === 'over' ? 'miss' : q));
+}
+function sackQB(P, qb) {
+  P.sacked = true;
+  if (mode && mode.kind === 'charge') mode = null;
+  setTop('', '');
+  const rz = P.rusher; rz.ai = x => steer(x, qb.x, qb.y, 8);
+  P.later.push([P.t + .1, () => { knockDown(qb, -Math.PI / 2); qb.vy = -2; knockDown(rz, rz.hd); popAt(qb.x, qb.y + 2, 'SACKED', '', C.bad); buzz(90); }]);
+  P.later.push([P.t + .65, () => {
+    const spot = clamp(Math.round(qb.y), 1, 99), y = spot - S.ball;
+    P.finish({ y, x: qb.x, kind: 'bad', head: `Sacked, loss of ${-y}`, text: `#${rz.num} gets home before the spell goes off. Release sooner.` }, .6);
+  }]);
+}
+
+function makeFG(mods, dist) {
+  const P = newPlay('fg', null), c = S.bx, L = S.ball, h = get(7), k = get(3);
+  P.stat = 2; P.statName = 'leg'; P.zoom = 24; P.mods = mods;
+  const dc = Math.round(4 + (dist - 18) * .42);
+  P.focus = () => P.kicked ? { x: ball.x, y: ball.y + 2 } : { x: c, y: L - 2 };
+  P.begin = () => {
+    snapBall(P, h);
+    ents.forEach(e => { if (e.team === 'W') e.ai = x => steer(x, h.x + (x.x - h.x) * .4, h.y + 1.2, 3.2); });
+    k.ai = x => { if (P.t > .3) steer(x, h.x - .3, h.y - .6, 4.5); };
+  };
+  P.update = () => {
+    if (!P.kicked && P.got && P.t > .9) {
+      P.kicked = true;
+      const r = roll(P, `Kick, ${dist} yards`, [], dc, h);
+      P.good = r.ok;
+      const drift = r.ok ? (Math.random() - .5) * 1.6 : pick([-1, 1]) * (4 + Math.random() * 2.5);
+      const short = !r.ok && Math.random() < .35;
+      ball.carrier = null; ball.fl = { x0: h.x, y0: h.y, x1: MID + drift, y1: short ? 104 : 112, dur: 1.5, apex: short ? 9 : 14, h0: .3, u: 0 };
+      k.ai = settle;
+    }
+    if (P.kicked && !P.landed && ball.fl && ball.fl.u >= 1) {
+      P.landed = true;
+      popAt(ball.x, 107, P.good ? 'IT’S GOOD' : 'NO GOOD', '', P.good ? C.good : C.bad);
+      P.finish({ fg: P.good, y: 0, kind: P.good ? 'good' : 'bad', head: P.good ? 'It’s good!' : 'No good',
+        text: P.good ? `Through the uprights from ${dist} yards.` : `Wide of the uprights from ${dist} yards.` }, 1.1);
+    }
+  };
+  return P;
+}
+
+function makeRally() {
+  const P = newPlay('rally', null), c = S.bx, L = S.ball, rb = get(34);
+  P.zoom = 24;
+  const y = Math.min(S.toGo, 100 - S.ball), target = S.ball + y, td = target >= 100;
+  const bull = mk('M', 0, 'MASCOT', c, L - 14, 3); ents.push(bull);
+  bull.ai = e => steer(e, c, td ? 106 : target + 4, 9.5);
+  P.focus = () => ({ x: rb.x, y: rb.y + 3 });
+  P.begin = () => {
+    ball.fl = null; ball.carrier = rb;
+    rb.ai = e => { if (bull.y > e.y - 1.5) steer(e, bull.x + .9, bull.y - 2.6, 11); else { e.vx = e.vy = 0; } };
+    ents.forEach(e => { if (e.team === 'W') e.ai = chaseBall(4); else if (e !== rb && e !== bull) e.ai = x => steer(x, x.x, x.y + 6, 3); });
+    popAt(c, L - 8, 'OLD HORNS!', 'bull rush', C.torch); buzz([30, 40, 30, 40, 30]);
+  };
+  P.update = () => {
+    for (const e of ents) if (e.team === 'W' && up(e) && dist(e, bull) < 3.2) {
+      e.ai = null; e.fly = { vx: Math.sign(e.x - bull.x || 1) * (6 + Math.random() * 4), vy: 3 + Math.random() * 4, z: 0, vz: 7 + Math.random() * 3, spin: 0 };
+    }
+    if (!P.out && rb.y >= Math.min(target, 100)) {
+      rb.ai = settle;
+      P.finish({ y, td, x: rb.x, kind: 'good', head: td ? 'Touchdown!' : 'Bull rush!',
+        text: `The Bulls’ giant bull mascot thunders out of the tunnel and clears a path. ${y} yards${td ? ' and into the end zone' : ' and a first down'}.` }, .9);
+    }
+  };
+  return P;
+}
+
+/* ================= flow ================= */
 const panel = $('panel');
 function showPanel(html) { panel.innerHTML = html; panel.hidden = false; panel.scrollTop = 0; }
 function addPanel(html) { panel.insertAdjacentHTML('beforeend', html); panel.scrollTop = panel.scrollHeight; }
 panel.addEventListener('click', e => { if (e.target.closest('#again')) reset(); });
 const modsTxt = mods => mods.filter(m => m[1]).map(([n, v]) => ` ${v < 0 ? '−' : '+'} ${Math.abs(v)} ${n}`).join('');
 
-function rollDice(offFinal, defFinal, defIsDC) {
-  return new Promise(res => {
-    const a = $('dOff'), b = $('dDef'), t0 = performance.now(), dur = reduce ? 120 : 760;
-    const tick = () => {
-      if (performance.now() - t0 < dur) { a.textContent = d20(); if (!defIsDC) b.textContent = d20(); setTimeout(tick, 55); }
-      else {
-        a.textContent = offFinal; b.textContent = defFinal;
-        a.classList.toggle('nat20', offFinal === 20); a.classList.toggle('nat1', offFinal === 1);
-        buzz(25); res();
-      }
-    };
-    tick();
-  });
-}
-async function showRoll(r) {
+function showSummary(P, out) {
   setTop('', '');
-  showPanel(`<div class="dice"><div class="dwrap"><div class="die" id="dOff">?</div>${r.offLabel}</div><div class="vs">vs</div>` +
-    `<div class="dwrap"><div class="die ${r.defIsDC ? 'dc' : 'def'}" id="dDef">${r.defIsDC ? r.defVal : '?'}</div>${r.defLabel}</div></div><div class="rest" id="rest" hidden></div>`);
-  await rollDice(r.nat, r.defShown, r.defIsDC);
-  const rest = $('rest');
-  rest.innerHTML = `<p class="calc">${r.calcOff}<br>${r.calcDef}</p>${r.call ? `<p class="call">${r.call}</p>` : ''}` +
-    `<h2 class="head ${r.out.kind || ''}">${r.out.head}</h2><p class="flavor">${r.out.text}</p>`;
-  rest.hidden = false;
+  const advTxt = r => r.adv ? ` (${r.a} & ${r.b}, kept ${r.adv > 0 ? 'higher' : 'lower'})` : '';
+  const lines = P.rolls.map(r => `<li class="${r.ok ? 'ok' : ''}"><b>${r.label}</b>: d20 ${r.nat}${advTxt(r)} + ${r.base[0]} ${r.base[1]}${modsTxt(r.mods)} = <b>${r.total}</b> vs ${r.dc}${r.crit ? ', crit' : ''}</li>`).join('');
+  const call = P.def ? `<p class="call">Wraiths called <b>${DEFS[P.def].name}</b>, ${DEFS[P.def].desc}. ${P.match > 0 ? 'Good matchup for you.' : P.match < 0 ? 'They read it.' : 'Even matchup.'}${P.adv > 0 ? ' Rolls at advantage.' : P.adv < 0 ? ' Rolls at disadvantage.' : ''}${P.snapQ && P.snapQ !== 'auto' ? ` Snap: ${P.snapQ}.` : ''}</p>` : '';
+  showPanel(`<h2 class="head ${out.kind || ''}">${out.head}</h2><p class="flavor">${out.text}</p>${call}${lines ? `<ul class="rolls">${lines}</ul>` : ''}`);
 }
 
 function intro() {
-  setTop('Huddle', 'Season opener, drive 1');
+  setTop('', '');
   showPanel(`<h2 class="head">Bulls ball, own 25</h2>
-    <p class="flavor">Score on this drive against the Hollowmere Wraiths. Every play: tap the snap, make your touch move, then the dice decide.</p>
+    <p class="flavor">Score on this drive against the Hollowmere Wraiths. Pick a play, tap the snap, then play it live.</p>
     <ul class="how">
-      <li><b>Bull Run</b> Swipe with the arrows to juke. Three in a row is a breakaway.</li>
-      <li><b>Quick Slant</b> Tap when the rings line up.</li>
-      <li><b>Deep Spell</b> Hold to charge, release in the gold. Overcharge and it can get picked off.</li>
+      <li><b>Bull Run</b> When a Wraith closes in, the action slows. Swipe the arrow to juke him.</li>
+      <li><b>Quick Slant</b> Tap as the ball reaches your receiver and the rings line up.</li>
+      <li><b>Deep Spell</b> Hold to charge, release in the gold before the rusher reaches your QB.</li>
     </ul>
-    <p class="flavor small">Gains fill Momentum. At 100% you can call Old Horns for a guaranteed first down.</p>`);
+    <p class="flavor small">Every touch moment rolls a d20 on the spot. Your timing is the bonus.</p>`);
 }
 
-/* ---------- rules ---------- */
 function pickDefense() {
   const w = { stop: 1, zone: 1, blitz: .8 };
   if (S.toGo <= 3) w.stop += 1.2;
@@ -475,90 +1036,49 @@ function pickDefense() {
   return 'blitz';
 }
 
-function resolve(type, o) {
-  const { nat, margin, def, perfect, critMin, breakaway, over } = o;
-  const toGoal = 100 - S.ball;
-  if (nat >= critMin) return { td: true, y: toGoal, kind: 'good', head: 'Touchdown!',
-    text: type === 'run' ? `Natural ${nat}, a crit. Nobody catches a minotaur in a straight line.` : `Natural ${nat}, a crit. The ball drops in stride and the receiver is gone.` };
-  if (nat === 1) {
-    if (perfect) return { y: 0, head: 'Saved by skill', text: 'Natural 1, but your perfect input turned the disaster into a plain miss.' };
-    return { to: true, y: 0, kind: 'bad', head: type === 'run' ? 'Fumble!' : 'Intercepted!',
-      text: type === 'run' ? 'Natural 1. The ball squirts loose and a Wraith falls on it.' : 'Natural 1. A Wraith phases through your receiver and takes it the other way.' };
-  }
-  let y = 0, head, text, kind;
-  if (type === 'run') {
-    if (margin >= 0) {
-      y = 2 + Math.round(margin * .8) + rnd(0, 2) + (breakaway ? 6 : 0);
-      text = breakaway ? 'Three jukes and he is through the second level.' : margin >= 8 ? 'The Bulls bowl over the Wraiths.' : 'Hard yards up the middle.';
-    } else {
-      y = -Math.min(4, 1 + Math.floor(-margin / 4));
-      text = def === 'stop' ? 'The Bone Wall holds. Stopped behind the line.' : 'Wrapped up in the backfield.';
-    }
-  } else if (type === 'short') {
-    if (margin >= 0) { y = 4 + Math.round(margin * .7) + rnd(0, 2); text = 'Caught on the slant and turned upfield.'; }
-    else if (margin <= -10) return { to: true, y: 0, kind: 'bad', head: 'Intercepted!', text: 'Jumped the route. Wraiths ball.' };
-    else { head = 'Incomplete'; text = 'Broken up at the last second.'; }
-  } else {
-    if (def === 'blitz' && margin <= -4) { y = -(5 + rnd(0, 3)); head = `Sacked, loss of ${-y}`; kind = 'bad'; text = 'The Grave Blitz gets home before the spell goes off.'; }
-    else if (margin >= 2) { y = 16 + Math.round(margin * 1.3) + rnd(0, 4); text = 'The spell pass streaks downfield and lands in stride.'; }
-    else if (margin <= -9 || (over && margin <= -4)) return { to: true, y: 0, kind: 'bad', head: 'Intercepted!', text: over ? 'The overcharged spell wobbles and a Wraith plucks it out of the air.' : 'Underthrown into the Fog Zone. Picked off.' };
-    else { head = 'Incomplete'; text = 'Overthrown. The spell fizzles out of bounds.'; }
-  }
-  y = clamp(y, -(S.ball - 1), toGoal);
-  if (S.ball + y >= 100) return { td: true, y, kind: 'good', head: 'Touchdown!', text: text + ' Into the end zone!' };
-  if (!head) head = y > 0 ? `Gain of ${y}` : y < 0 ? `Loss of ${-y}` : 'No gain';
-  if (!kind) kind = y > 0 ? 'good' : y < 0 ? 'bad' : '';
-  return { y, head, text, kind };
-}
-
 async function runPlay(type) {
   if (S.phase !== 'choose' || S.over) return;
-  S.phase = 'busy'; panel.hidden = true; render();
-  if (type === 'rally') return doRally();
-  if (type === 'fg') return doFG();
-  const auto = $('auto').checked, def = pickDefense(), mods = [];
-  let adv = 0, perfect = false, critMin = 20, breakaway = false, over = false;
-  const fr = S.fright; S.fright = false;
-  if (!auto) {
-    const s = await meter({ title: fr ? 'Snap, frightened' : 'Snap',
-      hint: fr ? 'Nobody’s fright shrank the green. Tap inside it.' : 'Tap when the needle hits the green',
-      green: fr ? .12 : .22, perfect: fr ? .035 : .06, speed: 1.05 });
-    if (s.q === 'perfect') { adv++; mods.push(['perfect snap', 2]); perfect = true; S.perf++; addMom(10); }
-    else if (s.q === 'good') mods.push(['snap', 2]);
-    else mods.push(['late snap', -2]);
-    if (type === 'run') {
-      const j = await juke();
-      if (j.hits) mods.push([j.hits > 1 ? 'jukes' : 'juke', j.hits]);
-      addMom(6 * j.hits);
-      if (j.hits === 3) { breakaway = true; critMin = 18; perfect = true; S.perf++; }
-    } else if (type === 'short') {
-      const c = await catchRing();
-      mods.push([{ perfect: 'perfect catch', good: 'clean catch', ok: 'bobbled catch', miss: 'missed timing' }[c.q], { perfect: 4, good: 2, ok: 0, miss: -3 }[c.q]]);
-      if (c.q === 'perfect') { perfect = true; S.perf++; }
-    } else {
-      const c = await charge();
-      const [v, n, cm] = { perfect: [4, 'perfect spell', 17], good: [2, 'clean spell', 18], long: [0, 'long spell', 20], weak: [-2, 'weak spell', 20], over: [-3, 'overcharged', 20] }[c.q];
-      mods.push([n, v]); critMin = Math.min(critMin, cm);
-      if (c.q === 'over') over = true;
-      if (c.q === 'perfect') { perfect = true; S.perf++; }
-    }
+  S.phase = 'busy'; panel.hidden = true; play = null; render();
+  const auto = $('auto').checked;
+  if (type === 'rally') {
+    S.mom = 0; render();
+    setup('run', 'zone'); await lineUp();
+    const P = makeRally(); play = P; P.begin();
+    const out = await P.done;
+    showSummary(P, out); if (out.x != null) S.bx = clamp(out.x, HASH_L, HASH_R);
+    apply(out, true); return;
   }
-  const m = MATCH[type][def]; adv += m;
-  if (S.fail >= 3) mods.push(['pity timer', 2]);
-  const a = d20(), b = d20(), nat = adv > 0 ? Math.max(a, b) : adv < 0 ? Math.min(a, b) : a;
-  const p = PLAYS[type], bonus = mods.reduce((s, x) => s + x[1], 0);
-  const off = nat + p.stat + bonus, dr = d20(), dtot = dr + DEF_STAT, margin = off - dtot;
-  const out = resolve(type, { nat, margin, def, perfect, critMin, breakaway, over });
-  const advTxt = adv !== 0 ? ` (rolled ${a} and ${b}, kept ${adv > 0 ? 'higher' : 'lower'})` : '';
-  const matchTxt = m > 0 ? `Your ${p.name} beats it.` : m < 0 ? 'They read it.' : 'Even matchup.';
-  const rollTxt = adv > 0 ? 'You roll with advantage.' : adv < 0 ? 'You roll with disadvantage.' : 'Straight roll.';
-  await showRoll({
-    nat, defShown: dr, offLabel: 'Bulls', defLabel: 'Wraiths',
-    calcOff: `<b>Bulls ${off}</b> = d20 ${nat}${advTxt} + ${p.stat} ${p.statName}${modsTxt(mods)}`,
-    calcDef: `<b>Wraiths ${dtot}</b> = d20 ${dr} + ${DEF_STAT} defense · margin ${margin >= 0 ? '+' : ''}${margin}${critMin < 20 ? ` · crit on ${critMin}–20` : ''}`,
-    call: `Wraiths called <b>${DEFS[def].name}</b>, ${DEFS[def].desc}. ${matchTxt} ${rollTxt}`,
-    out
-  });
+  if (type === 'fg') {
+    const dist = 100 - S.ball + 17, mods = [];
+    setup('fg', null); await lineUp();
+    if (!auto) {
+      const pw = await meter({ title: 'Kick: power', hint: 'Tap in the green for power', green: .22, perfect: .06, speed: 1.2, timeout: 4000 });
+      const am = await meter({ title: 'Kick: aim', hint: 'Tap in the green to aim', green: .16, perfect: .05, speed: 1.6, timeout: 4000 });
+      [[pw, 'power'], [am, 'aim']].forEach(([r, n]) => {
+        mods.push([`${r.q === 'perfect' ? 'perfect ' : r.q === 'miss' ? 'bad ' : ''}${n}`, { perfect: 3, good: 1, miss: -3 }[r.q]]);
+        if (r.q === 'perfect') S.perf++;
+      });
+    }
+    setTop('', '');
+    const P = makeFG(mods, dist); play = P; P.begin();
+    const out = await P.done;
+    showSummary(P, out); S.plays++; endDrive(out.fg ? 'fg' : 'fgmiss'); return;
+  }
+  const def = pickDefense();
+  setup(type, def); await lineUp();
+  const fr = S.fright; S.fright = false;
+  let q = 'auto';
+  if (!auto) q = (await meter({ title: fr ? 'Snap, frightened' : 'Snap',
+    hint: fr ? 'Nobody’s fright shrank the green. Tap inside it.' : 'Tap when the needle hits the green',
+    green: fr ? .12 : .22, perfect: fr ? .035 : .06, speed: 1.05 })).q;
+  setTop('', '');
+  const P = (type === 'run' ? makeRun : type === 'short' ? makeShort : makeDeep)(def);
+  applySnap(P, q);
+  play = P; P.begin();
+  popAt(S.bx, S.ball + 10, DEFS[def].name.toUpperCase(), MATCH[type][def] > 0 ? 'your play beats it' : MATCH[type][def] < 0 ? 'they read it' : 'even matchup', C.wraith);
+  const out = await P.done;
+  showSummary(P, out);
+  if (out.x != null) S.bx = clamp(out.x, HASH_L, HASH_R);
   apply(out, false);
 }
 
@@ -584,38 +1104,7 @@ function apply(out, noMom) {
     if (S.down === 4) notes.push(`<p class="note">Fourth down. Go for it${100 - S.ball + 17 <= 55 ? ' or kick the field goal' : ''}.</p>`);
   }
   if (notes.length) addPanel(notes.join(''));
-  S.phase = 'choose'; setTop('Huddle', 'Pick your next play'); render();
-}
-
-function doRally() {
-  S.mom = 0;
-  const y = Math.min(S.toGo, 100 - S.ball), td = S.ball + y >= 100;
-  setTop('', '');
-  showPanel(`<h2 class="head good">Old Horns charges!</h2><p class="flavor">The Bulls’ giant bull mascot thunders out of the tunnel. Bull rush: ${y} yards and a guaranteed first down${td ? ', all the way into the end zone' : ''}.</p>`);
-  buzz([30, 40, 30]);
-  apply({ y, td }, true);
-}
-
-async function doFG() {
-  const dist = 100 - S.ball + 17, auto = $('auto').checked, mods = [];
-  if (!auto) {
-    const pw = await meter({ title: 'Kick: power', hint: 'Tap in the green for power', green: .22, perfect: .06, speed: 1.2, timeout: 4000 });
-    const am = await meter({ title: 'Kick: aim', hint: 'Tap in the green to aim', green: .16, perfect: .05, speed: 1.6, timeout: 4000 });
-    [[pw, 'power'], [am, 'aim']].forEach(([r, n]) => {
-      mods.push([`${r.q === 'perfect' ? 'perfect ' : r.q === 'miss' ? 'bad ' : ''}${n}`, { perfect: 3, good: 1, miss: -3 }[r.q]]);
-      if (r.q === 'perfect') S.perf++;
-    });
-  }
-  const dc = Math.round(4 + (dist - 18) * .42), nat = d20(), tot = nat + 2 + mods.reduce((s, x) => s + x[1], 0);
-  const good = nat === 20 || (nat !== 1 && tot >= dc);
-  await showRoll({
-    nat, defShown: dc, defVal: dc, defIsDC: true, offLabel: 'Kick', defLabel: 'Needs',
-    calcOff: `<b>Kick ${tot}</b> = d20 ${nat} + 2 leg${modsTxt(mods)}`,
-    calcDef: `<b>Needs ${dc}</b> for a ${dist}-yard try`,
-    out: { kind: good ? 'good' : 'bad', head: good ? 'It’s good!' : 'No good',
-      text: good ? (nat === 20 ? 'Natural 20. Right down the middle.' : 'Through the uprights.') : (nat === 1 ? 'Natural 1. Shanked.' : 'Wide of the uprights.') }
-  });
-  S.plays++; endDrive(good ? 'fg' : 'fgmiss');
+  S.phase = 'choose'; render();
 }
 
 const ENDS = {
@@ -628,17 +1117,17 @@ const ENDS = {
 function endHTML(kind) {
   const [h, t] = ENDS[kind] || ENDS.to;
   return `<div class="end ${kind === 'td' || kind === 'fg' ? 'win' : 'loss'}"><h3>${h}</h3>` +
-    `<p>${t} ${S.plays} plays, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>` +
+    `<p>${t} ${S.plays} play${S.plays === 1 ? '' : 's'}, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>` +
     `<button class="again" id="again" type="button">Run it back</button></div>`;
 }
 function endDrive(kind) {
   S.over = true; S.phase = 'over'; S.result = kind;
-  setTop('Final', ''); render(); addPanel(endHTML(kind));
+  render(); addPanel(endHTML(kind));
   if (kind === 'td' || kind === 'fg') { burst(); buzz([30, 50, 30, 50, 60]); }
 }
-function reset() { S = fresh(); fx.length = 0; render(); intro(); }
+function reset() { S = fresh(); fx.length = 0; pops.length = 0; play = null; mode = null; tsT = 1; setup('run', 'zone', true); render(); intro(); }
 
-/* ---------- render ---------- */
+/* ================= HUD outside the field ================= */
 const pct = y => `${(10 + y) / 120 * 100}%`;
 function buildTicks() {
   let h = '';
@@ -666,13 +1155,15 @@ function render() {
 }
 $('cards').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b && !b.disabled) runPlay(b.dataset.k); });
 
-/* ---------- boot ---------- */
+/* ================= boot ================= */
 function start(data) {
   if (data && data.S) { S = Object.assign(fresh(), data.S); if (S.phase === 'busy') S.phase = 'choose'; }
-  buildTicks(); render();
-  if (S.over) { setTop('Final', ''); showPanel(''); addPanel(endHTML(S.result)); }
+  buildTicks(); setup('run', 'zone', true); render();
+  cam.x = S.bx; cam.y = S.ball - 5;
+  if (S.over) { setTop('', ''); showPanel(''); addPanel(endHTML(S.result)); }
   else if (S.plays === 0) intro();
-  else { setTop('Huddle', 'Pick your next play'); showPanel('<p class="flavor">Back in the huddle. Pick a play.</p>'); }
+  else { setTop('', ''); showPanel('<p class="flavor">Back in the huddle. Pick a play.</p>'); }
+  requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 }
 try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (_) {}
 if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
