@@ -695,8 +695,8 @@ function updateCam(rdt) {
   const f = focus(), k = Math.min(1, rdt * 4);
   cam.x += (clamp(f.x, 8, FIELD_W - 8) - cam.x) * k;
   cam.y += (f.y - cam.y) * k;
-  camera.position.set(cam.x - MID, cam.zy * .44, cam.y - cam.zy * .5);
-  camera.setTarget(new V3(cam.x - MID, 0, cam.y + cam.zy * .18));
+  camera.position.set(cam.x - MID - cam.zy * .42, cam.zy * .38, cam.y - cam.zy * .42);
+  camera.setTarget(new V3(cam.x - MID + cam.zy * .05, 0, cam.y + cam.zy * .06));
 }
 const projM = B.Matrix.Identity();
 function w2s(x, y, h) {
