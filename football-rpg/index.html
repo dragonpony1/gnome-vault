@@ -180,8 +180,20 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 .loot-name{margin:0;font-family:var(--f-display);font-weight:800;font-size:32px;line-height:1;color:var(--c);text-wrap:balance}
 .loot-desc{margin:0;max-width:34ch;font-size:15px;line-height:1.35}
 .item.locked{opacity:.5;filter:grayscale(1)}
+.bossbar{display:flex;flex-direction:column;gap:5px;padding:8px 10px;border-radius:10px;background:rgba(10,2,2,.62);border:1px solid rgba(255,74,61,.4)}
+.bb-row{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--dim);font-variant-numeric:tabular-nums}
+.bb-name{font-family:var(--f-display);font-weight:800;font-size:19px;line-height:1;color:#ff8f80}
+.hearts{margin-left:auto;display:flex;gap:4px}
+.hearts svg{width:17px;height:17px;fill:var(--bulls)}
+.hearts svg.lost{fill:none;stroke:var(--dim);stroke-width:2;opacity:.6}
+.bb-bar{position:relative;height:10px;border-radius:99px;background:#2a0f0d;overflow:hidden}
+.bb-bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#8e1b12,#ff4a3d);transition:width .6s cubic-bezier(.2,.9,.3,1)}
+.bb-bar s{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.35)}
+.bossbar.hit{animation:bbHit .45s}
+@keyframes bbHit{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-2px)}}
 @media (prefers-reduced-motion: reduce){
   .gem{animation:none}
+  .bossbar.hit{animation:none}
   .los,.ltg,.ball,.bar i,.card{transition:none}
 }
 </style>
@@ -206,6 +218,10 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
     <canvas id="gl"></canvas>
     <canvas id="cv"></canvas>
     <div class="ov">
+      <div class="bossbar" id="bossBar" hidden>
+        <div class="bb-row"><b class="bb-name">The Wraith King</b><span id="bossPhase">Phase 1</span><span class="hearts" id="hearts" aria-label="Your hearts"></span></div>
+        <div class="bb-bar"><i id="bossFill"></i><s style="left:50%"></s><s style="left:25%"></s></div>
+      </div>
       <div class="top" aria-live="polite"><div id="ovTitle"></div><div id="ovHint"></div></div>
       <div class="panel" id="panel" aria-live="polite"><h2 class="head">Opening the arena…</h2><p class="flavor small">Loading the 3D engine.</p></div>
     </div>
@@ -286,7 +302,7 @@ const DIRS = ['left', 'right', 'up'];
 const FIELD_W = 53.3, MID = 26.65, HASH_L = 23.6, HASH_R = 29.7;
 
 const fresh = () => ({ ball: 25, bx: MID, down: 1, toGo: 10, mom: 0, fail: 0, plays: 0, yards: 0, perf: 0,
-  fright: false, wraithRally: false, over: false, result: null, phase: 'choose', side: 'O', score: { B: 0, W: 0 }, run: { floor: 1, drive: 1 }, ms: null, mana: null, earn: 0, armed: null, reveal: null, nextDef: null, nextOff: null });
+  fright: false, wraithRally: false, over: false, result: null, phase: 'choose', side: 'O', score: { B: 0, W: 0 }, run: { floor: 1, drive: 1 }, ms: null, boss: null, curse: null, bossLog: [], mana: null, earn: 0, armed: null, reveal: null, nextDef: null, nextOff: null });
 let S = fresh();
 const addMom = v => { S.mom = clamp(S.mom + v, 0, 100); };
 
@@ -327,7 +343,7 @@ const FLOORS = [
     rally: 'Nobody, the Wraiths’ headless horseman, rides the sideline. Fright: your next snap window shrinks.' },
   { name: 'Gorrak War Pits', opp: 'Gorrak Skullsmashers', short: 'Skullsmashers', look: 'orc', bonus: 1,
     rally: 'Tusk, the Skullsmashers’ war boar, stampedes the sideline. Your next snap window shrinks.' },
-  { name: 'The Wraith King’s Hall', opp: 'The Wraith King’s Guard', short: 'King’s Guard', look: 'wraith', bonus: 2,
+  { name: 'The Wraith King’s Hall', opp: 'Wraith King\u2019s Guard', short: 'King\u2019s Guard', look: 'wraith', bonus: 1, boss: true,
     rally: 'The Wraith King rises from his throne. Dread: your next snap window shrinks.' }
 ];
 const FL = () => FLOORS[((S && S.run && S.run.floor) || 1) - 1];
@@ -416,6 +432,7 @@ function spots(kind, def) {
   D(90, 'DL', -3.1, 1.1, 1.2); D(99, 'DL', -1, 1.1, 1.2); D(93, 'DL', 1, 1.1, 1.2); D(96, 'DL', 3.1, 1.1, 1.2);
   D(57, 'LB', def === 'blitz' ? -2.2 : -4, lbY, 1.05); D(52, 'LB', 0, lbY + .3, 1.05); D(50, 'LB', def === 'blitz' ? 2.2 : 4, lbY, 1.05);
   D(21, 'CB', -13, cbY, .95); D(24, 'CB', 12, cbY, .95); D(31, 'S', -6, sY, 1); D(33, 'S', 6, sY, 1);
+  if (FL().boss && S.boss && S.boss.phase >= 2 && S.side === 'O') D(13, 'KING', 0, def === 'zone' ? 17 : 14, 1.6);
   return out;
 }
 function setup(kind, def, instant) {
@@ -453,6 +470,7 @@ function stepEnt(e, dt) {
   if (e.state === 'down') { const k = Math.pow(.03, dt); e.vx *= k; e.vy *= k; e.x += e.vx * dt; e.y += e.vy * dt; return; }
   if (e.ai) e.ai(e, dt);
   if (play && play.frost && !play.closed && e.team === 'B') { e.vx *= .67; e.vy *= .67; }
+  if (play && !play.closed && e === play.carrier && inLane(play, e)) { e.vx *= .8; e.vy *= .8; }
   e.x = clamp(e.x + e.vx * dt, -1, FIELD_W + 1); e.y += e.vy * dt;
   e.sp = Math.hypot(e.vx, e.vy);
   if (!e.lock && e.sp > .4) {
@@ -909,6 +927,29 @@ function buildWraith(num, scale) {
   root.scaling.setAll(scale);
   return { root, body, arms, tail, kind: 'wraith', phase: Math.random() * 6 };
 }
+function buildKing(scale) {
+  const v = buildWraith(null, scale);
+  const spikes = [0, 1, 2, 3, 4].map(i => { const a = i / 5 * Math.PI * 2; return part(MB.CreateCylinder('sp', { diameterTop: 0, diameterBottom: .11, height: .24, tessellation: 6 }, scene), null, Math.cos(a) * .22, 2.66, -.02 + Math.sin(a) * .22); });
+  const crown = merge([part(MB.CreateTorus('cr', { diameter: .5, thickness: .08, tessellation: 18 }, scene), null, 0, 2.52, -.02), ...spikes], 'crown', GOLD);
+  crown.parent = v.body;
+  const aura = new B.ParticleSystem('kingAura', 140, scene);
+  aura.particleTexture = dotTex; aura.emitter = crown;
+  aura.minEmitBox = new V3(-.6, -2.2, -.6); aura.maxEmitBox = new V3(.6, 0, .6);
+  aura.color1 = new B.Color4(1, .3, .24, .8); aura.color2 = new B.Color4(.55, .1, .07, .6); aura.colorDead = new B.Color4(0, 0, 0, 0);
+  aura.minSize = .15; aura.maxSize = .5; aura.minLifeTime = .6; aura.maxLifeTime = 1.4; aura.emitRate = reduce ? 0 : 45;
+  aura.direction1 = new V3(-.2, 1, -.2); aura.direction2 = new V3(.2, 1.6, .2); aura.minEmitPower = .3; aura.maxEmitPower = .8;
+  aura.blendMode = B.ParticleSystem.BLENDMODE_ONEONE; aura.start();
+  v.aura = aura;
+  return v;
+}
+let throneKing = null;
+const curseTex = canvasTex('curse', 128, 512, g => {
+  g.clearRect(0, 0, 128, 512); g.fillStyle = 'rgba(255,255,255,.85)';
+  for (let y = -128; y < 660; y += 44) { g.beginPath(); g.moveTo(0, y); g.lineTo(128, y - 64); g.lineTo(128, y - 44); g.lineTo(0, y + 20); g.fill(); }
+  g.strokeStyle = '#fff'; g.lineWidth = 10; g.strokeRect(5, 5, 118, 502);
+}, true);
+const CURSEM = mat('cursem', '#000000', { flat: true }); CURSEM.opacityTexture = curseTex; CURSEM.emissiveColor = col('#ff3b2f'); CURSEM.backFaceCulling = false; CURSEM.alpha = .5;
+const curseStrip = MB.CreateGround('curseStrip', { width: 7, height: 35 }, scene); curseStrip.material = CURSEM; curseStrip.position.y = .06; curseStrip.isVisible = false;
 const scaleOf = e => e.team === 'M' ? 2.3 : .8 * (.7 + .3 * e.size);
 const models = new Map();
 const blobMaster = MB.CreateDisc('blob', { radius: .75, tessellation: 18 }, scene);
@@ -924,8 +965,8 @@ function modelOf(e) {
   if (!v) {
     const s = scaleOf(e), t = vteam(e);
     const rig = rigFor(e);
-    v = rig ? buildRig(rig, e.num) : GLB[key] ? buildGLB(key, s) : t === 'W' ? buildWraith(e.num, s) : t === 'M' ? buildMino(null, C.torch, s) : buildMino(e.num, C.bulls, s);
-    v.blob = blobMaster.createInstance('b' + key); v.blob.scaling.setAll(s * 1.1);
+    v = rig ? buildRig(rig, e.num) : e.role === 'KING' ? buildKing(2.3) : GLB[key] ? buildGLB(key, s) : t === 'W' ? buildWraith(e.num, s) : t === 'M' ? buildMino(null, C.torch, s) : buildMino(e.num, C.bulls, s);
+    v.blob = blobMaster.createInstance('b' + key); v.blob.scaling.setAll(e.role === 'KING' ? 2.6 : s * 1.1);
     models.set(key, v);
   }
   return v;
@@ -1037,6 +1078,7 @@ const BURSTS = {
   arcane: mkBurst('arcane', C4('#e2c8ff', 1), C4('#8f5bff', .8), { s0: .15, s1: .4, l0: .5, l1: 1.1, u0: .6, u1: 2.4, p0: 1, p1: 4, g: .5, add: true }),
   spark:  mkBurst('spark', C4('#fff0b8', 1), C4('#f2a23a', 1), { s0: .06, s1: .15, l0: .2, l1: .5, u0: .5, u1: 2, p0: 3, p1: 7, g: -9, add: true }),
   dust:   mkBurst('dust', C4('#8a8270', .45), C4('#4b4a3d', .3), { s0: .5, s1: 1.2, l0: .5, l1: 1.2, u0: .1, u1: .6, p0: .6, p1: 2, g: .3, add: false }),
+  curse:  mkBurst('curseP', C4('#ff7a6a', 1), C4('#8f1b12', .8), { s0: .12, s1: .35, l0: .6, l1: 1.3, u0: .8, u1: 2, p0: .5, p1: 1.5, g: .6, add: true }),
   gold:   mkBurst('goldP', C4('#ffd36b', 1), C4('#ff8a3d', 1), { s0: .15, s1: .35, l0: .9, l1: 1.9, u0: 1.5, u1: 4, p0: 5, p1: 11, g: -6, add: true, cap: 700 })
 };
 function burstAt(k, x, y, h, n) {
@@ -1176,6 +1218,25 @@ function syncVisuals(now, dt, rdt) {
   lantern.position.set(tx, 11, tz + 2);
   emberAt.set(tx, 0, tz);
   updateFX(now, dt, rdt);
+  if (throneKing) {
+    const show = isBoss() && !ents.some(e => e.role === 'KING');
+    throneKing.root.setEnabled(show); throneKing.aura.emitRate = show && !reduce ? 45 : 0;
+    if (show) {
+      throneKing.body.position.y = .3 + Math.sin(now / 420) * .18;
+      const cast = S.curse && S.side === 'O' ? -1.9 + Math.sin(now / 160) * .25 : -.6;
+      throneKing.arms[0].rotation.x = cast; throneKing.arms[1].rotation.x = cast;
+      throneKing.tail.rotation.z = Math.sin(now / 300) * .15;
+    }
+  }
+  const cs = isBoss() && S.side === 'O' && S.curse && !S.over;
+  curseStrip.isVisible = !!cs;
+  if (cs) {
+    const lx = play && !play.closed && play.curse != null ? play.curse : laneX();
+    curseStrip.position.x = RX(lx); curseStrip.position.z = RZ(S.ball + 17.5); CURSEM.alpha = .32 + Math.sin(now / 180) * .14;
+    if (Math.random() < .2) burstAt('curse', lx + (Math.random() - .5) * 6, S.ball + Math.random() * 35, .1, 3);
+    const P2 = play && !play.closed ? play : null;
+    if (P2 && P2.carrier && inLane(P2, P2.carrier) && Math.random() < .4) burstAt('curse', P2.carrier.x, P2.carrier.y, .6, 4);
+  }
 }
 function updateCam(rdt) {
   const zoom = play && !play.closed ? play.zoom : 23;
@@ -1480,6 +1541,7 @@ function carryMove(P, d) {
   if (d === 'up') {
     c.jumpT = .5; buzz(15);
     if (!a) { popAt(c.x, c.y, 'HOP', 'no one to hurdle', C.dim); return; }
+    if (a.role === 'KING') { popAt(c.x, c.y, 'TOO TALL', 'you can\u2019t hurdle the King', C.bad); c.jumpT = 0; tackle(P, c, a); return; }
     const r = roll(P, `Hurdle over #${a.num}`, [['hurdle', 1]], 13 + 2 * P.contacts, c, 'HURDLED!', 'CLIPPED');
     P.contacts++;
     if (r.ok) { P.jukes++; whiff(P, a, c); burstAt('spark', c.x, c.y, 1.6, 26); P.cool = P.t + .55; if (P.active === a) nextTackler(P); addMom(6); }
@@ -1487,12 +1549,13 @@ function carryMove(P, d) {
     return;
   }
   if (!a) return;
-  const r = roll(P, `Stiff-arm on #${a.num}`, [['stiff-arm', 0]], 12 + 2 * P.contacts, c, 'STIFF-ARMED!', 'WRAPPED UP');
+  const r = roll(P, `Stiff-arm on ${a.role === 'KING' ? 'the Wraith King' : '#' + a.num}`, [['stiff-arm', a.role === 'KING' ? -3 : 0]], 12 + 2 * P.contacts, c, 'STIFF-ARMED!', 'WRAPPED UP');
   P.contacts++;
   if (r.ok) {
     P.jukes++; a.ai = null; a.lock = false; a.vx = (a.x - c.x) * 3; a.vy = 3;
     P.later.push([P.t + .15, () => knockDown(a, Math.atan2(a.vy, a.vx))]);
     burstAt('spark', a.x, a.y, 1.2, 22); shake(.25); buzz(25); P.cool = P.t + .4; if (P.active === a) nextTackler(P); addMom(6);
+    if (a.role === 'KING') bossHit(5, 'You stiff-armed the King', true);
   } else tackle(P, c, a);
 }
 function diveForward(P, c) {
@@ -1543,6 +1606,7 @@ function nextTackler(P) {
 function roll(P, lbl, extra, dc, at, okText, noText) {
   const a = d20(), b = d20(), nat = P.adv > 0 ? Math.max(a, b) : P.adv < 0 ? Math.min(a, b) : a;
   const mods = extra.concat(P.mods), base = [P.stat, P.statName];
+  if (at && at.team === 'B' && !isD() && inLane(P, at)) mods.push(['cursed ground', -4]);
   const total = nat + base[0] + mods.reduce((s, m) => s + m[1], 0);
   const crit = nat >= P.critMin, ok = crit || (nat !== 1 && total >= dc);
   const r = { label: lbl, a, b, nat, adv: P.adv, base, mods, total, dc, ok, crit };
@@ -1563,7 +1627,8 @@ function contact(P) {
   if (S.side === 'D') { tackleHUD(P, c, a, dir); return; }
   tsT = .05; ts = Math.min(ts, .25);
   const t0 = performance.now(), win = 1000 + (P.spell === 'haste' ? 400 : 0) + (has('cleats') ? 200 : 0) + (has('ghostweave') ? 300 : 0); let fired = false;
-  setTop('Juke!', dir === 'up' ? `Swipe up to spin past #${a.num}` : `Swipe ${dir} past #${a.num}`);
+  const who = a.role === 'KING' ? 'the Wraith King' : '#' + a.num;
+  setTop('Juke!', dir === 'up' ? `Swipe up to spin past ${who}` : `Swipe ${dir} past ${who}`);
   const done = q => { if (fired) return; fired = true; mode = null; resolveContact(P, q, dir); };
   mode = {
     kind: 'juke',
@@ -1602,13 +1667,14 @@ function resolveContact(P, q, dir) {
   const qm = (D ? { perfect: -5, good: -3, ok: 0, miss: 3, late: 5, auto: 0 } : { perfect: 5, good: 3, auto: 0, wrong: -4, late: -6 })[q];
   const ql = (D ? { perfect: 'perfect tackle', good: 'solid tackle', ok: 'arm tackle', miss: 'missed tackle', late: 'too slow', auto: 'auto' } : { perfect: 'perfect juke', good: 'juke', auto: 'auto', wrong: 'wrong way', late: 'too slow' })[q];
   const r = D ? roll(P, `Tackle by #${a.num}`, [[ql, qm]], 14 + 2 * P.contacts, c, 'BROKE FREE', 'TACKLED!')
-    : roll(P, `${dir === 'up' ? 'Spin' : 'Juke'} vs #${a.num}`, [[ql, qm]], 12 + 3 * P.contacts, c, dir === 'up' ? 'SPUN!' : 'JUKED!', 'HIT!');
+    : roll(P, `${dir === 'up' ? 'Spin' : 'Juke'} vs ${a.role === 'KING' ? 'the Wraith King' : '#' + a.num}`, [[ql, qm]], 12 + 3 * P.contacts + (a.role === 'KING' ? 4 : 0), c, dir === 'up' ? 'SPUN!' : 'JUKED!', 'HIT!');
   P.contacts++; P.prompt = false; P.cool = P.t + .2;
   if (q === 'perfect') S.perf++;
   if (D ? r.nat <= (q === 'perfect' ? 3 : 1) : (r.nat === 1 && q !== 'perfect' && q !== 'good' && !has('gauntlets'))) { fumble(P, c, a); return; }
   if (D && !r.ok) addMom(q === 'perfect' ? 8 : 4);
   if (r.ok) {
     P.jukes++; if (!D) addMom(q === 'perfect' ? 8 : q === 'good' ? 5 : 2); buzz(15);
+    if (!D && a.role === 'KING') bossHit(5, 'You slipped the King\u2019s grasp', true);
     const sgn = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
     c.cut = { vx: sgn * 6.5, t: .32 }; if (!sgn) c.spinT = .35;
     burstAt('spark', c.x, c.y, 1.2, 22);
@@ -1625,7 +1691,7 @@ function whiff(P, a, c) {
 }
 function tackle(P, c, a) {
   clearCarryMode();
-  c.tackled = true; c.ai = settle; buzz(70); a.dive = true;
+  c.tackled = true; c.ai = settle; buzz(70); a.dive = true; if (a.role === 'KING') shake(.8);
   a.ai = e => steer(e, c.x, c.y, 8);
   P.later.push([P.t + .14, () => {
     knockDown(c, c.hd); c.vx = Math.cos(c.hd) * 2.2; c.vy = Math.sin(c.hd) * 2.2;
@@ -1667,7 +1733,8 @@ function resolveCatch(P, wr, cov, dc, qmap, labels, nextNum) {
   tsT = 1; setTop('', '');
   const q = P.catchQ || 'miss', D = S.side === 'D';
   if (D) { qmap = { perfect: -4, good: -2, ok: 0, miss: 2, auto: 0 }; labels = { perfect: 'perfect breakup', good: 'tight coverage', ok: 'late break', miss: 'beaten', auto: 'auto' }; }
-  const r = roll(P, P.kind === 'deep' ? 'Deep catch' : 'Catch', [[labels[q], qmap[q]]], dc, wr, 'CAUGHT', D ? 'BROKEN UP!' : 'NO CATCH');
+  const ghost = !D && P.kind === 'deep' && up(get(13)) && dist(get(13), wr) < 8 ? [['ghost hands', -3]] : [];
+  const r = roll(P, P.kind === 'deep' ? 'Deep catch' : 'Catch', [[labels[q], qmap[q]]].concat(ghost), dc, wr, 'CAUGHT', D ? 'BROKEN UP!' : 'NO CATCH');
   P.critMin = !isD() && has('luckyhoof') ? 19 : 20;
   if (q === 'perfect') S.perf++;
   const pick6 = D ? (r.nat === 1 || (q === 'perfect' && !r.ok)) : ((r.nat === 1 && q !== 'perfect') || r.total <= dc - 9 || (q === 'over' && r.total <= dc - 4));
@@ -1675,6 +1742,7 @@ function resolveCatch(P, wr, cov, dc, qmap, labels, nextNum) {
   if (!r.ok) { incomplete(P, wr, cov, q); return; }
   P.caught = true; startCarrier(P, wr, null); wr.spd = 6.5;
   P.tq = [cov.num, nextNum, 57];
+  if (!D && get(13)) P.tq.push(13);
   if (r.crit && up(cov)) whiff(P, cov, wr);
   nextTackler(P);
 }
@@ -1946,7 +2014,7 @@ async function runDefense(def) {
   const type = S.nextOff || pickOffense(), spell = takeSpell(); S.nextOff = null; S.reveal = null; render();
   setup(type, def); await lineUp();
   let q = 'auto';
-  if (!auto) q = (await meter({ title: 'Jump the snap', hint: 'Tap when the needle hits the green', green: .22, perfect: .06, speed: 1.05 })).q;
+  if (!auto) q = (await meter({ title: isBoss() && S.boss.phase >= 3 ? 'Jump the snap, through the dread' : 'Jump the snap', hint: 'Tap when the needle hits the green', green: isBoss() && S.boss.phase >= 3 ? .13 : .22, perfect: .06, speed: 1.05 })).q;
   setTop('', '');
   const P = (type === 'run' ? makeRun : type === 'short' ? makeShort : makeDeep)(def);
   applySnap(P, q); applySpell(P, spell);
@@ -1955,17 +2023,20 @@ async function runDefense(def) {
   const out = await P.done;
   showSummary(P, flipOut(out));
   if (out.x != null) S.bx = clamp(out.x, HASH_L, HASH_R);
-  if (/^Sacked/.test(out.head)) S.earn += 15;
+  if (/^Sacked/.test(out.head)) { S.earn += 15; bossHit(8, 'Sack', true); }
   regen(perf0);
   apply(out, false);
 }
 function newDrive(side, keep) {
-  S = Object.assign(fresh(), keep ? { score: S.score, mom: S.mom, mana: S.mana, run: S.run } : {}, { side });
+  S = Object.assign(fresh(), keep ? { score: S.score, mom: S.mom, mana: S.mana, run: S.run, boss: S.boss } : {}, { side });
   if (!keep) applyFloorLook();
   if (S.mana == null) S.mana = maxMana();
   fx.length = 0; pops.length = 0; play = null; mode = null; tsT = 1; chargeHeld = false;
   setup('run', 'zone', true); cam.x = S.bx; cam.y = S.ball + (side === 'D' ? 4 : -3);
+  if (side === 'O' && isBoss() && S.boss.phase >= 3) S.down = 2;
   render(); (side === 'D' ? introD : intro)();
+  if (side === 'O') rollCurse();
+  if (side === 'O' && isBoss() && S.boss.phase >= 3) addPanel('<p class="note bad">The King steals a down: you start on second.</p>');
 }
 
 function intro() {
@@ -1978,6 +2049,7 @@ function intro() {
       <li><b>Deep Spell</b> Hold to charge, release in the gold before the rusher reaches your QB.</li>
     </ul>
     <p class="flavor small">Every touch moment rolls a d20 on the spot. Your timing is the bonus.</p>`);
+  if (FL().boss) panel.querySelector('.flavor').textContent = BOSS_INTRO;
 }
 
 function pickDefense() {
@@ -2063,6 +2135,8 @@ async function runPlay(type) {
   applySnap(P, q); applySpell(P, spell);
   play = P; P.begin();
   if (spell === 'fireball') P.later.push([.3, () => fireball(P)]);
+  P.curse = S.curse && isBoss() ? laneX() : null;
+  kingJoin(P, type);
   popAt(S.bx, S.ball + 9, DEFS[def].name.toUpperCase(), MATCH[type][def] > 0 ? 'your play beats it' : MATCH[type][def] < 0 ? 'they read it' : 'even matchup', C.wraith);
   const out = await P.done;
   showSummary(P, out);
@@ -2078,6 +2152,7 @@ function apply(out, noMom) {
   S.ball += out.y; S.yards += out.y;
   if (out.td || S.ball >= 100) { S.ball = 100; endDrive('td'); return; }
   S.ball = Math.max(1, S.ball);
+  if (!D && out.y >= 15) bossHit(5, 'Big play', true);
   if (out.y > 0) { S.fail = 0; if (!noMom && !D) addMom(out.y * 2); } else S.fail++;
   if (D && out.y <= 2) addMom(8);
   if (D && out.y <= 0 && !out.td) S.earn += 8;
@@ -2088,6 +2163,7 @@ function apply(out, noMom) {
     else {
       if (!noMom) addMom(8);
       notes.push('<p class="note good">First down! +10 gold</p>'); S.earn += 10;
+      if (isBoss() && S.boss.phase >= 3) { S.down = 2; notes.push('<p class="note bad">The King steals a down: second down.</p>'); }
       if (!S.wraithRally) {
         S.wraithRally = true; S.fright = true;
         notes.push(`<p class="note wraith">${FL().rally}</p>`);
@@ -2100,7 +2176,7 @@ function apply(out, noMom) {
       : `<p class="note">Fourth down. Go for it${100 - S.ball + 17 <= 55 ? ' or kick the field goal' : ''}.</p>`);
   }
   if (notes.length) addPanel(notes.join(''));
-  S.phase = 'choose'; render();
+  S.phase = 'choose'; if (!D) rollCurse(); render();
 }
 
 const endText = (side, kind) => ({
@@ -2109,6 +2185,7 @@ const endText = (side, kind) => ({
 }[side][kind] || ['Drive over', '']);
 const WIN = { O: ['td', 'fg'], D: ['to', 'downs', 'fgmiss'] };
 function matchState() {
+  if (isBoss()) return S.boss.hp <= 0 ? 'won' : S.boss.hearts <= 0 ? 'lost' : 'next';
   const d = S.run.drive, b = S.score.B, w = S.score.W;
   if (d < 4) return 'next';
   if (d === 4 && b === w) return 'ot';
@@ -2121,12 +2198,16 @@ function endHTML(kind) {
     : ms === 'lost' ? `<p class="note bad">Match lost, ${score}. Your run ends on floor ${S.run.floor}.</p>`
     : ms === 'ot' ? `<p class="note">Tied, ${score}. Overtime: score on one drive to win.</p>`
     : `<p class="small">${score} · drive ${S.run.drive} of 4 done</p>`;
+  const bossTxt = isBoss() ? S.bossLog.map(t => `<p class="note ${/heals/.test(t) ? 'bad' : /^Phase/.test(t) ? '' : 'good'}">${t}</p>`).join('') +
+    (ms === 'won' ? '<p class="note good">The Wraith King falls! A chest waits by his empty throne.</p>'
+      : ms === 'lost' ? '<p class="note bad">Out of hearts. The King keeps his throne, and your run ends.</p>'
+      : `<p class="small">The King has ${S.boss.hp} of 100 health. You have ${S.boss.hearts} heart${S.boss.hearts === 1 ? '' : 's'} left.</p>`) : '';
   const btn = ms === 'next' ? `<button class="again" id="next" type="button">${side === 'O' ? 'Play defense' : 'Back to offense'}</button>`
     : ms === 'ot' ? '<button class="again" id="next" type="button">Overtime drive</button>'
     : ms === 'won' ? '<button class="again" id="openChest" type="button">Open the chest</button>'
     : '<button class="again" id="newrun" type="button">Start a new run</button>';
   return `<div class="end ${win ? 'win' : 'loss'}"><h3>${h}</h3>` +
-    `<p>${t} ${S.plays} play${S.plays === 1 ? '' : 's'}, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>${match}` +
+    `<p>${t} ${S.plays} play${S.plays === 1 ? '' : 's'}, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>${isBoss() ? bossTxt : match}` +
     `<p class="loot"><i class="coin"></i>+${S.earn} gold · ${TEAM.gold} in your purse</p>` +
     `<div class="btns">${btn}<button class="again alt" id="openShop2" type="button">Shop</button></div></div>`;
 }
@@ -2147,7 +2228,7 @@ function openChest() {
   TEAM.gold += gold; TEAM.best = Math.max(TEAM.best || 0, f); saveTeam();
   const c = item ? RARITY[item.rarity] : C.gold;
   $('chestTitle').textContent = `${FLOORS[f - 1].name} cleared`;
-  $('chestSub').textContent = `You beat the ${FLOORS[f - 1].opp} ${S.score.B}–${S.score.W}.`;
+  $('chestSub').textContent = FLOORS[f - 1].boss ? 'The Wraith King falls. His hoard is yours.' : `You beat the ${FLOORS[f - 1].opp} ${S.score.B}\u2013${S.score.W}.`;
   $('chestGold').textContent = TEAM.gold;
   $('chestBody').innerHTML = `<div class="chest-art"><div class="gem" style="--c:${c}"></div></div>` +
     (item ? `<p class="loot-tag" style="--c:${c}">${item.rarity} ${item.kind === 'Loot' ? 'treasure' : item.kind.toLowerCase()}</p><h3 class="loot-name" style="--c:${c}">${item.name}</h3><p class="loot-desc">${item.desc}</p>`
@@ -2162,11 +2243,47 @@ function openChest() {
 function applyFloorLook() {
   const c = col(S.run.floor === 3 ? '#ff4a3d' : C.wraith); WEYE.emissiveColor = c; WEYE.diffuseColor = c;
   redrawField(); if (FL().look === 'orc') loadRigs();
+  if (FL().boss && !throneKing) { throneKing = buildKing(2.7); throneKing.root.position.set(0, .4, 118.4); throneKing.root.rotation.y = Math.PI; }
+}
+/* ================= the Wraith King ================= */
+const isBoss = () => !!(FL().boss && S.boss);
+const LANES = { left: -9, middle: 0, right: 9 };
+const laneX = () => clamp(S.bx + LANES[S.curse || 'middle'], 5, FIELD_W - 5);
+const inLane = (P, e) => !!(P && P.curse != null && e && Math.abs(e.x - P.curse) < 3.5 && e.y > S.ball - .5);
+const BOSS_INTRO = 'Floor 3: the Wraith King’s Hall. Bring the King’s health to zero. Touchdowns hit hardest, and stops on defense hurt him too. Every score they make heals him and costs you a heart; lose all three and the run ends. Before each snap he curses a lane in red: stay out of it.';
+function rollCurse() {
+  S.curse = isBoss() && S.side === 'O' && !S.over ? pick(Object.keys(LANES)) : null;
+  if (S.curse) addPanel(`<p class="note bad">The Wraith King curses the ${S.curse === 'middle' ? 'middle of the field' : S.curse + ' side'} for your next play. Stay out of the red.</p>`);
+}
+function bossHit(n, why, chip) {
+  if (!isBoss()) return;
+  const k = S.boss; k.hp = Math.max(chip ? 1 : 0, k.hp - n); S.bossLog.push(`${why}: the King takes ${n} damage.`);
+  const el = $('bossBar'); el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  const ph = k.hp <= 25 ? 3 : k.hp <= 50 ? 2 : 1;
+  if (ph > k.phase) { k.phase = ph; bossPhaseFX(ph); }
+  render();
+}
+function bossHeal(n, why) {
+  if (!isBoss()) return;
+  S.boss.hp = Math.min(100, S.boss.hp + n); S.boss.hearts = Math.max(0, S.boss.hearts - 1);
+  S.bossLog.push(`${why}: the King heals ${n}, and you lose a heart.`); render();
+}
+function bossPhaseFX(ph) {
+  const t = ph === 2 ? ['THE KING TAKES THE FIELD', 'Phase 2: the King plays deep safety. You can’t hurdle him, and his ghost hands reach for deep passes.']
+    : ['HE STEALS YOUR DOWNS', 'Phase 3: every series starts on second down, and his dread shrinks your snap window on defense.'];
+  popAt(S.bx, S.ball + 8, t[0], `phase ${ph}`, '#ff6a5a'); shake(.9); buzz([60, 40, 60, 40, 120]);
+  const ps = BURSTS.curse; ps.emitter = new V3(0, 3, 118.5); ps.manualEmitCount = reduce ? 12 : 260;
+  S.bossLog.push(t[1]);
+}
+function kingJoin(P, type) {
+  const k = get(13); if (!k) return;
+  if (type === 'run') { P.later.push([.45, () => { if (up(k)) k.ai = chaseBall(6.2); }]); P.tq.push(13); }
+  else k.ai = x => P.thrown || P.caught ? chaseBall(6.8)(x) : steer(x, x.x, x.y, 1);
 }
 function newFloor(floor) {
-  S = Object.assign(fresh(), { mana: S.mana, mom: S.mom, run: { floor, drive: 1 } });
+  S = Object.assign(fresh(), { mana: S.mana, mom: S.mom, run: { floor, drive: 1 }, boss: FLOORS[floor - 1].boss ? { hp: 100, hearts: 3, phase: 1 } : null });
   fx.length = 0; pops.length = 0; play = null; mode = null; tsT = 1; chargeHeld = false;
-  applyFloorLook(); setup('run', 'zone', true); cam.x = S.bx; cam.y = S.ball - 3; render(); intro();
+  applyFloorLook(); setup('run', 'zone', true); cam.x = S.bx; cam.y = S.ball - 3; render(); intro(); rollCurse();
 }
 function nextDrive() { S.run.drive++; newDrive(S.run.drive % 2 ? 'O' : 'D', true); }
 function endDrive(kind) {
@@ -2174,6 +2291,11 @@ function endDrive(kind) {
   const pts = kind === 'td' ? 7 : kind === 'fg' ? 3 : 0;
   if (pts) S.score[S.side === 'O' ? 'B' : 'W'] += pts;
   if (S.side === 'D' && kind === 'to') addMom(25);
+  if (isBoss()) {
+    if (S.side === 'O') { if (kind === 'td') bossHit(40, 'Touchdown'); else if (kind === 'fg') bossHit(20, 'Field goal'); }
+    else if (kind === 'td') bossHeal(15, 'Their touchdown'); else if (kind === 'fg') bossHeal(8, 'Their field goal');
+    else if (kind === 'to') bossHit(25, 'Takeaway'); else if (kind === 'downs') bossHit(15, 'Stop on downs'); else if (kind === 'fgmiss') bossHit(10, 'Missed kick');
+  }
   S.ms = matchState();
   S.earn += ({ O: { td: 60, fg: 25 }, D: { to: 50, downs: 40, fgmiss: 20 } }[S.side][kind] || 0) + 3 * S.perf;
   TEAM.gold += S.earn; saveTeam();
@@ -2194,7 +2316,13 @@ const OFFNAME = { run: 'Ghost Run', short: 'Shade Slant', deep: 'Curse Bomb' };
 function render() {
   const D = isD(), fp = y => D ? 100 - y : y;
   $('scB').textContent = S.score.B; $('scW').textContent = S.score.W; $('oppName').textContent = FL().opp;
-  $('runTxt').textContent = `Floor ${S.run.floor} \u00b7 ${S.run.drive > 4 ? 'Overtime' : `Drive ${S.run.drive} of 4`}`;
+  $('runTxt').textContent = isBoss() ? `Floor ${S.run.floor} \u00b7 Boss fight \u00b7 Drive ${S.run.drive}` : `Floor ${S.run.floor} \u00b7 ${S.run.drive > 4 ? 'Overtime' : `Drive ${S.run.drive} of 4`}`;
+  $('bossBar').hidden = !isBoss();
+  if (isBoss()) {
+    $('bossFill').style.width = S.boss.hp + '%'; $('bossPhase').textContent = `Phase ${S.boss.phase} \u00b7 ${S.boss.hp}/100`;
+    $('hearts').innerHTML = [0, 1, 2].map(i => `<svg viewBox="0 0 24 24" class="${i < S.boss.hearts ? '' : 'lost'}" aria-hidden="true"><path d="M12 21s-7-4.5-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/></svg>`).join('');
+    $('hearts').setAttribute('aria-label', `${S.boss.hearts} of 3 hearts left`);
+  }
   $('downTxt').textContent = S.over ? 'Final' : `${ORD[S.down]} & ${S.ball + S.toGo >= 100 ? 'Goal' : S.toGo}`;
   $('spotTxt').textContent = spot(S.ball);
   document.querySelector('.matchup .bulls').classList.toggle('poss', !D); document.querySelector('.matchup .wraiths').classList.toggle('poss', D);
@@ -2264,7 +2392,7 @@ async function start(data) {
   cam.x = S.bx; cam.y = S.ball + (isD() ? 4 : -3);
   new ResizeObserver(resize).observe(stage); resize();
   if (S.over) { setTop('', ''); showPanel(''); addPanel(endHTML(S.result)); }
-  else if (S.plays === 0) (isD() ? introD : intro)();
+  else if (S.plays === 0) { (isD() ? introD : intro)(); if (isBoss() && S.side === 'O' && !S.curse) rollCurse(); }
   else { setTop('', ''); showPanel('<p class="flavor">Back in the huddle. Pick a play.</p>'); }
   last = performance.now();
   engine.runRenderLoop(frame);
@@ -2274,6 +2402,8 @@ try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (_) {}
 if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
 })();
 </script>
+
+
 
 
 </body>
