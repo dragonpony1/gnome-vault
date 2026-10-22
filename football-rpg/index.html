@@ -217,6 +217,7 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/babylonjs@9.28.0/babylon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@9.28.0/babylonjs.loaders.min.js"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -621,11 +622,7 @@ function buildArena() {
   });
   merge(stone, 'stone', STONE).freezeWorldMatrix();
   const iron = [];
-  torches.forEach(p => {
-    const sd = Math.sign(p.x);
-    const br = MB.CreateBox('br', { width: .9, height: .14, depth: .14 }, scene); br.position.set(p.x + sd * .45, p.y - .35, p.z); iron.push(br);
-    const cup = MB.CreateCylinder('cup', { diameterTop: .42, diameterBottom: .2, height: .3, tessellation: 8 }, scene); cup.position.set(p.x, p.y - .3, p.z); iron.push(cup);
-  });
+
   [-28, 128].forEach(z => {
     const inner = z < 0 ? z + .9 : z - .9, fz = z < 0 ? .2 : -.2;
     const gate = MB.CreateBox('gate', { width: 8, height: 7, depth: .2 }, scene); gate.position.set(0, 3.5, inner); gate.material = mat('gatem' + z, '#020403');
@@ -639,14 +636,12 @@ function buildArena() {
     torches.push(new V3(x, 2.1, z));
   });
   for (let z = 10; z <= 90; z += 20) {
-    const ring = MB.CreateTorus('chand', { diameter: 3, thickness: .14, tessellation: 24 }, scene); ring.position.set(0, 14, z); iron.push(ring);
     const chain = MB.CreateCylinder('chain', { diameter: .08, height: 12, tessellation: 4 }, scene); chain.position.set(0, 20, z); iron.push(chain);
   }
   merge(iron, 'iron', IRON).freezeWorldMatrix();
   const flame = MB.CreateSphere('flame', { diameter: .5, segments: 6 }, scene); flame.material = FLAME; flame.isVisible = false;
   torches.forEach((p, i) => { const f = flame.createInstance('f' + i); f.position.copyFrom(p); f.big = p.y < 3; flameInst.push(f); });
   for (let z = 10; z <= 90; z += 20) {
-    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, f = flame.createInstance('cf'); f.position.set(Math.cos(a) * 1.5, 14.3, z + Math.sin(a) * 1.5); f.small = true; flameInst.push(f); }
     torches.push(new V3(0, 13.4, z));
   }
   const mkEyes = (hex) => { const m = merge([part(MB.CreateSphere('a', { diameter: .15, segments: 4 }, scene), null, 0, 0, -.12), part(MB.CreateSphere('b', { diameter: .15, segments: 4 }, scene), null, 0, 0, .12)], 'crowd', mat('ce' + hex, hex, { em: hex, flat: true })); m.isVisible = false; return m; };
@@ -692,6 +687,70 @@ function buildArena() {
   embers.minSize = .05; embers.maxSize = .13; embers.minLifeTime = 2; embers.maxLifeTime = 4.5; embers.emitRate = reduce ? 0 : 22;
   embers.direction1 = new V3(-.3, 1, -.3); embers.direction2 = new V3(.3, 1, .3); embers.minEmitPower = .3; embers.maxEmitPower = .8; embers.gravity = new V3(0, .15, 0);
   embers.blendMode = B.ParticleSystem.BLENDMODE_ONEONE; embers.start();
+}
+
+/* ---------- Meshy props from Dungeon Hold ---------- */
+const propRoots = [];
+function tunePBR(mats) {
+  mats.forEach(m => {
+    if (!m || m._tuned) return; m._tuned = true;
+    m.maxSimultaneousLights = 6;
+    if (m.getClassName && m.getClassName() === 'PBRMaterial') {
+      m.usePhysicalLightFalloff = false;
+      m.metallic = Math.min(m.metallic == null ? 1 : m.metallic, .2);
+      m.roughness = Math.max(m.roughness == null ? 1 : m.roughness, .6);
+      m.ambientColor = new C3(.55, .52, .48);
+      if (m.albedoTexture) { m.emissiveTexture = m.albedoTexture; m.emissiveColor = new C3(.3, .28, .26); }
+    }
+  });
+}
+function placeProp(c, x, y, z, h, faceX, faceZ) {
+  const inst = c.instantiateModelsToScene(n => n, false, { doNotInstantiate: false });
+  const holder = new B.TransformNode('prop', scene), root = inst.rootNodes[0];
+  root.parent = holder;
+  const { min, max } = root.getHierarchyBoundingVectors(true);
+  const s = h / Math.max(.01, max.y - min.y);
+  root.position.x -= (min.x + max.x) / 2; root.position.y -= min.y; root.position.z -= (min.z + max.z) / 2;
+  holder.scaling.setAll(s);
+  holder.rotation.y = Math.atan2(faceX - x, faceZ - z);
+  holder.position.set(x, y, z);
+  holder.computeWorldMatrix(true);
+  holder.getChildMeshes().forEach(m => { m.isPickable = false; m.computeWorldMatrix(true); m.freezeWorldMatrix(); });
+  propRoots.push(holder);
+  return holder;
+}
+async function loadProps() {
+  const load = n => B.LoadAssetContainerAsync ? B.LoadAssetContainerAsync('models/' + n + '.json', scene, { pluginExtension: '.gltf' })
+    : B.SceneLoader.LoadAssetContainerAsync('models/', n + '.json', scene, null, '.gltf');
+  if (!B.LoadAssetContainerAsync && !(B.SceneLoader && B.SceneLoader.LoadAssetContainerAsync)) return;
+  const names = ['throne-sconce', 'chandelier', 'armor-stand-crimson', 'armor-stand-shadow', 'throne-statue', 'throne-seat', 'throne-crest',
+    'throne-banner2', 'throne-pillar', 'crystal', 'totem-1', 'feast-barrel', 'feast-chest', 'feast-weapon-rack', 'barricade-gate', 'feast-lantern'];
+  const got = {};
+  await Promise.all(names.map(async n => {
+    try { const c = await load(n); tunePBR(c.materials); got[n] = c; } catch (_) {}
+  }));
+  const WX = FIELD_W / 2 + 8, P = (n, ...a) => got[n] && placeProp(got[n], ...a);
+  for (let z = 0; z <= 100; z += 10) [-1, 1].forEach(sd => P('throne-sconce', sd * (WX - 2.25), 3.25, z, 1.9, 0, z));
+  const guards = ['armor-stand-crimson', 'throne-statue', 'armor-stand-shadow'];
+  for (let z = 5, i = 0; z <= 95; z += 10, i++) [-1, 1].forEach(sd => P(guards[(i + (sd > 0 ? 1 : 0)) % 3], sd * (WX - 1.7), 0, z, 2.7, 0, z));
+  for (let z = 10; z <= 90; z += 20) P('chandelier', 0, 12.2, z, 3.4, 0, z - 1);
+  // Wraith end: the Wraith King's throne, flanked by statues and crystals
+  P('throne-seat', 0, 0, 121, 5.5, 0, 100);
+  [-1, 1].forEach(sd => { P('throne-statue', sd * 4.5, 0, 120, 3.6, 0, 100); P('crystal', sd * 9, 0, 118, 2.6, 0, 100); P('totem-1', sd * 14, 0, 119, 2.8, 0, 100); });
+  P('throne-crest', 0, 7.2, 127, 3, 0, 100);
+  [-1, 1].forEach(sd => { P('throne-banner2', sd * 7, 3.2, 126.9, 4.2, sd * 7, 100); P('throne-banner2', sd * 7, 3.2, -26.9, 4.2, sd * 7, 0); });
+  // Bulls end: barricades and the war crest
+  for (let x = -11; x <= 11; x += 2.2) P('barricade-gate', x, 0, -17, 1.4, x, 0);
+  P('throne-crest', 0, 7.2, -27, 3, 0, 0);
+  // purple pillars at the end zone corners
+  [[-1, -10], [1, -10], [-1, 110], [1, 110]].forEach(([sd, z]) => P('throne-pillar', sd * (FIELD_W / 2 + 4.6), 0, z, 5, 0, 50));
+  // Bulls bench on the left sideline, Wraith shrines on the right
+  const bx = -(FIELD_W / 2 + 3.4);
+  P('feast-barrel', bx, 0, 28, 1.3, 0, 28); P('feast-barrel', bx - 1.1, 0, 29.2, 1.3, 0, 29); P('feast-weapon-rack', bx - .6, 0, 40, 2.2, 0, 40);
+  P('feast-chest', bx, 0, 50, 1.2, 0, 50); P('feast-lantern', bx, 1.2, 50, .8, 0, 50); P('feast-weapon-rack', bx - .6, 0, 60, 2.2, 0, 60);
+  P('feast-barrel', bx, 0, 72, 1.3, 0, 72);
+  const wx = FIELD_W / 2 + 3.4;
+  [[30, 'crystal'], [40, 'totem-1'], [60, 'totem-1'], [70, 'crystal']].forEach(([z, n]) => P(n, wx, 0, z, n === 'crystal' ? 2.4 : 2.6, 0, z));
 }
 
 /* ---------- character models ---------- */
@@ -790,12 +849,86 @@ function modelOf(e) {
   let v = models.get(key);
   if (!v) {
     const s = scaleOf(e), t = vteam(e);
-    v = t === 'W' ? buildWraith(e.num, s) : t === 'M' ? buildMino(null, C.torch, s) : buildMino(e.num, C.bulls, s);
+    v = GLB[key] ? buildGLB(key, s) : t === 'W' ? buildWraith(e.num, s) : t === 'M' ? buildMino(null, C.torch, s) : buildMino(e.num, C.bulls, s);
     v.blob = blobMaster.createInstance('b' + key); v.blob.scaling.setAll(s * 1.1);
     models.set(key, v);
   }
   return v;
 }
+
+/* ---------- Meshy players: rigged models swap in over the block-built ones once they load ---------- */
+const GLB = {};
+// Artifacts won't serve .glb, so each model is split into .gltf.json + .jpg (football-rpg/models/glb-split.js).
+const GLB_FILES = { B34: 'models/minotaur-rb34.gltf.json' };
+const GLB_H = 2.45;
+function loadGLB(key, file) {
+  // Plain (non-sRGB) texture buffers: the block players' material expects raw colours, sRGB ones come out ~2x too dark.
+  const opts = { pluginExtension: '.gltf', pluginOptions: { gltf: { useSRGBBuffers: false } } };
+  const load = B.LoadAssetContainerAsync ? B.LoadAssetContainerAsync(file, scene, opts) : B.SceneLoader.LoadAssetContainerAsync('', file, scene, null, '.gltf');
+  load.then(ct => {
+    const top = ct.meshes.find(m => !m.parent) || ct.transformNodes.find(n => !n.parent);
+    // Meshy ships full-bright emissive + pure-metal PBR, which reads as a glowing ghost (or black) under these torches.
+    // Swap in the same plain lit material the block players use, keeping Meshy's painted texture.
+    const swap = new Map();
+    ct.meshes.forEach(m => {
+      m.alwaysSelectAsActiveMesh = true; glow.addExcludedMesh(m);
+      const pm = m.material; if (!pm || !pm.albedoTexture) return;
+      if (!swap.has(pm)) {
+        const sm = mat('glb' + key, '#ffffff', { spec: '#1c1c1c', em: '#4a4a4a' });
+        pm.albedoTexture.gammaSpace = true;
+        sm.diffuseTexture = pm.albedoTexture; sm.emissiveTexture = pm.albedoTexture;
+        swap.set(pm, sm);
+      }
+      m.material = swap.get(pm);
+    });
+    const anims = {};
+    ct.animationGroups.forEach(a => {
+      a.stop();
+      const k = /charge/i.test(a.name) ? 'charge' : /run/i.test(a.name) ? 'run' : /walk/i.test(a.name) ? 'walk' : a.name;
+      // The charge lunges 3.3 m forward on its own; flatten that so the game decides where he is.
+      if (k === 'charge') a.targetedAnimations.forEach(t => {
+        if (t.animation.targetProperty !== 'position' || !/hips/i.test(t.target.name)) return;
+        const keys = t.animation.getKeys(), k0 = keys[0].value;
+        ['x', 'z'].forEach(ax => { const vs = keys.map(q => q.value[ax]); if (Math.max(...vs) - Math.min(...vs) > 50) keys.forEach(q => { q.value[ax] = k0[ax]; }); });
+      });
+      anims[k] = a;
+    });
+    ct.addAllToScene();
+    top.computeWorldMatrix(true);
+    const bb = top.getHierarchyBoundingVectors(true), hf = ct.transformNodes.find(n => n.name === 'headfront');
+    const faceBack = hf && hf.getAbsolutePosition().z < 0;
+    top.setEnabled(false);
+    GLB[key] = { top, anims, fit: GLB_H / Math.max(.1, bb.max.y - bb.min.y), faceBack };
+    const old = models.get(key);
+    if (old) { old.root.dispose(); old.blob.dispose(); models.delete(key); }
+  }).catch(() => {});
+}
+function buildGLB(key, s) {
+  const g = GLB[key];
+  const root = new B.TransformNode('g' + key, scene), body = new B.TransformNode('gb', scene); body.parent = root;
+  g.top.parent = body; g.top.setEnabled(true);
+  body.scaling.setAll(g.fit); if (g.faceBack) body.rotation.y = Math.PI;
+  root.scaling.setAll(s);
+  return { root, body, kind: 'glb', anims: g.anims, cur: null, chargeT: 0, phase: 0 };
+}
+function glbPose(v, name, loop, speed, at) {
+  const a = v.anims[name]; if (!a) return;
+  if (v.cur !== a) { if (v.cur) v.cur.stop(); a.start(loop, speed); v.cur = a; }
+  if (at != null) { a.goToFrame(at * 60); a.pause(); } else { if (!a.isPlaying) a.play(loop); a.speedRatio = speed; }
+}
+function glbAnimate(v, e, sp, isUp, dt) {
+  if (!isUp) { if (v.cur) v.cur.pause(); v.chargeT = 0; return; }
+  v.chargeT = Math.max(0, v.chargeT - dt);
+  if (!v.chargeT && ball.carrier === e && sp > 3 && ents.some(o => o.team !== e.team && up(o) && dist(o, e) < 2.2)) {
+    v.chargeT = .57 / 1.2; if (v.cur) v.cur.stop(); v.cur = null;
+  }
+  if (v.chargeT) glbPose(v, 'charge', false, 1.2);
+  else if (e.lock) glbPose(v, 'charge', false, 0, .2);
+  else if (sp > 4.5) glbPose(v, 'run', true, clamp(sp / 7, .75, 1.5));
+  else if (sp > .4) glbPose(v, 'walk', true, clamp(sp / 2.2, .6, 1.6));
+  else glbPose(v, 'charge', false, 0, 0);
+}
+Object.entries(GLB_FILES).forEach(([k, f]) => loadGLB(k, f));
 const ballMesh = merge([
   part(MB.CreateSphere('bl', { diameter: .34, segments: 10 }, scene), C.leather, 0, 0, 0, [.62, .62, 1]),
   part(MB.CreateBox('lace', { width: .03, height: .03, depth: .16 }, scene), C.chalk, 0, .105, 0)], 'football', BALLM);
@@ -908,7 +1041,10 @@ function syncVisuals(now, dt, rdt) {
     v.blob.position.set(RX(e.x), .03, RZ(e.y));
     v.phase += dt * (2 + sp * 1.55);
     const amp = Math.min(.95, sp * .14), sw = Math.sin(v.phase) * amp;
-    if (v.kind === 'mino') {
+    if (v.kind === 'glb') {
+      if (isUp && !e.dive) v.root.rotation.x = e.lock ? .15 : 0;
+      glbAnimate(v, e, sp, isUp, dt);
+    } else if (v.kind === 'mino') {
       let aL = -sw * .9, aR = sw * .9, lL = sw, lR = -sw;
       if (e.lock) { aL = aR = -1.35; lL = .35; lR = -.35; }
       if (ball.carrier === e) aR = -.9;
@@ -1920,6 +2056,7 @@ async function start(data) {
   buildTicks(); render(); connectStore();
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch (_) {}
   buildArena();
+  loadProps();
   setup('run', 'zone', true);
   cam.x = S.bx; cam.y = S.ball + (isD() ? 4 : -3);
   new ResizeObserver(resize).observe(stage); resize();
@@ -1934,6 +2071,7 @@ try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (_) {}
 if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
 })();
 </script>
+
 
 </body>
 </html>
