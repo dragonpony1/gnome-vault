@@ -166,15 +166,30 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
 .shop-msg{margin:0;min-height:1.3em;font-size:14px;font-weight:600;color:var(--good)}
 .shop-foot{display:flex;justify-content:space-between;align-items:center;gap:12px}
 
+.runtxt{display:block;margin-top:2px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--gold)}
+.matchup b{font-weight:inherit}
+.note.bad{color:var(--bad)}
+.chest{align-items:center;background:rgba(2,6,4,.55)}
+.chest .shop-in{max-height:min(620px,100%)}
+.chest-body{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding-block:6px}
+.chest-art{display:grid;place-items:center;height:130px}
+.gem{width:86px;height:86px;border-radius:16px;transform:rotate(45deg);background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.75),transparent 38%),var(--c);
+  box-shadow:0 0 28px var(--c),0 0 90px color-mix(in srgb,var(--c) 55%,transparent);animation:gemIn .7s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes gemIn{from{transform:rotate(45deg) scale(.15);opacity:0}}
+.loot-tag{margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c)}
+.loot-name{margin:0;font-family:var(--f-display);font-weight:800;font-size:32px;line-height:1;color:var(--c);text-wrap:balance}
+.loot-desc{margin:0;max-width:34ch;font-size:15px;line-height:1.35}
+.item.locked{opacity:.5;filter:grayscale(1)}
 @media (prefers-reduced-motion: reduce){
+  .gem{animation:none}
   .los,.ltg,.ball,.bar i,.card{transition:none}
 }
 </style>
 
 <div class="app">
   <header class="board">
-    <div class="matchup"><span class="bulls">Labyrinth Bulls <em id="scB">0</em></span><span class="wraiths"><small>vs</small> Hollowmere Wraiths <em id="scW">0</em></span></div>
-    <div class="situ"><b id="downTxt">1st &amp; 10</b><span id="spotTxt">Own 25</span></div>
+    <div class="matchup"><span class="bulls">Labyrinth Bulls <em id="scB">0</em></span><span class="wraiths"><small>vs</small> <b id="oppName">Hollowmere Wraiths</b> <em id="scW">0</em></span></div>
+    <div class="situ"><b id="downTxt">1st &amp; 10</b><span id="spotTxt">Own 25</span><span class="runtxt" id="runTxt">Floor 1</span></div>
     <div class="bars"><div class="mom"><span class="lbl">Rally</span><div class="bar"><i id="momFill"></i></div><span class="pct" id="momPct">0%</span></div><div class="mom mana"><span class="lbl">Mana</span><div class="bar"><i id="manaFill"></i></div><span class="pct" id="manaTxt">60</span></div></div>
   </header>
 
@@ -203,6 +218,17 @@ body{height:100%;background:var(--night);color:var(--chalk);font-family:var(--f-
     <label class="auto" for="auto"><input type="checkbox" id="auto"> Auto mode (dice only)</label>
     <button class="shopbtn" id="shopBtn" type="button">Shop <i class="coin"></i><b id="goldTxt">0</b></button>
   </footer>
+
+  <div class="shop chest" id="chest" hidden role="dialog" aria-modal="true" aria-labelledby="chestTitle">
+    <div class="shop-in">
+      <header class="shop-head">
+        <div><h2 id="chestTitle">Floor cleared</h2><p id="chestSub"></p></div>
+        <div class="purse"><i class="coin"></i><span id="chestGold">0</span></div>
+      </header>
+      <div class="chest-body" id="chestBody" aria-live="polite"></div>
+      <div class="shop-foot"><span></span><button class="again" id="chestGo" type="button">Descend</button></div>
+    </div>
+  </div>
 
   <div class="shop" id="shop" hidden role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="shop-in">
@@ -260,13 +286,13 @@ const DIRS = ['left', 'right', 'up'];
 const FIELD_W = 53.3, MID = 26.65, HASH_L = 23.6, HASH_R = 29.7;
 
 const fresh = () => ({ ball: 25, bx: MID, down: 1, toGo: 10, mom: 0, fail: 0, plays: 0, yards: 0, perf: 0,
-  fright: false, wraithRally: false, over: false, result: null, phase: 'choose', side: 'O', score: { B: 0, W: 0 }, mana: null, earn: 0, armed: null, reveal: null, nextDef: null, nextOff: null });
+  fright: false, wraithRally: false, over: false, result: null, phase: 'choose', side: 'O', score: { B: 0, W: 0 }, run: { floor: 1, drive: 1 }, ms: null, mana: null, earn: 0, armed: null, reveal: null, nextDef: null, nextOff: null });
 let S = fresh();
 const addMom = v => { S.mom = clamp(S.mom + v, 0, 100); };
 
 /* ================= team: gold, gear and spells that stay with you ================= */
 const TEAM_KEY = 'gridiron-glory-team';
-const teamDefault = () => ({ gold: 100, owned: {} });
+const teamDefault = () => ({ gold: 100, owned: {}, best: 0 });
 let TEAM = teamDefault();
 try { const t = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (t && typeof t.gold === 'number') TEAM = Object.assign(teamDefault(), t); } catch (_) {}
 let teamDoc = null, saving = false, saveAgain = false;
@@ -276,7 +302,7 @@ async function saveTeam() {
   if (!teamDoc) return;
   if (saving) { saveAgain = true; return; }
   saving = true;
-  try { await teamDoc.set({ gold: TEAM.gold, owned: Object.assign({}, TEAM.owned) }); } catch (_) {}
+  try { await teamDoc.set({ gold: TEAM.gold, owned: Object.assign({}, TEAM.owned), best: TEAM.best || 0 }); } catch (_) {}
   saving = false;
   if (saveAgain) { saveAgain = false; saveTeam(); }
 }
@@ -291,11 +317,20 @@ async function connectStore() {
     teamDoc = doc;
     if (snap.exists) {
       const d = snap.data();
-      if (d && typeof d.gold === 'number') { TEAM = Object.assign(teamDefault(), { gold: d.gold, owned: Object.assign({}, d.owned || {}) }); persistLocal(); render(); }
+      if (d && typeof d.gold === 'number') { TEAM = Object.assign(teamDefault(), { gold: d.gold, owned: Object.assign({}, d.owned || {}), best: d.best || 0 }); persistLocal(); render(); }
     } else saveTeam();
   } catch (_) { teamDoc = null; }
 }
 const has = id => !!TEAM.owned[id];
+const FLOORS = [
+  { name: 'Hollowmere Crypt', opp: 'Hollowmere Wraiths', short: 'Wraiths', look: 'wraith', bonus: 0,
+    rally: 'Nobody, the Wraiths’ headless horseman, rides the sideline. Fright: your next snap window shrinks.' },
+  { name: 'Gorrak War Pits', opp: 'Gorrak Skullsmashers', short: 'Skullsmashers', look: 'orc', bonus: 1,
+    rally: 'Tusk, the Skullsmashers’ war boar, stampedes the sideline. Your next snap window shrinks.' },
+  { name: 'The Wraith King’s Hall', opp: 'The Wraith King’s Guard', short: 'King’s Guard', look: 'wraith', bonus: 2,
+    rally: 'The Wraith King rises from his throne. Dread: your next snap window shrinks.' }
+];
+const FL = () => FLOORS[((S && S.run && S.run.floor) || 1) - 1];
 const maxMana = () => 60 + (has('manawell') ? 40 : 0);
 const rallyAt = () => has('oldhorn') ? 70 : 100;
 const SPELLS = {
@@ -320,12 +355,18 @@ const ITEMS = [
   { id: 'cleats', name: 'Cleats of the Gale', kind: 'Gear', rarity: 'rare', cost: 90, desc: 'Your carriers run faster, and every juke window stays open 0.2 seconds longer.' },
   { id: 'gauntlets', name: 'Gauntlets of Grip', kind: 'Gear', rarity: 'rare', cost: 80, desc: '+1 on catches. A natural 1 no longer fumbles.' },
   { id: 'runeball', name: 'Runed Pigskin', kind: 'Gear', rarity: 'epic', cost: 140, desc: '+1 arm on Deep Spell and a wider gold zone on the charge bar.' },
-  { id: 'boneplate', name: 'Bone Plate Pads', kind: 'Gear', rarity: 'epic', cost: 140, desc: 'On defense, every Wraith roll is 2 lower.' },
+  { id: 'boneplate', name: 'Bone Plate Pads', kind: 'Gear', rarity: 'epic', cost: 140, desc: 'On defense, every opponent roll is 2 lower.' },
   { id: 'stoneskin', name: 'Tome of Stoneskin', kind: 'Spell', rarity: 'rare', cost: 90, desc: 'Learn Stoneskin: every roll this play swings 3 your way. 25 mana, offense or defense.' },
   { id: 'fireball', name: 'Tome of Fireball', kind: 'Spell', rarity: 'epic', cost: 120, desc: 'Learn Fireball: blast the first defender off his feet at the snap. 30 mana, offense.' },
   { id: 'frost', name: 'Tome of Frost Nova', kind: 'Spell', rarity: 'epic', cost: 120, desc: 'Learn Frost Nova: their offense moves at two-thirds speed. 30 mana, defense.' },
   { id: 'manawell', name: 'Mana Well', kind: 'Relic', rarity: 'rare', cost: 100, desc: '+40 max mana.' },
-  { id: 'oldhorn', name: 'Horn of Old Horns', kind: 'Relic', rarity: 'legendary', cost: 220, desc: 'Old Horns can charge at 70% Rally instead of 100%.' }
+  { id: 'oldhorn', name: 'Horn of Old Horns', kind: 'Relic', rarity: 'legendary', cost: 220, desc: 'Old Horns can charge at 70% Rally instead of 100%.' },
+  { id: 'luckyhoof', name: 'Lucky Hoof', kind: 'Loot', rarity: 'rare', cost: 0, desc: 'Your natural 19s crit too.' },
+  { id: 'bonecharm', name: 'Bone Charm', kind: 'Loot', rarity: 'rare', cost: 0, desc: '+6 mana every play.' },
+  { id: 'emberball', name: 'Ember-Stitched Ball', kind: 'Loot', rarity: 'rare', cost: 0, desc: 'A wider perfect zone on the Deep Spell charge.' },
+  { id: 'ghostweave', name: 'Ghostweave Cleats', kind: 'Loot', rarity: 'epic', cost: 0, desc: 'Juke windows stay open 0.3 seconds longer.' },
+  { id: 'warpaint', name: 'Gorrak War Paint', kind: 'Loot', rarity: 'epic', cost: 0, desc: 'On defense, every opponent roll is 1 lower.' },
+  { id: 'kingscrown', name: 'Crown of the Wraith King', kind: 'Loot', rarity: 'legendary', cost: 0, desc: 'Every roll swings 1 your way, on offense and defense.' }
 ];
 
 /* ================= simulation (yards: x across, y upfield) ================= */
@@ -560,7 +601,7 @@ function drawFieldTex(g, tw, th) {
   for (let z = 10; z <= 90; z += 10) { const n = String(z <= 50 ? z : 100 - z); g.fillText(n, 9 * px, Y(z) + px * 1.7); g.fillText(n, (FIELD_W - 9) * px, Y(z) + px * 1.7); }
   g.globalAlpha = .7; g.font = `800 ${Math.round(px * 5.5)}px ${FD}`;
   g.fillStyle = mix(C.chalk, C.bulls, .75); g.fillText('BULLS', tw / 2, Y(-5));
-  g.fillStyle = mix(C.chalk, C.wraith, .6); g.fillText('WRAITHS', tw / 2, Y(105));
+  g.fillStyle = mix(C.chalk, C.wraith, .6); g.fillText(FL().short.toUpperCase(), tw / 2, Y(105));
   g.globalAlpha = .45; g.strokeStyle = C.torch; g.lineWidth = 6; g.beginPath(); g.arc(tw / 2, Y(50), px * 4.2, 0, Math.PI * 2); g.stroke();
   g.fillStyle = C.torch; g.font = `800 ${Math.round(px * 3)}px ${FD}`; g.fillText('G&G', tw / 2, Y(50));
   g.globalAlpha = 1;
@@ -585,10 +626,11 @@ function bannerDraw(team) {
 }
 
 const torches = [], flameInst = [], crowdEyes = [], blinks = [];
-let losLine, fdLine;
+let losLine, fdLine, fieldTexG = null;
+function redrawField() { if (!fieldTexG) return; drawFieldTex(fieldTexG.getContext(), 1024, 2304); fieldTexG.update(); }
 const emberAt = new V3(0, 0, 25);
 function buildArena() {
-  const fieldTex = canvasTex('fieldTex', 1024, 2304, drawFieldTex);
+  const fieldTex = fieldTexG = canvasTex('fieldTex', 1024, 2304, drawFieldTex);
   fieldTex.anisotropicFilteringLevel = 8;
   const field = MB.CreateGround('field', { width: FIELD_W, height: 120 }, scene);
   field.position.z = 50; field.material = mat('fieldm', '#ffffff'); field.material.diffuseTexture = fieldTex;
@@ -692,6 +734,7 @@ function buildArena() {
 /* ---------- Meshy props from Dungeon Hold ---------- */
 const propRoots = [];
 function tunePBR(mats) {
+  if (!mats) return;
   mats.forEach(m => {
     if (!m || m._tuned) return; m._tuned = true;
     m.maxSimultaneousLights = 6;
@@ -715,7 +758,7 @@ function placeProp(c, x, y, z, h, faceX, faceZ) {
   holder.rotation.y = Math.atan2(faceX - x, faceZ - z);
   holder.position.set(x, y, z);
   holder.computeWorldMatrix(true);
-  holder.getChildMeshes().forEach(m => { m.isPickable = false; m.computeWorldMatrix(true); m.freezeWorldMatrix(); });
+  holder.getChildMeshes().forEach(m => { m.isPickable = false; m.computeWorldMatrix(true); m.freezeWorldMatrix(); glow.addExcludedMesh(m); });
   propRoots.push(holder);
   return holder;
 }
@@ -751,6 +794,37 @@ async function loadProps() {
   P('feast-barrel', bx, 0, 72, 1.3, 0, 72);
   const wx = FIELD_W / 2 + 3.4;
   [[30, 'crystal'], [40, 'totem-1'], [60, 'totem-1'], [70, 'crystal']].forEach(([z, n]) => P(n, wx, 0, z, n === 'crystal' ? 2.4 : 2.6, 0, z));
+}
+
+/* ---------- rigged Meshy opponents (orcs, ogres, goblins) ---------- */
+const RIGS = {}, RIG_H = { orc: 2.35, ogre: 2.75, goblin: 1.75 };
+let rigsAsked = false;
+function loadRigs() {
+  if (rigsAsked) return; rigsAsked = true;
+  const load = n => B.LoadAssetContainerAsync ? B.LoadAssetContainerAsync('models/' + n + '.json', scene, { pluginExtension: '.gltf' })
+    : B.SceneLoader.LoadAssetContainerAsync('models/', n + '.json', scene, null, '.gltf');
+  ['orc', 'ogre', 'goblin'].forEach(n => load(n).then(c => { tunePBR(c.materials); RIGS[n] = c; }).catch(() => {}));
+}
+function rigFor(e) {
+  if (e.team === 'M' || vteam(e) !== 'W' || FL().look !== 'orc') return null;
+  const n = e.size >= 1.2 ? 'ogre' : ['WR', 'CB', 'S'].includes(e.role) ? 'goblin' : 'orc';
+  return RIGS[n] ? n : null;
+}
+function buildRig(name, num) {
+  const inst = RIGS[name].instantiateModelsToScene(n => n + '_' + num, false, { doNotInstantiate: true });
+  const root = new B.TransformNode('r' + num, scene), body = new B.TransformNode('rb', scene), top = inst.rootNodes[0];
+  body.parent = root; top.parent = body;
+  const { min, max } = top.getHierarchyBoundingVectors(true);
+  top.position.x -= (min.x + max.x) / 2; top.position.y -= min.y; top.position.z -= (min.z + max.z) / 2;
+  body.scaling.setAll(RIG_H[name] / Math.max(.1, max.y - min.y));
+  top.getChildMeshes().forEach(m => { m.alwaysSelectAsActiveMesh = true; m.isPickable = false; glow.addExcludedMesh(m); });
+  const anims = {};
+  inst.animationGroups.forEach(a => { a.stop(); anims[a.name.toLowerCase()] = a; });
+  return { root, body, kind: 'rig', anims, cur: null };
+}
+function rigPlay(v, name, loop, speed) {
+  const a = v.anims[name] || v.anims.idle; if (!a) return;
+  if (v.cur !== a) { if (v.cur) v.cur.stop(); a.start(loop, speed); v.cur = a; } else a.speedRatio = speed;
 }
 
 /* ---------- character models ---------- */
@@ -843,13 +917,14 @@ blobMaster.material = BLOB; blobMaster.isVisible = false;
 const isD = () => S.side === 'D';
 const RX = x => isD() ? MID - x : x - MID, RZ = y => isD() ? 100 - y : y, RH = h => isD() ? -Math.PI / 2 - h : Math.PI / 2 - h;
 const vteam = e => e.team === 'M' ? 'M' : isD() ? (e.team === 'B' ? 'W' : 'B') : e.team;
-const keyOf = e => vteam(e) + e.num;
+const keyOf = e => { const r = rigFor(e); return vteam(e) + e.num + (r ? ':' + r : ''); };
 function modelOf(e) {
   const key = keyOf(e);
   let v = models.get(key);
   if (!v) {
     const s = scaleOf(e), t = vteam(e);
-    v = GLB[key] ? buildGLB(key, s) : t === 'W' ? buildWraith(e.num, s) : t === 'M' ? buildMino(null, C.torch, s) : buildMino(e.num, C.bulls, s);
+    const rig = rigFor(e);
+    v = rig ? buildRig(rig, e.num) : GLB[key] ? buildGLB(key, s) : t === 'W' ? buildWraith(e.num, s) : t === 'M' ? buildMino(null, C.torch, s) : buildMino(e.num, C.bulls, s);
     v.blob = blobMaster.createInstance('b' + key); v.blob.scaling.setAll(s * 1.1);
     models.set(key, v);
   }
@@ -1036,12 +1111,21 @@ function syncVisuals(now, dt, rdt) {
       if (e.cut) roll = -Math.sign(e.cut.vx) * .35;
       if (e.spinT > 0) { e.spinT -= dt; yaw += Math.PI * 2 * (1 - e.spinT / .35); }
     }
+    if (e.jumpT > 0) { e.jumpT = Math.max(0, e.jumpT - dt); y += Math.sin((1 - e.jumpT / .5) * Math.PI) * 1.3; }
     v.root.position.set(RX(e.x), y, RZ(e.y));
     v.root.rotation.set(pitch, yaw, roll);
     v.blob.position.set(RX(e.x), .03, RZ(e.y));
     v.phase += dt * (2 + sp * 1.55);
     const amp = Math.min(.95, sp * .14), sw = Math.sin(v.phase) * amp;
-    if (v.kind === 'glb') {
+    if (v.kind === 'rig') {
+      if (!e.fly) { v.root.rotation.x = 0; v.root.position.y = 0; }
+      if (e.state === 'down' || e.fly) rigPlay(v, 'death', false, 1.3);
+      else if (e.dive) rigPlay(v, 'attack', false, 1.5);
+      else if (e.lock) rigPlay(v, 'attack', true, .45);
+      else if (sp > 4) rigPlay(v, 'run', true, clamp(sp / 6, .7, 1.6));
+      else if (sp > .4) rigPlay(v, 'walk', true, clamp(sp / 2, .6, 1.5));
+      else rigPlay(v, 'idle', true, 1);
+    } else if (v.kind === 'glb') {
       if (isUp && !e.dive) v.root.rotation.x = e.lock ? .15 : 0;
       glbAnimate(v, e, sp, isUp, dt);
     } else if (v.kind === 'mino') {
@@ -1158,7 +1242,7 @@ function tickPlay(P, dt) {
   if (P.update) P.update(dt);
   checkContact(P);
   if (P.endAt != null && P.t >= P.endAt) {
-    P.closed = true; P.endAt = null;
+    P.closed = true; P.endAt = null; clearCarryMode();
     ents.forEach(e => { if (e.state === 'up') { e.ai = settle; e.lock = false; e.dive = false; } });
     P.res(P.out);
   }
@@ -1199,7 +1283,7 @@ cv.addEventListener('pointermove', e => {
     if (mode && mode.onSwipe) mode.onSwipe(d);
   }
 });
-const lift = () => { if (!ptr) return; ptr = null; if (mode && mode.onUp) mode.onUp(); };
+const lift = () => { if (!ptr) return; const sw = ptr.sw; ptr = null; if (mode && mode.onUp) mode.onUp(sw); };
 cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
 addEventListener('keydown', e => {
   if (!mode) return;
@@ -1265,7 +1349,7 @@ function startCatchHUD(P, wr) {
 
 function startChargeHUD(P) {
   let pressing = false, tp = 0, lvl = 0;
-  const MAX = 1.3, SWEET = has('runeball') ? [.7, .95] : [.74, .92], PERF = [.8, .86];
+  const MAX = 1.3, SWEET = has('runeball') ? [.7, .95] : [.74, .92], PERF = has('emberball') ? [.77, .89] : [.8, .86];
   setTop('Deep spell', 'Hold to charge. Release in the gold before the rush gets home.');
   const release = () => {
     if (!pressing) return; pressing = false; chargeHeld = false;
@@ -1323,6 +1407,9 @@ function applySnap(P, q) {
     else if (q === 'miss') P.mods.push(['late off the ball', 2]);
     if (has('horns') && P.kind === 'run') P.mods.push(['your horns', -1]);
     if (has('boneplate')) P.mods.push(['bone plate', -2]);
+    if (has('warpaint')) P.mods.push(['war paint', -1]);
+    if (has('kingscrown')) P.mods.push(['crown', -1]);
+    if (FL().bonus) P.mods.push([`${FL().short} offense`, FL().bonus]);
     P.match = m; P.adv = Math.sign(adv);
     P.push = { perfect: -.9, good: -.3, auto: .3, miss: 1.3 }[q] + (P.kind === 'run' ? 0 : -1);
     return;
@@ -1332,6 +1419,9 @@ function applySnap(P, q) {
   else if (q === 'good') P.mods.push(['snap', 2]);
   else if (q === 'miss') P.mods.push(['late snap', -2]);
   if (S.fail >= 3) P.mods.push(['pity timer', 2]);
+  if (FL().bonus) P.mods.push([`${FL().short} defense`, -FL().bonus]);
+  if (has('kingscrown')) P.mods.push(['crown', 1]);
+  if (has('luckyhoof')) P.critMin = 19;
   P.match = m; P.adv = Math.sign(adv);
   P.push = { perfect: 1.3, good: .6, auto: .3, miss: -.9 }[q] + (P.kind === 'run' ? 0 : -1);
 }
@@ -1365,10 +1455,61 @@ function release(P, dn, ai) {
   const pr = (P.pairs || []).find(p => p.d.num === dn); if (!pr) return;
   pr.rel = true; pr.d.blocked = false; pr.d.lock = false; pr.o.lock = false; pr.d.ai = ai;
 }
+/* ---------- one-gesture moves while you carry the ball ---------- */
+const canMove = P => P && !P.closed && !P.out && !isD() && !P.auto && P.carrier && up(P.carrier) && !P.carrier.tackled && !P.prompt && P.t >= (P.moveCool || 0);
+function nearDefender(c, range) {
+  let best = null, bd = range;
+  for (const d of ents) if (d.team === 'W' && up(d) && !d.blocked && d.y > c.y - 1.2) { const dd = dist(d, c); if (dd < bd) { bd = dd; best = d; } }
+  return best;
+}
+function setCarryMode(P) {
+  if (P.auto || isD() || !P.carrier) return;
+  setTop('Ball in hand', 'Swipe ← → to cut · ↑ hurdle · ↓ dive · tap to stiff-arm');
+  mode = {
+    kind: 'carry',
+    onSwipe(d) { if (canMove(play)) carryMove(play, d); },
+    onUp(sw) { if (!sw && canMove(play)) carryMove(play, 'tap'); }
+  };
+}
+function clearCarryMode() { if (mode && mode.kind === 'carry') { mode = null; setTop('', ''); } }
+function carryMove(P, d) {
+  const c = P.carrier; P.moveCool = P.t + .35;
+  if (d === 'left' || d === 'right') { c.cut = { vx: (d === 'left' ? -1 : 1) * 7, t: .3 }; burstAt('dust', c.x, c.y, .2, 12); buzz(12); return; }
+  if (d === 'down') { diveForward(P, c); return; }
+  const a = nearDefender(c, d === 'up' ? 3.4 : 2.6);
+  if (d === 'up') {
+    c.jumpT = .5; buzz(15);
+    if (!a) { popAt(c.x, c.y, 'HOP', 'no one to hurdle', C.dim); return; }
+    const r = roll(P, `Hurdle over #${a.num}`, [['hurdle', 1]], 13 + 2 * P.contacts, c, 'HURDLED!', 'CLIPPED');
+    P.contacts++;
+    if (r.ok) { P.jukes++; whiff(P, a, c); burstAt('spark', c.x, c.y, 1.6, 26); P.cool = P.t + .55; if (P.active === a) nextTackler(P); addMom(6); }
+    else { c.jumpT = 0; tackle(P, c, a); }
+    return;
+  }
+  if (!a) return;
+  const r = roll(P, `Stiff-arm on #${a.num}`, [['stiff-arm', 0]], 12 + 2 * P.contacts, c, 'STIFF-ARMED!', 'WRAPPED UP');
+  P.contacts++;
+  if (r.ok) {
+    P.jukes++; a.ai = null; a.lock = false; a.vx = (a.x - c.x) * 3; a.vy = 3;
+    P.later.push([P.t + .15, () => knockDown(a, Math.atan2(a.vy, a.vx))]);
+    burstAt('spark', a.x, a.y, 1.2, 22); shake(.25); buzz(25); P.cool = P.t + .4; if (P.active === a) nextTackler(P); addMom(6);
+  } else tackle(P, c, a);
+}
+function diveForward(P, c) {
+  clearCarryMode();
+  c.tackled = true; c.dive = true; c.ai = null; c.vx = Math.cos(c.hd) * 7; c.vy = Math.sin(c.hd) * 7; buzz(20);
+  P.later.push([P.t + .28, () => { knockDown(c, c.hd); burstAt('dust', c.x, c.y, .3, 30); }]);
+  P.later.push([P.t + .7, () => {
+    if (c.y >= 100) { P.finish({ td: true, y: 100 - S.ball, kind: 'good', head: 'Touchdown!', text: `#${c.num} dives across the goal line!` }, .9); popAt(c.x, 101, 'TOUCHDOWN', '', C.torch); burstAt('gold', c.x, 101, 1.5, 300); return; }
+    const spot = clamp(Math.round(c.y), 1, 99), y = spot - S.ball;
+    P.finish({ y, x: c.x, kind: y > 0 ? 'good' : '', head: y > 0 ? `Gain of ${y}` : 'No gain', text: `#${c.num} dives forward and covers up the ball.` }, .5);
+  }]);
+}
 function startCarrier(P, e, lane) {
   P.carrier = e; ball.carrier = e; ball.fl = null; ball.spell = false;
   e.ai = carrierAI; e.lane = lane; e.top = e.role === 'RB' ? 7.2 : 7.6;
-  if (!isD()) { if (P.spell === 'haste') e.top += 1.4; if (has('cleats')) e.top += .8; } e.spd = Math.max(3, e.sp || 0); e.lock = false;
+  if (!isD()) { if (P.spell === 'haste') e.top += 1.4; if (has('cleats')) e.top += .8; }
+  setCarryMode(P); e.spd = Math.max(3, e.sp || 0); e.lock = false;
 }
 function carrierAI(e, dt) {
   const P = play; if (!P) return;
@@ -1411,7 +1552,7 @@ function roll(P, lbl, extra, dc, at, okText, noText) {
 }
 function checkContact(P) {
   const c = P.carrier;
-  if (!c || P.prompt || P.out || c.state !== 'up' || P.t < P.cool) return;
+  if (!c || P.prompt || P.out || c.state !== 'up' || c.tackled || P.t < P.cool) return;
   if (!up(P.active)) { nextTackler(P); return; }
   if (dist(c, P.active) < 1.7) contact(P);
 }
@@ -1421,7 +1562,7 @@ function contact(P) {
   if (P.auto) { resolveContact(P, 'auto', dir); return; }
   if (S.side === 'D') { tackleHUD(P, c, a, dir); return; }
   tsT = .05; ts = Math.min(ts, .25);
-  const t0 = performance.now(), win = 1000 + (P.spell === 'haste' ? 400 : 0) + (has('cleats') ? 200 : 0); let fired = false;
+  const t0 = performance.now(), win = 1000 + (P.spell === 'haste' ? 400 : 0) + (has('cleats') ? 200 : 0) + (has('ghostweave') ? 300 : 0); let fired = false;
   setTop('Juke!', dir === 'up' ? `Swipe up to spin past #${a.num}` : `Swipe ${dir} past #${a.num}`);
   const done = q => { if (fired) return; fired = true; mode = null; resolveContact(P, q, dir); };
   mode = {
@@ -1474,6 +1615,7 @@ function resolveContact(P, q, dir) {
     whiff(P, a, c);
     if (r.crit) { const n = ents.find(d => d !== a && d.team === 'W' && up(d) && !d.blocked && dist(d, c) < 7); if (n) whiff(P, n, c); }
     nextTackler(P);
+    setCarryMode(P);
   } else tackle(P, c, a);
 }
 function whiff(P, a, c) {
@@ -1482,6 +1624,7 @@ function whiff(P, a, c) {
   P.later.push([P.t + .3, () => knockDown(a, Math.atan2(a.vy, a.vx))]);
 }
 function tackle(P, c, a) {
+  clearCarryMode();
   c.tackled = true; c.ai = settle; buzz(70); a.dive = true;
   a.ai = e => steer(e, c.x, c.y, 8);
   P.later.push([P.t + .14, () => {
@@ -1503,7 +1646,7 @@ function fumble(P, c, a) {
     const rec = ents.find(d => d.team === 'W' && up(d) && d !== a) || a;
     if (up(rec)) rec.ai = e => steer(e, ball.x, ball.y, 7);
   }]);
-  P.finish({ to: true, y: 0, kind: 'bad', head: 'Fumble!', text: S.side === 'D' ? `Big hit by #${a.num}. The ball pops loose and the Bulls recover.` : `Natural 1. #${a.num} jars the ball loose and the Wraiths fall on it.` }, 1.4);
+  P.finish({ to: true, y: 0, kind: 'bad', head: 'Fumble!', text: S.side === 'D' ? `Big hit by #${a.num}. The ball pops loose and the Bulls recover.` : `Natural 1. #${a.num} jars the ball loose and the ${FL().short} fall on it.` }, 1.4);
 }
 function intercept(P, d, wr) {
   ball.fl = null; ball.spell = false; ball.carrier = d; d.blocked = false; d.lock = false;
@@ -1525,7 +1668,7 @@ function resolveCatch(P, wr, cov, dc, qmap, labels, nextNum) {
   const q = P.catchQ || 'miss', D = S.side === 'D';
   if (D) { qmap = { perfect: -4, good: -2, ok: 0, miss: 2, auto: 0 }; labels = { perfect: 'perfect breakup', good: 'tight coverage', ok: 'late break', miss: 'beaten', auto: 'auto' }; }
   const r = roll(P, P.kind === 'deep' ? 'Deep catch' : 'Catch', [[labels[q], qmap[q]]], dc, wr, 'CAUGHT', D ? 'BROKEN UP!' : 'NO CATCH');
-  P.critMin = 20;
+  P.critMin = !isD() && has('luckyhoof') ? 19 : 20;
   if (q === 'perfect') S.perf++;
   const pick6 = D ? (r.nat === 1 || (q === 'perfect' && !r.ok)) : ((r.nat === 1 && q !== 'perfect') || r.total <= dc - 9 || (q === 'over' && r.total <= dc - 4));
   if (pick6 && up(cov)) { intercept(P, cov, wr); return; }
@@ -1655,7 +1798,7 @@ function throwDeep(P, q) {
   const qb = get(7), wr = get(88), fl = 1.05;
   P.thrown = true; qb.throwT = .25;
   if (S.side === 'D') { P.catchQ = null; P.critMin = q === 'perfect' ? 18 : 20; P.mods.push([{ perfect: 'perfect spell', good: 'clean spell', long: 'long spell', weak: 'weak spell' }[q], { perfect: 3, good: 2, long: 0, weak: -2 }[q]]); }
-  else { P.catchQ = q; P.critMin = q === 'perfect' ? 17 : q === 'good' ? 18 : 20; }
+  else { P.catchQ = q; P.critMin = Math.min(q === 'perfect' ? 17 : q === 'good' ? 18 : 20, has('luckyhoof') ? 19 : 20); }
   let [tx, ty] = P.route(P.t + fl);
   if (q === 'weak') ty -= 5;
   if (q === 'over') { tx += pick([-1, 1]) * 2.4; ty += 1.5; }
@@ -1742,7 +1885,8 @@ function makeRally() {
 const panel = $('panel');
 function showPanel(html) { panel.innerHTML = html; panel.hidden = false; panel.scrollTop = 0; }
 function addPanel(html) { panel.insertAdjacentHTML('beforeend', html); panel.scrollTop = panel.scrollHeight; }
-panel.addEventListener('click', e => { if (e.target.closest('#next')) newDrive(S.side === 'O' ? 'D' : 'O', true); else if (e.target.closest('#newgame')) newDrive('O', false); else if (e.target.closest('#openShop2')) openShop(); });
+panel.addEventListener('click', e => { if (e.target.closest('#next')) nextDrive(); else if (e.target.closest('#newrun')) newDrive('O', false); else if (e.target.closest('#openChest')) openChest(); else if (e.target.closest('#openShop2')) openShop(); });
+$('chestGo').addEventListener('click', () => { $('chest').hidden = true; const f = S.run.floor; if (f < FLOORS.length) newFloor(f + 1); else newDrive('O', false); });
 const modsTxt = mods => mods.filter(m => m[1]).map(([n, v]) => ` ${v < 0 ? '−' : '+'} ${Math.abs(v)} ${n}`).join('');
 
 function showSummary(P, out) {
@@ -1752,29 +1896,29 @@ function showSummary(P, out) {
   const lines = P.rolls.map(r => `<li class="${(D ? !r.ok : r.ok) ? 'ok' : ''}"><b>${r.label}</b>: d20 ${r.nat}${advTxt(r)} + ${r.base[0]} ${r.base[1]}${modsTxt(r.mods)} = <b>${r.total}</b> vs ${r.dc}${r.crit ? ', crit' : ''}</li>`).join('');
   const snap = P.snapQ && P.snapQ !== 'auto' ? ` Snap: ${P.snapQ}.` : '';
   let call = '';
-  if (P.def && !D) call = `<p class="call">Wraiths called <b>${DEFS[P.def].name}</b>, ${DEFS[P.def].desc}. ${P.match > 0 ? 'Good matchup for you.' : P.match < 0 ? 'They read it.' : 'Even matchup.'}${P.adv > 0 ? ' Rolls at advantage.' : P.adv < 0 ? ' Rolls at disadvantage.' : ''}${snap}</p>`;
-  if (P.def && D) call = `<p class="call">You called <b>${DCARDS[P.def].name}</b>. The Wraiths ran <b>${OFFNAME[P.kind]}</b>. ${P.match < 0 ? 'Good call.' : P.match > 0 ? 'They had the right play for it.' : 'Even matchup.'}${P.adv < 0 ? ' Their rolls at disadvantage.' : P.adv > 0 ? ' Their rolls at advantage.' : ''}${snap}</p>`;
+  if (P.def && !D) call = `<p class="call">${FL().short} called <b>${DEFS[P.def].name}</b>, ${DEFS[P.def].desc}. ${P.match > 0 ? 'Good matchup for you.' : P.match < 0 ? 'They read it.' : 'Even matchup.'}${P.adv > 0 ? ' Rolls at advantage.' : P.adv < 0 ? ' Rolls at disadvantage.' : ''}${snap}</p>`;
+  if (P.def && D) call = `<p class="call">You called <b>${DCARDS[P.def].name}</b>. The ${FL().short} ran <b>${OFFNAME[P.kind]}</b>. ${P.match < 0 ? 'Good call.' : P.match > 0 ? 'They had the right play for it.' : 'Even matchup.'}${P.adv < 0 ? ' Their rolls at disadvantage.' : P.adv > 0 ? ' Their rolls at advantage.' : ''}${snap}</p>`;
   showPanel(`<h2 class="head ${out.kind || ''}">${out.head}</h2><p class="flavor">${out.text}</p>${call}${lines ? `<ul class="rolls">${lines}</ul>` : ''}`);
 }
 function flipOut(out) {
   if (!isD()) return out;
   const o = Object.assign({}, out);
   if (out.fg != null) { o.kind = out.fg ? 'bad' : 'good'; o.head = out.fg ? 'Their kick is good' : 'Kick is no good'; return o; }
-  if (out.td) { o.kind = 'bad'; o.head = 'Wraiths touchdown'; return o; }
+  if (out.td) { o.kind = 'bad'; o.head = `${FL().short} touchdown`; return o; }
   if (out.to) { o.kind = 'good'; o.head = out.head === 'Fumble!' ? 'Forced fumble!' : 'Interception!'; return o; }
   if (/^Sacked/.test(out.head)) { o.kind = 'good'; o.head = `Sack! Loss of ${-out.y}`; o.text = 'Your rush gets home before the spell goes off.'; return o; }
-  if (out.y > 0) { o.kind = 'bad'; o.head = `Wraiths gain ${out.y}`; }
+  if (out.y > 0) { o.kind = 'bad'; o.head = `${FL().short} gain ${out.y}`; }
   else if (out.y < 0) { o.kind = 'good'; o.head = `Stuffed! Loss of ${-out.y}`; }
   else { o.kind = 'good'; o.head = out.head === 'Incomplete' ? 'Incomplete' : 'No gain'; }
   return o;
 }
 function introD() {
   setTop('', '');
-  showPanel(`<h2 class="head">Wraiths ball, their 25</h2>
+  showPanel(`<h2 class="head">${FL().short} ball, their 25</h2>
     <p class="flavor">Now you\u2019re on defense. Pick a call, jump the snap, then make the stop.</p>
     <ul class="how">
       <li><b>Stampede</b> stops the run. <b>Labyrinth</b> covers deep. <b>Horn Blitz</b> sends extra rushers.</li>
-      <li><b>Tackle</b> When a Wraith reaches your defender, tap as the red ring closes. Perfect timing can force a fumble.</li>
+      <li><b>Tackle</b> When their ball carrier reaches your defender, tap as the red ring closes. Perfect timing can force a fumble.</li>
       <li><b>Break it up</b> Tap as the ball arrives to knock it away. A perfect tap can pick it off.</li>
       <li><b>Rush</b> On a deep pass, tap fast to reach the QB before he throws.</li>
     </ul>`);
@@ -1807,7 +1951,7 @@ async function runDefense(def) {
   const P = (type === 'run' ? makeRun : type === 'short' ? makeShort : makeDeep)(def);
   applySnap(P, q); applySpell(P, spell);
   play = P; P.begin();
-  popAt(S.bx, S.ball - 2, OFFNAME[type].toUpperCase(), 'Wraiths play', C.wraith);
+  popAt(S.bx, S.ball - 2, OFFNAME[type].toUpperCase(), `${FL().short} play`, C.wraith);
   const out = await P.done;
   showSummary(P, flipOut(out));
   if (out.x != null) S.bx = clamp(out.x, HASH_L, HASH_R);
@@ -1816,7 +1960,8 @@ async function runDefense(def) {
   apply(out, false);
 }
 function newDrive(side, keep) {
-  S = Object.assign(fresh(), keep ? { score: S.score, mom: S.mom, mana: S.mana } : {}, { side });
+  S = Object.assign(fresh(), keep ? { score: S.score, mom: S.mom, mana: S.mana, run: S.run } : {}, { side });
+  if (!keep) applyFloorLook();
   if (S.mana == null) S.mana = maxMana();
   fx.length = 0; pops.length = 0; play = null; mode = null; tsT = 1; chargeHeld = false;
   setup('run', 'zone', true); cam.x = S.bx; cam.y = S.ball + (side === 'D' ? 4 : -3);
@@ -1826,9 +1971,9 @@ function newDrive(side, keep) {
 function intro() {
   setTop('', '');
   showPanel(`<h2 class="head">Bulls ball, own 25</h2>
-    <p class="flavor">Score on this drive in the Wraiths’ dungeon arena. Pick a play, tap the snap, then play it live.</p>
+    <p class="flavor">Floor ${S.run.floor}: ${FL().name} against the ${FL().opp}. Win the match, two drives each, to open a chest and go deeper.${FL().bonus ? ` They roll ${FL().bonus} higher on everything.` : ''}</p>
     <ul class="how">
-      <li><b>Bull Run</b> When a Wraith closes in, the action slows. Swipe the arrow to juke him.</li>
+      <li><b>Bull Run</b> With the ball, swipe left or right to cut, up to hurdle, down to dive, or tap to stiff-arm. If a defender gets to you, the action slows: swipe the arrow to juke.</li>
       <li><b>Quick Slant</b> Tap as the ball reaches your receiver and the rings line up.</li>
       <li><b>Deep Spell</b> Hold to charge, release in the gold before the rusher reaches your QB.</li>
     </ul>
@@ -1853,7 +1998,7 @@ function applySpell(P, k) {
   if (k === 'frost') P.frost = true;
   castFX(k); popAt(S.bx, S.ball + (isD() ? 4 : -5), SPELLS[k].name.toUpperCase(), '', SPELLS[k].color);
 }
-function regen(perf0) { S.mana = Math.min(maxMana(), S.mana + 12 + 4 * (S.perf - perf0)); }
+function regen(perf0) { S.mana = Math.min(maxMana(), S.mana + 12 + (has('bonecharm') ? 6 : 0) + 4 * (S.perf - perf0)); }
 function castPre(k) {
   if (S.phase !== 'choose' || S.over) return;
   const sp = SPELLS[k];
@@ -1910,8 +2055,8 @@ async function runPlay(type) {
   setup(type, def); await lineUp();
   const fr = S.fright; S.fright = false;
   let q = 'auto';
-  if (!auto) q = (await meter({ title: fr ? 'Snap, frightened' : 'Snap',
-    hint: fr ? 'Nobody’s fright shrank the green. Tap inside it.' : 'Tap when the needle hits the green',
+  if (!auto) q = (await meter({ title: fr ? 'Snap, rattled' : 'Snap',
+    hint: fr ? 'Their rally shrank the green. Tap inside it.' : 'Tap when the needle hits the green',
     green: fr ? .12 : .22, perfect: fr ? .035 : .06, speed: 1.05 })).q;
   setTop('', '');
   const P = (type === 'run' ? makeRun : type === 'short' ? makeShort : makeDeep)(def);
@@ -1939,13 +2084,13 @@ function apply(out, noMom) {
   const notes = [];
   if (out.y >= S.toGo) {
     S.down = 1; S.toGo = Math.min(10, 100 - S.ball);
-    if (D) notes.push('<p class="note wraith">First down, Wraiths.</p>');
+    if (D) notes.push(`<p class="note wraith">First down, ${FL().short}.</p>`);
     else {
       if (!noMom) addMom(8);
       notes.push('<p class="note good">First down! +10 gold</p>'); S.earn += 10;
       if (!S.wraithRally) {
         S.wraithRally = true; S.fright = true;
-        notes.push('<p class="note wraith">Nobody, the Wraiths\u2019 headless horseman, rides the sideline. Fright: your next snap window shrinks.</p>');
+        notes.push(`<p class="note wraith">${FL().rally}</p>`);
       }
     }
   } else {
@@ -1958,24 +2103,78 @@ function apply(out, noMom) {
   S.phase = 'choose'; render();
 }
 
-const ENDS = {
-  O: { td: ['Touchdown!', 'Seven points for the Labyrinth Bulls.'], fg: ['Three points', 'The Bulls settle for a field goal.'], fgmiss: ['Missed kick', 'No points on the drive.'], to: ['Turnover', 'The Wraiths take over.'], downs: ['Turnover on downs', 'Stopped on fourth down.'] },
-  D: { td: ['Wraiths score', 'Seven points for Hollowmere.'], fg: ['Wraiths field goal', 'Three points for Hollowmere.'], fgmiss: ['Kick is no good', 'Your defense holds them scoreless.'], to: ['Takeaway!', 'The Bulls defense wins the ball back.'], downs: ['Defensive stand!', 'Stopped on fourth down.'] }
-};
+const endText = (side, kind) => ({
+  O: { td: ['Touchdown!', 'Seven points for the Labyrinth Bulls.'], fg: ['Three points', 'The Bulls settle for a field goal.'], fgmiss: ['Missed kick', 'No points on the drive.'], to: ['Turnover', `The ${FL().short} take over.`], downs: ['Turnover on downs', 'Stopped on fourth down.'] },
+  D: { td: [`${FL().short} score`, `Seven points for the ${FL().short}.`], fg: [`${FL().short} field goal`, `Three points for the ${FL().short}.`], fgmiss: ['Kick is no good', 'Your defense holds them scoreless.'], to: ['Takeaway!', 'The Bulls defense wins the ball back.'], downs: ['Defensive stand!', 'Stopped on fourth down.'] }
+}[side][kind] || ['Drive over', '']);
 const WIN = { O: ['td', 'fg'], D: ['to', 'downs', 'fgmiss'] };
-function endHTML(kind) {
-  const side = S.side, [h, t] = ENDS[side][kind] || ENDS[side].to, win = WIN[side].includes(kind);
-  return `<div class="end ${win ? 'win' : 'loss'}"><h3>${h}</h3>` +
-    `<p>${t} ${S.plays} play${S.plays === 1 ? '' : 's'}, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>` +
-    `<p class="small">Score: Bulls ${S.score.B}, Wraiths ${S.score.W}.</p>` +
-    `<p class="loot"><i class="coin"></i>+${S.earn} gold \u00b7 ${TEAM.gold} in your purse</p>` +
-    `<div class="btns"><button class="again" id="next" type="button">${side === 'O' ? 'Play defense' : 'Back to offense'}</button><button class="again alt" id="openShop2" type="button">Shop</button><button class="again alt" id="newgame" type="button">New game</button></div></div>`;
+function matchState() {
+  const d = S.run.drive, b = S.score.B, w = S.score.W;
+  if (d < 4) return 'next';
+  if (d === 4 && b === w) return 'ot';
+  return b > w ? 'won' : 'lost';
 }
+function endHTML(kind) {
+  const side = S.side, [h, t] = endText(side, kind), win = WIN[side].includes(kind), ms = S.ms || matchState();
+  const score = `Bulls ${S.score.B}, ${FL().short} ${S.score.W}`;
+  const match = ms === 'won' ? `<p class="note good">Match won, ${score}. A chest waits at midfield.</p>`
+    : ms === 'lost' ? `<p class="note bad">Match lost, ${score}. Your run ends on floor ${S.run.floor}.</p>`
+    : ms === 'ot' ? `<p class="note">Tied, ${score}. Overtime: score on one drive to win.</p>`
+    : `<p class="small">${score} · drive ${S.run.drive} of 4 done</p>`;
+  const btn = ms === 'next' ? `<button class="again" id="next" type="button">${side === 'O' ? 'Play defense' : 'Back to offense'}</button>`
+    : ms === 'ot' ? '<button class="again" id="next" type="button">Overtime drive</button>'
+    : ms === 'won' ? '<button class="again" id="openChest" type="button">Open the chest</button>'
+    : '<button class="again" id="newrun" type="button">Start a new run</button>';
+  return `<div class="end ${win ? 'win' : 'loss'}"><h3>${h}</h3>` +
+    `<p>${t} ${S.plays} play${S.plays === 1 ? '' : 's'}, ${S.yards} yards, ${S.perf} perfect input${S.perf === 1 ? '' : 's'}.</p>${match}` +
+    `<p class="loot"><i class="coin"></i>+${S.earn} gold · ${TEAM.gold} in your purse</p>` +
+    `<div class="btns">${btn}<button class="again alt" id="openShop2" type="button">Shop</button></div></div>`;
+}
+function rollLoot(floor) {
+  if (floor === 3 && !has('kingscrown')) return ITEMS.find(i => i.id === 'kingscrown');
+  const pool = ITEMS.filter(i => !has(i.id)); if (!pool.length) return null;
+  const w = floor === 1 ? { rare: 70, epic: 25, legendary: 5 } : floor === 2 ? { rare: 40, epic: 48, legendary: 12 } : { rare: 10, epic: 55, legendary: 35 };
+  let t = Math.random() * (w.rare + w.epic + w.legendary), r = 'legendary';
+  for (const k of ['rare', 'epic', 'legendary']) { t -= w[k]; if (t <= 0) { r = k; break; } }
+  const c = pool.filter(i => i.rarity === r);
+  return pick(c.length ? c : pool);
+}
+function openChest() {
+  if (S.chestOpened) return;
+  const f = S.run.floor, item = rollLoot(f), gold = f * 40 + (item ? 0 : 150);
+  S.chestOpened = true;
+  if (item) TEAM.owned[item.id] = true;
+  TEAM.gold += gold; TEAM.best = Math.max(TEAM.best || 0, f); saveTeam();
+  const c = item ? RARITY[item.rarity] : C.gold;
+  $('chestTitle').textContent = `${FLOORS[f - 1].name} cleared`;
+  $('chestSub').textContent = `You beat the ${FLOORS[f - 1].opp} ${S.score.B}–${S.score.W}.`;
+  $('chestGold').textContent = TEAM.gold;
+  $('chestBody').innerHTML = `<div class="chest-art"><div class="gem" style="--c:${c}"></div></div>` +
+    (item ? `<p class="loot-tag" style="--c:${c}">${item.rarity} ${item.kind === 'Loot' ? 'treasure' : item.kind.toLowerCase()}</p><h3 class="loot-name" style="--c:${c}">${item.name}</h3><p class="loot-desc">${item.desc}</p>`
+      : `<h3 class="loot-name" style="--c:${c}">A heap of gold</h3><p class="loot-desc">You already own everything this chest could hold.</p>`) +
+    `<p class="loot"><i class="coin"></i>+${gold} gold</p>`;
+  $('chestGo').textContent = f < FLOORS.length ? `Descend to floor ${f + 1}` : 'Dungeon cleared! Start a new run';
+  $('chest').hidden = false; $('chestGo').focus();
+  burstAt('gold', S.bx, S.ball, 1.5, 320); buzz([30, 50, 30, 50, 80]);
+  if (f === 1) loadRigs();
+  render();
+}
+function applyFloorLook() {
+  const c = col(S.run.floor === 3 ? '#ff4a3d' : C.wraith); WEYE.emissiveColor = c; WEYE.diffuseColor = c;
+  redrawField(); if (FL().look === 'orc') loadRigs();
+}
+function newFloor(floor) {
+  S = Object.assign(fresh(), { mana: S.mana, mom: S.mom, run: { floor, drive: 1 } });
+  fx.length = 0; pops.length = 0; play = null; mode = null; tsT = 1; chargeHeld = false;
+  applyFloorLook(); setup('run', 'zone', true); cam.x = S.bx; cam.y = S.ball - 3; render(); intro();
+}
+function nextDrive() { S.run.drive++; newDrive(S.run.drive % 2 ? 'O' : 'D', true); }
 function endDrive(kind) {
   S.over = true; S.phase = 'over'; S.result = kind;
   const pts = kind === 'td' ? 7 : kind === 'fg' ? 3 : 0;
   if (pts) S.score[S.side === 'O' ? 'B' : 'W'] += pts;
   if (S.side === 'D' && kind === 'to') addMom(25);
+  S.ms = matchState();
   S.earn += ({ O: { td: 60, fg: 25 }, D: { to: 50, downs: 40, fgmiss: 20 } }[S.side][kind] || 0) + 3 * S.perf;
   TEAM.gold += S.earn; saveTeam();
   render(); addPanel(endHTML(kind));
@@ -1989,12 +2188,13 @@ function buildTicks() {
   for (let y = 10; y <= 90; y += 10) h += `<i class="tick" style="left:${pct(y)}"><em>${y <= 50 ? y : 100 - y}</em></i>`;
   $('ticks').innerHTML = h;
 }
-const spot = b => b >= 100 ? 'End zone' : b === 50 ? 'Midfield' : isD() ? (b < 50 ? `Wraiths ${b}` : `Bulls ${100 - b}`) : (b < 50 ? `Own ${b}` : `Wraiths ${100 - b}`);
+const spot = b => b >= 100 ? 'End zone' : b === 50 ? 'Midfield' : isD() ? (b < 50 ? `Their ${b}` : `Bulls ${100 - b}`) : (b < 50 ? `Own ${b}` : `Their ${100 - b}`);
 const DCARDS = { stop: { name: 'Stampede', sub: 'Stop the run' }, zone: { name: 'Labyrinth', sub: 'Cover deep' }, blitz: { name: 'Horn Blitz', sub: 'Rush the QB' } };
 const OFFNAME = { run: 'Ghost Run', short: 'Shade Slant', deep: 'Curse Bomb' };
 function render() {
   const D = isD(), fp = y => D ? 100 - y : y;
-  $('scB').textContent = S.score.B; $('scW').textContent = S.score.W;
+  $('scB').textContent = S.score.B; $('scW').textContent = S.score.W; $('oppName').textContent = FL().opp;
+  $('runTxt').textContent = `Floor ${S.run.floor} \u00b7 ${S.run.drive > 4 ? 'Overtime' : `Drive ${S.run.drive} of 4`}`;
   $('downTxt').textContent = S.over ? 'Final' : `${ORD[S.down]} & ${S.ball + S.toGo >= 100 ? 'Goal' : S.toGo}`;
   $('spotTxt').textContent = spot(S.ball);
   document.querySelector('.matchup .bulls').classList.toggle('poss', !D); document.querySelector('.matchup .wraiths').classList.toggle('poss', D);
@@ -2028,9 +2228,11 @@ $('cards').addEventListener('click', e => { const b = e.target.closest('button[d
 $('spells').addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (b && !b.disabled) castPre(b.dataset.s); });
 function renderShop(msg) {
   $('shopGold').textContent = TEAM.gold;
-  $('shopList').innerHTML = [['Gear', 'Gear'], ['Spell', 'Spell tomes'], ['Relic', 'Relics']].map(([kind, title]) =>
+  $('shopList').innerHTML = [['Gear', 'Gear'], ['Spell', 'Spell tomes'], ['Relic', 'Relics'], ['Loot', 'Dungeon treasures']].map(([kind, title]) =>
     `<section class="shop-group"><h3>${title}</h3><div class="items">${ITEMS.filter(i => i.kind === kind).map(i => {
       const own = has(i.id);
+      if (i.kind === 'Loot') return own ? `<article class="item" style="--c:${RARITY[i.rarity]}"><h4>${i.name}</h4><span class="tag">${i.rarity} \u00b7 found</span><p>${i.desc}</p></article>`
+        : `<article class="item locked" style="--c:${RARITY[i.rarity]}"><h4>Unknown treasure</h4><span class="tag">${i.rarity}</span><p>Found only in dungeon chests.</p></article>`;
       return `<article class="item${own ? ' owned' : ''}" style="--c:${RARITY[i.rarity]}"><h4>${i.name}</h4><span class="tag">${i.rarity}</span><p>${i.desc}</p>` +
         `<button class="buy" type="button" data-buy="${i.id}"${own || TEAM.gold < i.cost ? ' disabled' : ''} aria-label="${own ? 'Owned' : `Buy ${i.name} for ${i.cost} gold`}">${own ? 'Owned' : `<i class="coin"></i>${i.cost}`}</button></article>`;
     }).join('')}</div></section>`).join('');
@@ -2057,6 +2259,7 @@ async function start(data) {
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch (_) {}
   buildArena();
   loadProps();
+  applyFloorLook();
   setup('run', 'zone', true);
   cam.x = S.bx; cam.y = S.ball + (isD() ? 4 : -3);
   new ResizeObserver(resize).observe(stage); resize();
