@@ -1,6 +1,8 @@
-# Schedule C Ledger
+# Receipt Jar (Schedule C expenses)
 
-Private expense tracker for three Schedule C businesses: anesthesia, mahjong, dōTERRA.
+Private, cute expense tracker for three Schedule C businesses: anesthesia, mahjong, dōTERRA.
+The owner dislikes spreadsheets: keep the app friendly and never show spreadsheet-style views.
+Accountant files (Excel workbook + receipt PDF) are made by Claude in chat on request, not in the app.
 
 - App: https://claude.ai/artifact/XSkeUmL1kPJaEPpdpwRVse (claude.ai Artifact, private to the owner)
 - Source: `index.html` (republish to the same URL with the Artifact tool, passing `url`)

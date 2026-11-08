@@ -1,197 +1,256 @@
-<title>Schedule C Ledger</title>
+<title>Receipt Jar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
-/* Layout: a phone-first ledger. Sticky header with year + business filter, year totals per business,
-   then entries grouped by month or a Schedule C line worksheet. Floating "Add receipt" button. */
+/* Layout: a phone-first "jar" of receipts. Big friendly year total, three business cards that double as filters,
+   a pill tab bar, then soft receipt cards by month or a "where it went" category view. Floating pink Add button. */
 :root {
-  --bg: #edf1f0;
-  --surface: #ffffff;
-  --sunk: #e2e8e7;
-  --ink: #16242a;
-  --muted: #5a6a70;
-  --line: #d1dad9;
-  --accent: #1d5a70;
+  --bg: #fdf5f8;
+  --dot: #f6e3eb;
+  --card: #ffffff;
+  --sunk: #faeef3;
+  --ink: #3d2b42;
+  --muted: #8b7491;
+  --line: #f1dde6;
+  --accent: #e8679b;
+  --accent-soft: #fde3ee;
   --accent-ink: #ffffff;
-  --anes: #2c68a8;
-  --anes-soft: #e1ebf6;
-  --mj: #b0412c;
-  --mj-soft: #f6e4e0;
-  --dt: #6b5799;
-  --dt-soft: #ebe6f4;
-  --warn: #9a6512;
-  --warn-soft: #f8edd8;
-  --bad: #b3261e;
-  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
-  --body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --anes: #3f86d4;
+  --anes-soft: #e2effc;
+  --mj: #2f9e70;
+  --mj-soft: #ddf4e9;
+  --dt: #8466cc;
+  --dt-soft: #eee8fb;
+  --warn: #b8700c;
+  --warn-soft: #fff0d6;
+  --bad: #d23f5a;
+  --shadow: 0 6px 18px rgba(150, 70, 110, 0.10);
+  --display: "Fredoka", "Avenir Next Rounded", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1618; --surface: #162125; --sunk: #1d2a2f; --ink: #e2ebeb; --muted: #94a6a9; --line: #2a3a3f;
-    --accent: #6fb4cb; --accent-ink: #0b1517;
-    --anes: #7fb0e6; --anes-soft: #1b2b3d; --mj: #ec8a75; --mj-soft: #3a211c; --dt: #b4a2e0; --dt-soft: #2a2440;
-    --warn: #e6b45c; --warn-soft: #3a2e17; --bad: #f2867e;
+    --bg: #1d1621; --dot: #272030; --card: #2a2131; --sunk: #33293b; --ink: #f7e9f1; --muted: #b9a2c0; --line: #3c3045;
+    --accent: #ff8db8; --accent-soft: #4a2638; --accent-ink: #2a1320;
+    --anes: #8cc0f3; --anes-soft: #1f2e42; --mj: #72d4a8; --mj-soft: #183a2c; --dt: #bba5f2; --dt-soft: #2f2648;
+    --warn: #ffc46b; --warn-soft: #3d2f1c; --bad: #ff8399;
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e1618; --surface: #162125; --sunk: #1d2a2f; --ink: #e2ebeb; --muted: #94a6a9; --line: #2a3a3f;
-  --accent: #6fb4cb; --accent-ink: #0b1517;
-  --anes: #7fb0e6; --anes-soft: #1b2b3d; --mj: #ec8a75; --mj-soft: #3a211c; --dt: #b4a2e0; --dt-soft: #2a2440;
-  --warn: #e6b45c; --warn-soft: #3a2e17; --bad: #f2867e;
+  --bg: #1d1621; --dot: #272030; --card: #2a2131; --sunk: #33293b; --ink: #f7e9f1; --muted: #b9a2c0; --line: #3c3045;
+  --accent: #ff8db8; --accent-soft: #4a2638; --accent-ink: #2a1320;
+  --anes: #8cc0f3; --anes-soft: #1f2e42; --mj: #72d4a8; --mj-soft: #183a2c; --dt: #bba5f2; --dt-soft: #2f2648;
+  --warn: #ffc46b; --warn-soft: #3d2f1c; --bad: #ff8399;
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dot) 1.6px, transparent 1.7px);
+  background-size: 22px 22px;
+  color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+}
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 120px; }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 130px; display: grid; gap: 18px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.n { font-variant-numeric: tabular-nums; }
+svg { flex: none; }
 
-header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 10px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
-.titlerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-h1 { font-family: var(--display); font-weight: 700; font-size: 1.55rem; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
-h1 small { font-family: var(--mono); font-weight: 400; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; margin-left: 6px; vertical-align: middle; }
-.tools { display: flex; gap: 8px; align-items: center; }
-select.year, .ghost { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
-.ghost:hover { border-color: var(--accent); }
-.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; white-space: nowrap; font-weight: 500; font-size: 0.9rem; }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand svg { width: 40px; height: 40px; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 1.7rem; margin: 0; letter-spacing: -0.01em; line-height: 1.1; }
+.brand small { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+select.year { flex: none; width: auto; appearance: none; background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 6px 30px 6px 14px; font-family: var(--display); font-weight: 500; font-size: 1rem; box-shadow: var(--shadow);
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 55%, calc(100% - 11px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
 
-.status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 0.9rem; }
+.status { padding: 12px 14px; border-radius: 16px; background: var(--warn-soft); color: var(--warn); font-weight: 600; font-size: 0.9rem; }
 
-.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
-.tot { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; text-align: left; position: relative; overflow: hidden; }
-.tot::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--c); }
-.tot .lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
-.tot .amt { font-family: var(--mono); font-size: 1.25rem; font-weight: 500; font-variant-numeric: tabular-nums; }
-.tot .cnt { font-size: 0.8rem; color: var(--muted); }
-.tot[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
-@media (max-width: 520px) { .tot .amt { font-size: 1.02rem; } .tot { padding: 10px 10px 10px 12px; } }
+.hero { background: var(--card); border-radius: 24px; padding: 20px 22px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; gap: 14px; position: relative; overflow: hidden; }
+.hero .k { font-weight: 700; color: var(--muted); font-size: 0.85rem; }
+.hero .big { font-family: var(--display); font-weight: 600; font-size: 2.4rem; line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.hero .sub { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+.hero svg { width: 74px; height: 74px; }
+@media (max-width: 420px) { .hero .big { font-size: 2rem; } .hero svg { width: 56px; height: 56px; } }
 
-.tabs { display: flex; gap: 18px; margin-top: 20px; border-bottom: 1px solid var(--line); }
-.tab { background: none; border: 0; padding: 8px 0; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.tab[aria-selected="true"] { color: var(--ink); border-color: var(--accent); }
-.tab .badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--warn-soft); color: var(--warn); font-size: 0.75rem; margin-left: 4px; text-align: center; }
+.bizcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.biz { border: 2px solid transparent; background: var(--card); border-radius: 20px; padding: 14px 10px 12px; display: grid; justify-items: center; gap: 4px; box-shadow: var(--shadow); text-align: center; }
+.biz .ic { width: 44px; height: 44px; border-radius: 50%; background: var(--cs); color: var(--c); display: grid; place-items: center; }
+.biz .ic svg { width: 24px; height: 24px; }
+.biz .nm { font-weight: 800; font-size: 0.85rem; }
+.biz .am { font-family: var(--display); font-weight: 500; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.biz .ct { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.biz[aria-pressed="true"] { border-color: var(--c); background: var(--cs); }
+@media (max-width: 420px) { .biz .am { font-size: 0.98rem; } }
 
-.month { margin-top: 18px; }
-.month h2 { display: flex; justify-content: space-between; font-family: var(--display); font-size: 1rem; font-weight: 600; margin: 0 0 6px; color: var(--muted); }
-.list { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
-.row:first-child { border-top: 0; }
-.row:hover { background: var(--sunk); }
-.thumb { width: 44px; height: 44px; border-radius: 6px; background: var(--sunk); object-fit: cover; display: grid; place-items: center; color: var(--muted); font-size: 0.65rem; font-family: var(--mono); }
-.main { min-width: 0; display: grid; gap: 3px; }
-.vendor { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.8rem; color: var(--muted); }
-.tag { border-radius: 4px; padding: 1px 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; }
-.tag.anesthesia { background: var(--anes-soft); color: var(--anes); }
-.tag.mahjong { background: var(--mj-soft); color: var(--mj); }
-.tag.doterra { background: var(--dt-soft); color: var(--dt); }
-.tag.review { background: var(--warn-soft); color: var(--warn); }
-.ln { font-family: var(--mono); font-size: 0.75rem; }
-.amtcol { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; text-align: right; }
+.tabs { display: flex; gap: 4px; background: var(--card); padding: 5px; border-radius: 999px; box-shadow: var(--shadow); }
+.tab { flex: 1; border: 0; background: none; border-radius: 999px; padding: 9px 6px; font-weight: 800; font-size: 0.88rem; color: var(--muted); white-space: nowrap; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 400px) { .tab { font-size: 0.8rem; padding-inline: 4px; } }
+.badge { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 0.72rem; margin-left: 4px; }
 
-.empty { margin-top: 24px; padding: 28px 20px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; color: var(--muted); display: grid; gap: 6px; }
-.empty strong { color: var(--ink); font-family: var(--display); font-size: 1.1rem; }
+.month { display: grid; gap: 8px; }
+.month h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-family: var(--display); font-weight: 500; font-size: 1.05rem; }
+.month h2 span:last-child { color: var(--muted); font-family: var(--body); font-weight: 700; font-size: 0.85rem; }
+.rcpt { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px 10px 10px; width: 100%; border: 0; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); text-align: left; }
+.rcpt:hover { background: var(--sunk); }
+.thumb { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; background: var(--sunk); display: grid; place-items: center; color: var(--muted); }
+.thumb svg { width: 22px; height: 22px; }
+.mid { min-width: 0; display: grid; gap: 4px; }
+.vendor { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.pill { border-radius: 999px; padding: 1px 9px; font-weight: 700; font-size: 0.72rem; background: var(--sunk); color: var(--muted); }
+.pill.anesthesia { background: var(--anes-soft); color: var(--anes); }
+.pill.mahjong { background: var(--mj-soft); color: var(--mj); }
+.pill.doterra { background: var(--dt-soft); color: var(--dt); }
+.pill.review { background: var(--warn-soft); color: var(--warn); }
+.memo { font-size: 0.8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amt { font-family: var(--display); font-weight: 500; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
 
-.sheet { margin-top: 18px; display: grid; gap: 18px; }
-.sheet section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.sheet h3 { margin: 0; padding: 10px 12px; font-family: var(--display); font-size: 1.02rem; display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); }
-.sheet h3 .who { display: flex; align-items: center; gap: 8px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
-.tablewrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-td, th { padding: 7px 12px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
-tr:first-child td { border-top: 0; }
-td.l { font-family: var(--mono); color: var(--muted); width: 3.2em; white-space: nowrap; }
-td.r { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-td .note { display: block; font-size: 0.75rem; color: var(--muted); }
-tr.sum td { font-weight: 600; background: var(--sunk); }
-tr.part td { background: var(--sunk); color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.empty { background: var(--card); border-radius: 24px; padding: 30px 22px; text-align: center; display: grid; justify-items: center; gap: 8px; box-shadow: var(--shadow); }
+.empty svg { width: 84px; height: 84px; }
+.empty strong { font-family: var(--display); font-weight: 600; font-size: 1.2rem; text-wrap: balance; }
+.empty span { color: var(--muted); max-width: 34ch; }
 
-.fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 6; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 13px 20px; font-weight: 600; box-shadow: 0 6px 18px rgba(10, 30, 40, 0.25); display: flex; gap: 8px; align-items: center; }
-.fab svg { width: 18px; height: 18px; }
+.where { display: grid; gap: 14px; }
+.where section { background: var(--card); border-radius: 22px; padding: 16px 16px 12px; box-shadow: var(--shadow); display: grid; gap: 10px; }
+.where h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+.where h3 .who { display: flex; align-items: center; gap: 8px; }
+.where h3 .ic { width: 32px; height: 32px; border-radius: 50%; background: var(--cs); color: var(--c); display: grid; place-items: center; }
+.where h3 .ic svg { width: 18px; height: 18px; }
+.where h3 .n { font-weight: 500; }
+.cat { display: grid; gap: 4px; }
+.cat .top { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; font-size: 0.92rem; }
+.cat .top .n { font-family: var(--display); font-weight: 500; }
+.bar { height: 10px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 999px; background: var(--c); }
+.cat .note { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.nothing { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
 
-dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
-dialog::backdrop { background: rgba(8, 18, 22, 0.55); }
-.dlg { display: grid; gap: 14px; padding: 18px; }
-.dlg h2 { margin: 0; font-family: var(--display); font-size: 1.25rem; }
+.taxnote { display: flex; gap: 12px; align-items: center; background: var(--accent-soft); border-radius: 20px; padding: 14px 16px; }
+.taxnote svg { width: 36px; height: 36px; }
+.taxnote p { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.taxnote b { font-weight: 800; }
+
+.fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 6; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 14px 24px; font-family: var(--display); font-weight: 600; font-size: 1.05rem; box-shadow: 0 10px 24px rgba(232, 103, 155, 0.40); display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+.fab svg { width: 22px; height: 22px; }
+
+dialog { border: 0; border-radius: 26px; background: var(--card); color: var(--ink); padding: 0; width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 20px 50px rgba(60, 20, 50, 0.35); }
+dialog::backdrop { background: rgba(45, 20, 40, 0.45); }
+.dlg { display: grid; gap: 14px; padding: 20px; }
+.dlg h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.35rem; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 460px) { .grid2 { grid-template-columns: 1fr; } }
-label { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-input, select, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-weight: 400; font-size: 0.95rem; width: 100%; min-width: 0; }
-textarea { resize: vertical; min-height: 56px; }
-.check { display: flex; gap: 8px; align-items: center; font-weight: 500; color: var(--ink); font-size: 0.9rem; }
-.check input { width: auto; }
-.bizpick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.bizpick button { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 4px; font-weight: 600; font-size: 0.85rem; }
+@media (max-width: 440px) { .grid2 { grid-template-columns: 1fr; } }
+label { display: grid; gap: 5px; font-size: 0.8rem; font-weight: 800; color: var(--muted); }
+input, select, textarea { background: var(--sunk); border: 2px solid transparent; border-radius: 14px; padding: 10px 12px; font-weight: 600; font-size: 1rem; width: 100%; min-width: 0; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+textarea { resize: vertical; min-height: 54px; }
+.check { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 0.92rem; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.bizpick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.bizpick button { border: 2px solid var(--line); background: var(--card); border-radius: 16px; padding: 10px 4px 8px; font-weight: 800; font-size: 0.82rem; display: grid; justify-items: center; gap: 4px; }
+.bizpick button svg { width: 22px; height: 22px; color: var(--c); }
 .bizpick button[aria-pressed="true"] { border-color: var(--c); background: var(--cs); color: var(--c); }
-.photo { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
-.photo img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
-.photo .ph { flex: 1; min-width: 0; font-size: 0.85rem; color: var(--muted); }
-.btn { border-radius: 8px; padding: 9px 14px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); }
+.photo { display: flex; gap: 12px; align-items: center; padding: 12px; border: 2px dashed var(--line); border-radius: 18px; }
+.photo img { width: 64px; height: 64px; object-fit: cover; border-radius: 14px; cursor: zoom-in; }
+.photo .ph { flex: 1; min-width: 0; font-size: 0.88rem; color: var(--muted); font-weight: 600; }
+.btn { border-radius: 999px; padding: 10px 18px; font-weight: 800; border: 2px solid var(--line); background: var(--card); white-space: nowrap; }
+label.btn { color: var(--ink); font-size: 0.88rem; display: inline-block; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.btn.danger { color: var(--bad); }
-.btn.danger.arm { background: var(--bad); color: var(--surface); border-color: var(--bad); }
-.actions { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
-.actions .right { display: flex; gap: 8px; }
-.hint { font-size: 0.8rem; color: var(--muted); margin: 0; }
-.msg { font-size: 0.85rem; color: var(--warn); margin: 0; }
-.viewer img { display: block; width: 100%; height: auto; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; z-index: 20; }
-@media (prefers-reduced-motion: no-preference) { .row, .chip, .tot { transition: background-color .15s, border-color .15s; } }
+.btn.danger { color: var(--bad); border-color: transparent; background: none; padding-inline: 6px; }
+.btn.danger.arm { background: var(--bad); color: var(--card); }
+.actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.actions .right { display: flex; gap: 8px; margin-left: auto; }
+.msg { font-size: 0.86rem; color: var(--warn); font-weight: 700; margin: 0; }
+.viewer img { display: block; width: 100%; height: auto; border-radius: 16px; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 800; z-index: 20; white-space: nowrap; }
+.spark { position: fixed; z-index: 21; pointer-events: none; width: 14px; height: 14px; }
+@media (prefers-reduced-motion: no-preference) {
+  .rcpt, .biz, .tab { transition: background-color .18s, border-color .18s, transform .18s; }
+  .rcpt:active, .biz:active, .fab:active { transform: scale(0.97); }
+  .fab:active { transform: translateX(-50%) scale(0.97); }
+  .spark { animation: pop .8s ease-out forwards; }
+  @keyframes pop { from { opacity: 1; transform: translate(0, 0) scale(1); } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); } }
+}
+@media (prefers-reduced-motion: reduce) { .spark { display: none; } }
 </style>
 
 <div class="wrap">
   <header class="top">
-    <div class="titlerow">
-      <h1>Schedule C Ledger <small>FORM 1040</small></h1>
-      <div class="tools">
-        <select class="year" id="year" aria-label="Tax year"></select>
-        <button class="ghost" id="exportBtn" type="button" hidden>Export CSV</button>
-      </div>
+    <div class="brand">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="13" y="5" width="22" height="7" rx="3" fill="var(--accent)"/>
+        <path d="M12 14h24c2 0 3 1.5 3 3.5V39a5 5 0 0 1-5 5H14a5 5 0 0 1-5-5V17.5c0-2 1-3.5 3-3.5z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <rect x="16" y="20" width="10" height="13" rx="2" fill="var(--card)" stroke="var(--accent)" stroke-width="1.6" transform="rotate(-10 21 26)"/>
+        <rect x="23" y="22" width="10" height="13" rx="2" fill="var(--card)" stroke="var(--accent)" stroke-width="1.6" transform="rotate(8 28 28)"/>
+        <path d="M25.5 26.5h5M25.2 29.2h4" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" transform="rotate(8 28 28)"/>
+      </svg>
+      <div><h1>Receipt Jar</h1><small>Anesthesia · Mahjong · dōTERRA</small></div>
     </div>
-    <div class="chips" id="chips" role="group" aria-label="Business filter"></div>
+    <select class="year" id="year" aria-label="Tax year"></select>
   </header>
 
   <div class="status" id="status" hidden></div>
 
-  <div class="totals" id="totals"></div>
-
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tab-entries" aria-selected="true" type="button">Entries</button>
-    <button class="tab" role="tab" id="tab-lines" aria-selected="false" type="button">By line</button>
-    <button class="tab" role="tab" id="tab-review" aria-selected="false" type="button">Needs review<span class="badge" id="reviewCount" hidden></span></button>
+  <div class="hero">
+    <div>
+      <div class="k" id="heroK">Write-offs so far</div>
+      <div class="big" id="heroBig">$0.00</div>
+      <div class="sub" id="heroSub">Opening your jar…</div>
+    </div>
+    <svg viewBox="0 0 80 80" aria-hidden="true">
+      <circle cx="40" cy="42" r="26" fill="var(--accent-soft)"/>
+      <circle cx="40" cy="42" r="17" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+      <path d="M40 33v18M44.5 36.5c-1-1.6-2.6-2.3-4.6-2.3-2.6 0-4.4 1.4-4.4 3.4 0 4.8 9.4 2.6 9.4 7.6 0 2.1-2 3.6-4.8 3.6-2.2 0-4-.9-5-2.6" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M63 12l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="var(--warn)"/>
+      <path d="M15 14l1.3 3.2 3.2 1.3-3.2 1.3L15 23l-1.3-3.2-3.2-1.3 3.2-1.3z" fill="var(--anes)"/>
+      <circle cx="68" cy="58" r="3" fill="var(--dt)"/>
+    </svg>
   </div>
 
-  <div id="view"></div>
+  <div class="bizcards" id="bizcards"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-entries" aria-selected="true" type="button">Receipts</button>
+    <button class="tab" role="tab" id="tab-lines" aria-selected="false" type="button">Where it went</button>
+    <button class="tab" role="tab" id="tab-review" aria-selected="false" type="button">Check these<span class="badge" id="reviewCount" hidden></span></button>
+  </div>
+
+  <div id="view" style="display:grid;gap:14px"></div>
+
+  <div class="taxnote">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="5" width="22" height="29" rx="4" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/><path d="M13 13h12M13 18h12M13 23h7" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><circle cx="29" cy="29" r="7" fill="var(--accent)"/><path d="M26 29l2.2 2.2L32.3 27" fill="none" stroke="var(--card)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <p><b>Tax time?</b> Ask Claude in chat for your accountant package. Claude puts the paperwork and receipt copies together for you.</p>
+  </div>
 </div>
 
 <button class="fab" id="addBtn" type="button" hidden>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-  Add receipt
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l2-3h6l2 3h3V19H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg>
+  Add a receipt
 </button>
 
 <dialog id="editDlg" aria-labelledby="editTitle">
   <form class="dlg" id="editForm" method="dialog">
-    <h2 id="editTitle">New expense</h2>
+    <h2 id="editTitle">New receipt</h2>
 
-    <div class="photo" id="photoBox">
-      <img id="photoPrev" alt="Receipt" hidden>
-      <div class="ph" id="photoText">No receipt photo yet.</div>
-      <label class="btn" for="photoInput" id="photoLbl" style="color:var(--ink);font-size:.9rem">Take / choose photo</label>
+    <div class="photo">
+      <img id="photoPrev" alt="Receipt photo" hidden>
+      <div class="ph" id="photoText">No photo yet.</div>
+      <label class="btn" for="photoInput" id="photoLbl">Snap photo</label>
       <input type="file" id="photoInput" accept="image/*" hidden>
     </div>
     <p class="msg" id="scanMsg" hidden></p>
 
-    <div>
-      <label style="margin-bottom:4px">Business</label>
+    <div style="display:grid;gap:5px">
+      <label>Which business?</label>
       <div class="bizpick" id="bizPick"></div>
     </div>
 
@@ -199,13 +258,13 @@ textarea { resize: vertical; min-height: 56px; }
       <label>Date<input type="date" id="f-date" required></label>
       <label>Amount ($)<input type="number" id="f-amount" step="0.01" min="0" inputmode="decimal" required></label>
     </div>
-    <label>Vendor<input type="text" id="f-vendor" required autocomplete="off"></label>
-    <label>Schedule C line<select id="f-line"></select></label>
+    <label>Where from?<input type="text" id="f-vendor" required autocomplete="off" placeholder="Store or company"></label>
+    <label>Category<select id="f-line"></select></label>
     <label id="milesWrap" hidden>Business miles<input type="number" id="f-miles" step="0.1" min="0" inputmode="decimal"></label>
-    <label>What it was for<textarea id="f-memo" rows="2"></textarea></label>
-    <label>Paid with<input type="text" id="f-payment" placeholder="e.g. Amex ••1004" autocomplete="off"></label>
-    <label class="check"><input type="checkbox" id="f-review"> Needs review</label>
-    <label id="noteWrap" hidden>Review note<input type="text" id="f-note" autocomplete="off"></label>
+    <label>What was it for?<textarea id="f-memo" rows="2" placeholder="e.g. tile blanks for the spring set"></textarea></label>
+    <label>Paid with<input type="text" id="f-payment" placeholder="e.g. Visa ending 1234" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" id="f-review"> I'm not sure about this one</label>
+    <label id="noteWrap" hidden>What's the question?<input type="text" id="f-note" autocomplete="off"></label>
 
     <div class="actions">
       <button class="btn danger" type="button" id="delBtn" hidden>Delete</button>
@@ -217,67 +276,87 @@ textarea { resize: vertical; min-height: 56px; }
   </form>
 </dialog>
 
-<dialog id="viewDlg" class="viewer" aria-label="Receipt">
+<dialog id="viewDlg" class="viewer" aria-label="Receipt photo">
   <div class="dlg">
     <img id="viewImg" alt="Receipt photo">
-    <div class="actions"><span></span><button class="btn" type="button" id="viewClose">Close</button></div>
+    <div class="actions"><button class="btn" type="button" id="viewClose" style="margin-left:auto">Close</button></div>
   </div>
 </dialog>
 
 <div class="toast" id="toast" hidden></div>
 
 <script>
+const ICON = {
+  anesthesia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M7.5 12h2.5l1.2-2.2 1.8 4.2 1.2-2h2.3"/></svg>',
+  mahjong: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="3.5" width="13" height="17" rx="3"/><circle cx="12" cy="9" r="2"/><circle cx="9.3" cy="15" r="1.4"/><circle cx="14.7" cy="15" r="1.4"/></svg>',
+  doterra: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5s6 6.4 6 10.6a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5z"/><path d="M9.2 14.5a2.9 2.9 0 0 0 2.6 2.7"/></svg>',
+  receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg>',
+};
 const BIZ = [
   { id: "anesthesia", name: "Anesthesia", c: "var(--anes)", cs: "var(--anes-soft)" },
   { id: "mahjong", name: "Mahjong", c: "var(--mj)", cs: "var(--mj-soft)" },
   { id: "doterra", name: "dōTERRA", c: "var(--dt)", cs: "var(--dt-soft)" },
 ];
 const BIZ_BY = Object.fromEntries(BIZ.map(b => [b.id, b]));
-// Schedule C Part II expense lines, plus Part III purchases for resale inventory.
+// [Schedule C line, friendly name, official name]
 const LINES = [
-  ["8", "Advertising"],
-  ["9", "Car and truck expenses"],
-  ["10", "Commissions and fees"],
-  ["11", "Contract labor"],
-  ["13", "Depreciation and section 179"],
-  ["14", "Employee benefit programs"],
-  ["15", "Insurance (other than health)"],
-  ["16a", "Interest: mortgage"],
-  ["16b", "Interest: other"],
-  ["17", "Legal and professional services"],
-  ["18", "Office expense"],
-  ["19", "Pension and profit-sharing plans"],
-  ["20a", "Rent or lease: vehicles, machinery, equipment"],
-  ["20b", "Rent or lease: other business property"],
-  ["21", "Repairs and maintenance"],
-  ["22", "Supplies"],
-  ["23", "Taxes and licenses"],
-  ["24a", "Travel"],
-  ["24b", "Deductible meals"],
-  ["25", "Utilities"],
-  ["26", "Wages"],
-  ["27b", "Other expenses (Part V)"],
-  ["30", "Business use of home"],
-  ["36", "Purchases for inventory (Part III, COGS)"],
+  ["22", "Supplies", "Supplies"],
+  ["36", "Stuff to resell", "Purchases for inventory (Part III, cost of goods sold)"],
+  ["8", "Ads & marketing", "Advertising"],
+  ["10", "Fees & commissions", "Commissions and fees"],
+  ["18", "Office stuff", "Office expense"],
+  ["9", "Car & mileage", "Car and truck expenses"],
+  ["24a", "Travel", "Travel"],
+  ["24b", "Meals", "Deductible meals"],
+  ["23", "Licenses & taxes", "Taxes and licenses"],
+  ["15", "Insurance", "Insurance (other than health)"],
+  ["17", "Lawyer & accountant", "Legal and professional services"],
+  ["11", "Contractors", "Contract labor"],
+  ["13", "Big equipment", "Depreciation and section 179"],
+  ["21", "Repairs", "Repairs and maintenance"],
+  ["25", "Phone & utilities", "Utilities"],
+  ["20a", "Equipment rental", "Rent or lease: vehicles, machinery, equipment"],
+  ["20b", "Space rental", "Rent or lease: other business property"],
+  ["30", "Home office", "Business use of home"],
+  ["16b", "Interest", "Interest: other"],
+  ["16a", "Mortgage interest", "Interest: mortgage"],
+  ["26", "Wages", "Wages"],
+  ["14", "Employee benefits", "Employee benefit programs"],
+  ["19", "Retirement plans", "Pension and profit-sharing plans"],
+  ["27b", "Other (dues, classes, software…)", "Other expenses (Part V)"],
 ];
-const LINE_NAME = Object.fromEntries(LINES);
-const LINE_ORDER = Object.fromEntries(LINES.map((l, i) => [l[0], i]));
+const LINE_NAME = Object.fromEntries(LINES.map(l => [l[0], l[1]]));
+const LINE_OFFICIAL = Object.fromEntries(LINES.map(l => [l[0], l[2]]));
 
 const $ = id => document.getElementById(id);
 const money = n => (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const deductible = e => e.line === "24b" ? round2(e.amount * 0.5) : e.amount;
 const round2 = n => Math.round(n * 100) / 100;
+const deductible = e => e.line === "24b" ? round2(e.amount * 0.5) : e.amount;
 const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-let db = null, assets = null, downloads = null, sample = null, canImages = false, canWrite = true;
-let entries = [];       // [{id, ...data}]
+let db = null, assets = null, sample = null, canImages = false, canWrite = true;
+let entries = [];
 let loaded = false;
 const state = { year: String(new Date().getFullYear()), biz: "all", tab: "entries" };
-try { const s = JSON.parse(localStorage.getItem("schc-ui") || "{}"); if (s.biz) state.biz = s.biz; if (s.tab) state.tab = s.tab; } catch (e) {}
-const saveUI = () => { try { localStorage.setItem("schc-ui", JSON.stringify({ biz: state.biz, tab: state.tab })); } catch (e) {} };
+try { const s = JSON.parse(localStorage.getItem("jar-ui") || "{}"); if (s.biz) state.biz = s.biz; if (s.tab) state.tab = s.tab; } catch (e) {}
+const saveUI = () => { try { localStorage.setItem("jar-ui", JSON.stringify({ biz: state.biz, tab: state.tab })); } catch (e) {} };
 
 function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 2200); }
 function setStatus(t) { const el = $("status"); el.textContent = t || ""; el.hidden = !t; }
+function sparkle() {
+  const colors = ["var(--accent)", "var(--warn)", "var(--anes)", "var(--mj)", "var(--dt)"];
+  const x = innerWidth / 2, y = innerHeight - 120;
+  for (let i = 0; i < 12; i++) {
+    const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    s.setAttribute("viewBox", "0 0 10 10"); s.setAttribute("class", "spark");
+    s.innerHTML = `<path d="M5 0l1.3 3.7L10 5 6.3 6.3 5 10 3.7 6.3 0 5l3.7-1.3z" fill="${colors[i % colors.length]}"/>`;
+    const a = (i / 12) * Math.PI * 2, r = 60 + Math.random() * 50;
+    s.style.left = x + "px"; s.style.top = y + "px";
+    s.style.setProperty("--dx", Math.cos(a) * r + "px"); s.style.setProperty("--dy", Math.sin(a) * r - 30 + "px");
+    document.body.appendChild(s); setTimeout(() => s.remove(), 900);
+  }
+}
 
 function normalize(snap) {
   const d = snap.data() || {};
@@ -298,43 +377,38 @@ function normalize(snap) {
     createdAt: String(d.createdAt || ""),
   };
 }
-
-function yearEntries() { return entries.filter(e => e.date.slice(0, 4) === state.year); }
-function filtered() { const ys = yearEntries(); return state.biz === "all" ? ys : ys.filter(e => e.business === state.biz); }
+const yearEntries = () => entries.filter(e => e.date.slice(0, 4) === state.year);
+const filtered = () => { const ys = yearEntries(); return state.biz === "all" ? ys : ys.filter(e => e.business === state.biz); };
 
 function renderYears() {
   const ys = new Set(entries.map(e => e.date.slice(0, 4)).filter(y => /^\d{4}$/.test(y)));
   ys.add(String(new Date().getFullYear())); ys.add(state.year);
-  const sel = $("year");
-  sel.innerHTML = "";
-  [...ys].sort().reverse().forEach(y => { const o = document.createElement("option"); o.value = y; o.textContent = y; sel.appendChild(o); });
+  const sel = $("year"); sel.innerHTML = "";
+  [...ys].sort().reverse().forEach(y => sel.appendChild(Object.assign(document.createElement("option"), { value: y, textContent: y })));
   sel.value = state.year;
 }
 
-function renderChips() {
-  const el = $("chips"); el.innerHTML = "";
-  [{ id: "all", name: "All businesses" }, ...BIZ].forEach(b => {
-    const btn = document.createElement("button");
-    btn.type = "button"; btn.className = "chip"; btn.textContent = b.name;
-    btn.setAttribute("aria-pressed", String(state.biz === b.id));
-    btn.onclick = () => { state.biz = b.id; saveUI(); render(); };
-    el.appendChild(btn);
-  });
+function renderHero() {
+  const list = filtered();
+  const sum = list.reduce((s, e) => s + deductible(e), 0);
+  $("heroK").textContent = state.biz === "all" ? `${state.year} write-offs so far` : `${BIZ_BY[state.biz].name} write-offs, ${state.year}`;
+  $("heroBig").textContent = money(sum);
+  $("heroSub").textContent = !loaded ? "Opening your jar…" : list.length ? `${plural(list.length, "receipt", "receipts")} tucked away` : "Your jar is empty for now";
 }
 
-function renderTotals() {
-  const el = $("totals"); el.innerHTML = "";
+function renderBizCards() {
+  const el = $("bizcards"); el.innerHTML = "";
   const ys = yearEntries();
   BIZ.forEach(b => {
     const mine = ys.filter(e => e.business === b.id);
-    const sum = mine.reduce((s, e) => s + deductible(e), 0);
     const btn = document.createElement("button");
-    btn.type = "button"; btn.className = "tot"; btn.style.setProperty("--c", b.c);
+    btn.type = "button"; btn.className = "biz";
+    btn.style.setProperty("--c", b.c); btn.style.setProperty("--cs", b.cs);
     btn.setAttribute("aria-pressed", String(state.biz === b.id));
-    btn.innerHTML = `<span class="lbl"></span><span class="amt"></span><span class="cnt"></span>`;
-    btn.querySelector(".lbl").textContent = b.name;
-    btn.querySelector(".amt").textContent = loaded ? money(sum) : "—";
-    btn.querySelector(".cnt").textContent = loaded ? `${mine.length} ${mine.length === 1 ? "entry" : "entries"} · ${state.year}` : "Loading…";
+    btn.innerHTML = `<span class="ic">${ICON[b.id]}</span><span class="nm"></span><span class="am"></span><span class="ct"></span>`;
+    btn.querySelector(".nm").textContent = b.name;
+    btn.querySelector(".am").textContent = loaded ? money(mine.reduce((s, e) => s + deductible(e), 0)) : "…";
+    btn.querySelector(".ct").textContent = loaded ? plural(mine.length, "receipt", "receipts") : "";
     btn.onclick = () => { state.biz = state.biz === b.id ? "all" : b.id; saveUI(); render(); };
     el.appendChild(btn);
   });
@@ -346,154 +420,124 @@ function renderTabs() {
   const b = $("reviewCount"); b.textContent = n; b.hidden = !n;
 }
 
-function rowFor(e) {
-  const btn = document.createElement("button");
-  btn.type = "button"; btn.className = "row";
-  const thumb = e.receipt ? Object.assign(document.createElement("img"), { className: "thumb", src: "/_blob/" + e.receipt, alt: "", loading: "lazy" }) : Object.assign(document.createElement("div"), { className: "thumb", textContent: "NO IMG" });
-  if (e.receipt) thumb.onerror = () => { const d = document.createElement("div"); d.className = "thumb"; d.textContent = "—"; thumb.replaceWith(d); };
-  const main = document.createElement("div"); main.className = "main";
-  const v = document.createElement("div"); v.className = "vendor"; v.textContent = e.vendor || "(no vendor)";
-  const meta = document.createElement("div"); meta.className = "meta";
-  const dt = document.createElement("span"); dt.className = "num"; dt.textContent = e.date.slice(5).replace("-", "/");
-  meta.appendChild(dt);
-  if (e.business) { const t = document.createElement("span"); t.className = "tag " + e.business; t.textContent = BIZ_BY[e.business].name; meta.appendChild(t); }
-  const ln = document.createElement("span"); ln.className = "ln"; ln.textContent = "L" + e.line + " " + LINE_NAME[e.line]; meta.appendChild(ln);
-  if (e.needsReview) { const r = document.createElement("span"); r.className = "tag review"; r.textContent = "Review"; r.title = e.reviewNote; meta.appendChild(r); }
-  main.append(v, meta);
-  if (e.memo) { const m = document.createElement("div"); m.className = "meta"; m.textContent = e.memo; main.appendChild(m); }
-  const a = document.createElement("div"); a.className = "amtcol"; a.textContent = money(e.amount);
-  btn.append(thumb, main, a);
+function emptyState(title, body) {
+  const d = document.createElement("div"); d.className = "empty";
+  d.innerHTML = `<svg viewBox="0 0 90 90" aria-hidden="true">
+    <rect x="30" y="10" width="30" height="9" rx="4" fill="var(--accent)"/>
+    <path d="M27 22h36c3 0 5 2 5 5v44a8 8 0 0 1-8 8H30a8 8 0 0 1-8-8V27c0-3 2-5 5-5z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5"/>
+    <circle cx="37" cy="48" r="2.6" fill="var(--ink)"/><circle cx="53" cy="48" r="2.6" fill="var(--ink)"/>
+    <path d="M40 56c2.8 2.6 7.2 2.6 10 0" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="32" cy="55" r="3.2" fill="var(--accent)" opacity=".35"/><circle cx="58" cy="55" r="3.2" fill="var(--accent)" opacity=".35"/>
+    <path d="M74 20l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" fill="var(--warn)"/></svg>
+    <strong></strong><span></span>`;
+  d.querySelector("strong").textContent = title; d.querySelector("span").textContent = body;
+  return d;
+}
+
+function rcptCard(e) {
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "rcpt";
+  let thumb;
+  if (e.receipt) {
+    thumb = Object.assign(document.createElement("img"), { className: "thumb", src: "/_blob/" + e.receipt, alt: "", loading: "lazy" });
+    thumb.onerror = () => { const d = document.createElement("div"); d.className = "thumb"; d.innerHTML = ICON.receipt; thumb.replaceWith(d); };
+  } else { thumb = document.createElement("div"); thumb.className = "thumb"; thumb.innerHTML = ICON.receipt; }
+  const mid = document.createElement("div"); mid.className = "mid";
+  const v = document.createElement("div"); v.className = "vendor"; v.textContent = e.vendor || "Mystery receipt";
+  const tags = document.createElement("div"); tags.className = "tags";
+  const dt = document.createElement("span"); dt.textContent = e.date ? new Date(e.date + "T12:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No date";
+  tags.appendChild(dt);
+  if (e.business) tags.appendChild(Object.assign(document.createElement("span"), { className: "pill " + e.business, textContent: BIZ_BY[e.business].name }));
+  tags.appendChild(Object.assign(document.createElement("span"), { className: "pill", textContent: LINE_NAME[e.line] }));
+  if (e.needsReview) tags.appendChild(Object.assign(document.createElement("span"), { className: "pill review", textContent: "Check me", title: e.reviewNote }));
+  mid.append(v, tags);
+  if (e.memo) mid.appendChild(Object.assign(document.createElement("div"), { className: "memo", textContent: e.memo }));
+  const a = Object.assign(document.createElement("div"), { className: "amt", textContent: money(e.amount) });
+  btn.append(thumb, mid, a);
   btn.onclick = () => openEdit(e);
   return btn;
 }
 
-function emptyState(title, body) {
-  const d = document.createElement("div"); d.className = "empty";
-  const s = document.createElement("strong"); s.textContent = title;
-  const p = document.createElement("span"); p.textContent = body;
-  d.append(s, p); return d;
-}
-
-function renderEntries(list, view) {
-  if (!list.length) {
-    view.appendChild(loaded
-      ? emptyState(`No ${state.biz === "all" ? "" : BIZ_BY[state.biz].name + " "}expenses for ${state.year} yet`, "Send Claude a photo of a receipt in your chat, or tap Add receipt to snap one here.")
-      : emptyState("Loading your ledger…", "Your expenses will appear here, grouped by month."));
-    return;
-  }
+function renderReceipts(list, view, emptyTitle, emptyBody) {
+  if (!list.length) { view.appendChild(loaded ? emptyState(emptyTitle, emptyBody) : emptyState("Opening your jar…", "Your receipts will show up here.")); return; }
   const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
   const byMonth = new Map();
   sorted.forEach(e => { const k = e.date.slice(0, 7); if (!byMonth.has(k)) byMonth.set(k, []); byMonth.get(k).push(e); });
   byMonth.forEach((items, k) => {
     const sec = document.createElement("section"); sec.className = "month";
-    const h = document.createElement("h2");
     const [y, m] = k.split("-");
-    const name = isNaN(+m) ? "Undated" : new Date(+y, +m - 1, 1).toLocaleString("en-US", { month: "long" });
-    h.innerHTML = `<span></span><span class="num"></span>`;
-    h.children[0].textContent = name;
+    const h = document.createElement("h2"); h.innerHTML = "<span></span><span class=\"n\"></span>";
+    h.children[0].textContent = isNaN(+m) ? "No date" : new Date(+y, +m - 1, 1).toLocaleString("en-US", { month: "long" });
     h.children[1].textContent = money(items.reduce((s, e) => s + e.amount, 0));
-    const l = document.createElement("div"); l.className = "list";
-    items.forEach(e => l.appendChild(rowFor(e)));
-    sec.append(h, l); view.appendChild(sec);
+    sec.appendChild(h);
+    items.forEach(e => sec.appendChild(rcptCard(e)));
+    view.appendChild(sec);
   });
 }
 
-function renderLines(view) {
+function renderWhere(view) {
   const ys = yearEntries();
-  const bizList = state.biz === "all" ? BIZ : [BIZ_BY[state.biz]];
-  const wrap = document.createElement("div"); wrap.className = "sheet";
-  bizList.forEach(b => {
+  const wrap = document.createElement("div"); wrap.className = "where";
+  (state.biz === "all" ? BIZ : [BIZ_BY[state.biz]]).forEach(b => {
     const mine = ys.filter(e => e.business === b.id);
-    const sec = document.createElement("section");
-    const h = document.createElement("h3"); h.style.setProperty("--c", b.c);
-    h.innerHTML = `<span class="who"><span class="dot"></span><span></span></span><span class="num"></span>`;
-    h.querySelector(".who span:last-child").textContent = `${b.name} · Schedule C ${state.year}`;
-    h.querySelector(".num").textContent = money(mine.reduce((s, e) => s + deductible(e), 0));
+    const sec = document.createElement("section"); sec.style.setProperty("--c", b.c); sec.style.setProperty("--cs", b.cs);
+    const total = mine.reduce((s, e) => s + deductible(e), 0);
+    const h = document.createElement("h3");
+    h.innerHTML = `<span class="who"><span class="ic">${ICON[b.id]}</span><span></span></span><span class="n"></span>`;
+    h.querySelector(".who span:last-child").textContent = b.name;
+    h.querySelector(".n").textContent = money(total);
     sec.appendChild(h);
-    const tw = document.createElement("div"); tw.className = "tablewrap";
-    const t = document.createElement("table");
-    if (!mine.length) {
-      t.innerHTML = `<tr><td class="hint">No ${b.name} entries for ${state.year}.</td></tr>`;
-    } else {
-      const groups = {};
-      mine.forEach(e => { (groups[e.line] ||= []).push(e); });
-      const keys = Object.keys(groups).sort((a, c) => LINE_ORDER[a] - LINE_ORDER[c]);
-      const partII = keys.filter(k => k !== "36"), partIII = keys.filter(k => k === "36");
-      const addRow = k => {
-        const g = groups[k];
-        const raw = g.reduce((s, e) => s + e.amount, 0);
-        const ded = g.reduce((s, e) => s + deductible(e), 0);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td class="l"></td><td></td><td class="r"></td>`;
-        tr.children[0].textContent = k;
-        tr.children[1].textContent = LINE_NAME[k];
-        const note = document.createElement("span"); note.className = "note";
-        let n = `${g.length} ${g.length === 1 ? "receipt" : "receipts"}`;
-        if (k === "24b") n += ` · ${money(raw)} spent, 50% deductible`;
-        if (k === "9") { const mi = g.reduce((s, e) => s + (e.miles || 0), 0); if (mi) n += ` · ${mi.toLocaleString("en-US")} business miles logged`; }
-        note.textContent = n; tr.children[1].appendChild(note);
-        tr.children[2].textContent = money(ded);
-        t.appendChild(tr);
-      };
-      const part = label => { const tr = document.createElement("tr"); tr.className = "part"; tr.innerHTML = `<td colspan="3"></td>`; tr.firstChild.textContent = label; t.appendChild(tr); };
-      if (partII.length) {
-        part("Part II · Expenses");
-        partII.forEach(addRow);
-        const tr = document.createElement("tr"); tr.className = "sum";
-        tr.innerHTML = `<td class="l">28</td><td>Total expenses</td><td class="r"></td>`;
-        tr.children[2].textContent = money(partII.reduce((s, k) => s + groups[k].reduce((a, e) => a + deductible(e), 0), 0));
-        t.appendChild(tr);
-      }
-      if (partIII.length) { part("Part III · Cost of goods sold"); partIII.forEach(addRow); }
-    }
-    tw.appendChild(t); sec.appendChild(tw); wrap.appendChild(sec);
+    if (!mine.length) sec.appendChild(Object.assign(document.createElement("div"), { className: "nothing", textContent: `No ${b.name} receipts in ${state.year} yet.` }));
+    const groups = {};
+    mine.forEach(e => (groups[e.line] ||= []).push(e));
+    Object.keys(groups).map(k => ({ k, g: groups[k], ded: groups[k].reduce((s, e) => s + deductible(e), 0) }))
+      .sort((a, c) => c.ded - a.ded)
+      .forEach(({ k, g, ded }) => {
+        const row = document.createElement("div"); row.className = "cat";
+        row.innerHTML = `<div class="top"><span></span><span class="n"></span></div><div class="bar"><i></i></div><div class="note"></div>`;
+        row.querySelector(".top span").textContent = LINE_NAME[k];
+        row.querySelector(".top .n").textContent = money(ded);
+        row.querySelector(".bar i").style.width = (total > 0 ? Math.max(3, (ded / total) * 100) : 0) + "%";
+        let note = plural(g.length, "receipt", "receipts");
+        if (k === "24b") note += ` · meals count half, ${money(g.reduce((s, e) => s + e.amount, 0))} spent`;
+        if (k === "9") { const mi = g.reduce((s, e) => s + (e.miles || 0), 0); if (mi) note += ` · ${mi.toLocaleString("en-US")} miles`; }
+        row.querySelector(".note").textContent = note;
+        row.title = `Schedule C line ${k}: ${LINE_OFFICIAL[k]}`;
+        sec.appendChild(row);
+      });
+    wrap.appendChild(sec);
   });
-  const hint = document.createElement("p"); hint.className = "hint";
-  hint.textContent = "Meals (line 24b) show at 50%. Car expenses show actual costs; if you use the standard mileage rate instead, give your preparer the miles. Totals are a worksheet for you and your preparer, not a filed return.";
-  wrap.appendChild(hint);
   view.appendChild(wrap);
 }
 
 function render() {
-  renderYears(); renderChips(); renderTotals(); renderTabs();
+  renderYears(); renderHero(); renderBizCards(); renderTabs();
   const view = $("view"); view.innerHTML = "";
-  if (state.tab === "entries") renderEntries(filtered(), view);
-  else if (state.tab === "lines") renderLines(view);
-  else {
-    const list = filtered().filter(e => e.needsReview);
-    if (!list.length) view.appendChild(emptyState("Nothing to review", "Entries Claude wasn't sure about, or ones you flag, show up here."));
-    else renderEntries(list, view);
-  }
+  const who = state.biz === "all" ? "" : BIZ_BY[state.biz].name + " ";
+  if (state.tab === "entries") renderReceipts(filtered(), view, `No ${who}receipts for ${state.year} yet`, "Send Claude a photo of a receipt in chat, or tap Add a receipt below.");
+  else if (state.tab === "lines") renderWhere(view);
+  else renderReceipts(filtered().filter(e => e.needsReview), view, "All clear!", "Receipts that need a second look will wait for you here.");
 }
-
 ["entries", "lines", "review"].forEach(t => $("tab-" + t).onclick = () => { state.tab = t; saveUI(); render(); });
 $("year").onchange = e => { state.year = e.target.value; render(); };
 
 // ---------- edit dialog ----------
 const LINE_SELECT = $("f-line");
-LINES.forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = `${k} · ${n}`; LINE_SELECT.appendChild(o); });
-let editing = null;       // entry being edited, or null for new
-let draftBiz = "";
-let draftReceipt = "";    // asset id
-let draftPhotoFile = null;
+LINES.forEach(([k, n]) => LINE_SELECT.appendChild(Object.assign(document.createElement("option"), { value: k, textContent: n })));
+let editing = null, draftBiz = "", draftReceipt = "";
 
 function renderBizPick() {
   const el = $("bizPick"); el.innerHTML = "";
   BIZ.forEach(b => {
-    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = b.name;
+    const btn = document.createElement("button"); btn.type = "button";
     btn.style.setProperty("--c", b.c); btn.style.setProperty("--cs", b.cs);
+    btn.innerHTML = ICON[b.id] + "<span></span>"; btn.querySelector("span").textContent = b.name;
     btn.setAttribute("aria-pressed", String(draftBiz === b.id));
-    btn.onclick = () => { draftBiz = b.id; renderBizPick(); };
+    btn.onclick = () => { draftBiz = b.id; $("scanMsg").hidden = true; renderBizPick(); };
     el.appendChild(btn);
   });
 }
-function syncConditional() {
-  $("milesWrap").hidden = LINE_SELECT.value !== "9";
-  $("noteWrap").hidden = !$("f-review").checked;
-}
-LINE_SELECT.onchange = syncConditional;
-$("f-review").onchange = syncConditional;
-
+function syncConditional() { $("milesWrap").hidden = LINE_SELECT.value !== "9"; $("noteWrap").hidden = !$("f-review").checked; }
+LINE_SELECT.onchange = syncConditional; $("f-review").onchange = syncConditional;
 function setPhoto(src, text) {
   const img = $("photoPrev");
   if (src) { img.src = src; img.hidden = false; } else { img.removeAttribute("src"); img.hidden = true; }
@@ -502,10 +546,9 @@ function setPhoto(src, text) {
 
 function openEdit(e) {
   editing = e || null;
-  $("editTitle").textContent = e ? "Edit expense" : "New expense";
+  $("editTitle").textContent = e ? "Receipt details" : "New receipt";
   draftBiz = e ? e.business : (state.biz !== "all" ? state.biz : "");
   draftReceipt = e ? e.receipt : "";
-  draftPhotoFile = null;
   $("f-date").value = e ? e.date : todayISO();
   $("f-amount").value = e ? e.amount : "";
   $("f-vendor").value = e ? e.vendor : "";
@@ -516,10 +559,11 @@ function openEdit(e) {
   $("f-review").checked = e ? e.needsReview : false;
   $("f-note").value = e ? e.reviewNote : "";
   $("scanMsg").hidden = true;
-  if (draftReceipt) setPhoto("/_blob/" + draftReceipt, "Receipt attached. Tap the photo to view it.");
-  else setPhoto("", assets ? (canImages ? "Snap the receipt and Claude fills in the fields." : "Attach a photo of the receipt.") : "Photos can be attached by the ledger's owner.");
+  if (draftReceipt) setPhoto("/_blob/" + draftReceipt, "Photo saved. Tap it to see it bigger.");
+  else setPhoto("", !assets ? "No photo attached." : canImages ? "Snap the receipt and Claude fills everything in." : "Add a photo of the receipt.");
   $("photoLbl").hidden = !assets;
-  const del = $("delBtn"); del.hidden = !e; del.classList.remove("arm"); del.textContent = "Delete";
+  const del = $("delBtn"); del.hidden = !e || !canWrite; del.classList.remove("arm"); del.textContent = "Delete";
+  $("saveBtn").hidden = !canWrite;
   renderBizPick(); syncConditional();
   $("editDlg").showModal();
 }
@@ -532,50 +576,43 @@ $("photoInput").onchange = async ev => {
   const file = ev.target.files && ev.target.files[0];
   ev.target.value = "";
   if (!file) return;
-  draftPhotoFile = file;
   const local = URL.createObjectURL(file);
-  setPhoto(local, "Saving photo…");
   const msg = $("scanMsg"); msg.hidden = true;
-  // Upload and read the receipt in parallel.
+  setPhoto(local, canImages ? "Reading your receipt…" : "Saving photo…");
   const up = (async () => {
     try {
       const type = /^image\/(png|jpeg|gif|webp)$/.test(file.type) ? file.type : "image/jpeg";
-      const r = await assets.upload(file, { type });
-      draftReceipt = r.id; return true;
+      draftReceipt = (await assets.upload(file, { type })).id; return true;
     } catch (err) {
-      msg.textContent = err && err.code === "unsupported_type" ? "That photo format can't be stored. Try a JPEG or PNG (on iPhone: Settings › Camera › Formats › Most Compatible)." : "The photo couldn't be saved. You can still save the entry and attach a photo later.";
+      msg.textContent = err && err.code === "unsupported_type" ? "That photo type can't be saved. On iPhone, set Settings › Camera › Formats to Most Compatible." : "The photo didn't save. You can still save the receipt details.";
       msg.hidden = false; return false;
     }
   })();
   const read = canImages ? scanReceipt(file) : Promise.resolve(null);
-  setPhoto(local, canImages ? "Reading the receipt…" : "Saving photo…");
   const [ok, fields] = await Promise.all([up, read]);
   if (fields) applyScan(fields);
-  setPhoto(local, fields ? "Filled in from the receipt. Check it, then Save." : ok ? "Photo attached." : "Photo not saved.");
+  setPhoto(local, fields ? "All filled in! Give it a quick look, then Save." : ok ? "Photo saved." : "Photo not saved.");
 };
 
 async function scanReceipt(file) {
-  const lines = LINES.map(([k, n]) => `${k}: ${n}`).join("\n");
+  const list = LINES.map(([k, , o]) => `${k}: ${o}`).join("\n");
   const prompt = `You are filing a receipt for a sole proprietor's IRS Schedule C. The image is a photo of one receipt or invoice.
 The owner runs three businesses:
 - "anesthesia": an anesthesia practice (anesthesia/medical supplies, scrubs, CME and conferences, licenses, DEA and board renewals, malpractice insurance, professional dues, medical equipment).
 - "mahjong": custom American mahjong tile sets sold online (blank tiles, sticker or vinyl, Cricut supplies, printing, packaging, shipping, Etsy fees and ads, design software).
 - "doterra": a doTERRA essential-oil business (doTERRA product orders, samples, diffusers, class supplies, display items).
 Schedule C lines:
-${lines}
+${list}
 Use "36" only for goods bought to resell. Use "24b" for restaurant meals. Today is ${todayISO()}.
-Reply with only a JSON object with these keys:
-{"date":"YYYY-MM-DD or empty","vendor":"store or payee","amount":total paid as a number,"business":"anesthesia|mahjong|doterra|unknown","line":"line number from the list","memo":"short description of what was bought","payment":"card brand and last 4 digits if shown, else empty","confident":true or false,"note":"why it needs review, if not confident"}`;
-  try {
-    return await sample.json(prompt, { images: file, modelTier: "default" });
-  } catch (err) {
+Reply with only a JSON object:
+{"date":"YYYY-MM-DD or empty","vendor":"store or payee","amount":total paid as a number,"business":"anesthesia|mahjong|doterra|unknown","line":"line number from the list","memo":"short description of what was bought","payment":"card brand and last 4 digits if shown, else empty","confident":true or false,"note":"short question for the owner if not confident"}`;
+  try { return await sample.json(prompt, { images: file, modelTier: "default" }); }
+  catch (err) {
     const msg = $("scanMsg");
-    msg.textContent = err && err.code === "not_granted" ? "Allow Claude for this page to read receipts automatically. You can type the details in." : "Couldn't read the receipt automatically. Type the details in.";
-    msg.hidden = false;
-    return null;
+    msg.textContent = err && err.code === "not_granted" ? "Allow Claude on this page and it will read receipts for you. You can type the details in for now." : "Couldn't read that one automatically. You can type the details in.";
+    msg.hidden = false; return null;
   }
 }
-
 function applyScan(f) {
   if (!f || typeof f !== "object") return;
   if (typeof f.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f.date)) $("f-date").value = f.date;
@@ -585,44 +622,35 @@ function applyScan(f) {
   if (f.memo) $("f-memo").value = String(f.memo).slice(0, 300);
   if (f.payment) $("f-payment").value = String(f.payment).slice(0, 60);
   if (BIZ_BY[f.business] && !draftBiz) draftBiz = f.business;
-  if (f.confident === false || !BIZ_BY[f.business]) { $("f-review").checked = true; $("f-note").value = String(f.note || "Check the business and line.").slice(0, 200); }
+  if (f.confident === false || !BIZ_BY[f.business]) { $("f-review").checked = true; $("f-note").value = String(f.note || "Which business is this for?").slice(0, 200); }
   renderBizPick(); syncConditional();
 }
 
 $("editForm").onsubmit = async ev => {
   ev.preventDefault();
   if (!db) return;
+  const msg = $("scanMsg");
   const amount = round2(Number($("f-amount").value));
-  if (!draftBiz) { const m = $("scanMsg"); m.textContent = "Pick which business this expense belongs to."; m.hidden = false; return; }
+  if (!draftBiz) { msg.textContent = "Tap which business this receipt belongs to."; msg.hidden = false; return; }
   if (!$("f-date").value || !$("f-vendor").value.trim() || !isFinite(amount)) return;
   const now = new Date().toISOString();
   const body = {
-    date: $("f-date").value,
-    vendor: $("f-vendor").value.trim(),
-    amount,
-    business: draftBiz,
-    line: LINE_SELECT.value,
-    memo: $("f-memo").value.trim(),
-    payment: $("f-payment").value.trim(),
+    date: $("f-date").value, vendor: $("f-vendor").value.trim(), amount, business: draftBiz, line: LINE_SELECT.value,
+    memo: $("f-memo").value.trim(), payment: $("f-payment").value.trim(),
     miles: LINE_SELECT.value === "9" && $("f-miles").value !== "" ? Number($("f-miles").value) : null,
-    receipt: draftReceipt || "",
-    needsReview: $("f-review").checked,
-    reviewNote: $("f-review").checked ? $("f-note").value.trim() : "",
-    source: editing ? editing.source || "app" : "app",
-    createdAt: editing ? editing.createdAt || now : now,
-    updatedAt: now,
+    receipt: draftReceipt || "", needsReview: $("f-review").checked, reviewNote: $("f-review").checked ? $("f-note").value.trim() : "",
+    source: editing ? editing.source || "app" : "app", createdAt: editing ? editing.createdAt || now : now, updatedAt: now,
   };
   const btn = $("saveBtn"); btn.disabled = true;
   try {
-    const ref = editing ? db.collection("expenses").doc(editing.id) : db.collection("expenses").doc("e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    const ref = db.collection("expenses").doc(editing ? editing.id : "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
     await ref.set(body);
     if (body.date.slice(0, 4) !== state.year) state.year = body.date.slice(0, 4);
     $("editDlg").close();
-    toast(editing ? "Saved" : "Added");
+    toast(editing ? "Saved" : "Tucked in the jar!"); if (!editing) sparkle();
   } catch (err) {
-    const m = $("scanMsg");
-    m.textContent = err && err.code === "quota_exceeded" ? "The ledger is full. Delete old entries to add more." : err && err.code === "invalid_argument" ? "You don't have permission to change this ledger." : "Couldn't save. Check your connection and try again.";
-    m.hidden = false;
+    msg.textContent = err && err.code === "quota_exceeded" ? "The jar is full. Delete a few old receipts to make room." : err && err.code === "invalid_argument" ? "Only the jar's owner can change receipts." : "Couldn't save. Check your connection and try again.";
+    msg.hidden = false;
   } finally { btn.disabled = false; }
 };
 
@@ -637,39 +665,23 @@ $("delBtn").onclick = async () => {
   } catch (err) { b.textContent = "Couldn't delete"; }
 };
 
-// ---------- CSV export ----------
-$("exportBtn").onclick = async () => {
-  const rows = [["Date", "Business", "Line", "Line name", "Vendor", "Description", "Amount", "Deductible amount", "Miles", "Paid with", "Needs review", "Review note", "Receipt photo"]];
-  [...filtered()].sort((a, b) => a.date.localeCompare(b.date)).forEach(e => rows.push([
-    e.date, e.business ? BIZ_BY[e.business].name : "", e.line, LINE_NAME[e.line], e.vendor, e.memo,
-    e.amount.toFixed(2), deductible(e).toFixed(2), e.miles ?? "", e.payment, e.needsReview ? "yes" : "", e.reviewNote, e.receipt ? "yes" : "no",
-  ]));
-  const csv = rows.map(r => r.map(v => { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\n");
-  const who = state.biz === "all" ? "all" : state.biz;
-  try { await downloads.save({ filename: `schedule-c-${state.year}-${who}.csv`, data: csv }); toast("Exported"); }
-  catch (err) { if (!err || err.code !== "declined") toast("Export isn't available here"); }
-};
-
 // ---------- boot ----------
 render();
 (async () => {
-  if (!window.claude || !window.claude.use) { setStatus("Open this ledger in Claude to load your expenses."); return; }
-  const [d, a, dl, s, u] = await Promise.all(["db", "assets", "downloads", "sample", "user"].map(n => window.claude.use(n).catch(() => null)));
-  db = d; assets = a; downloads = dl; sample = s;
-  if (downloads) $("exportBtn").hidden = false;
-  if (sample) { try { const lim = await sample.limits(); canImages = !!lim.images; } catch (e) { canImages = false; } }
-  if (u) { try { const w = await u.can("data.write"); if (w === false) canWrite = false; } catch (e) {} }
-  if (!db) { setStatus("Sign in to Claude to see your expenses."); return; }
+  if (!window.claude || !window.claude.use) { setStatus("Open your Receipt Jar in Claude to see your receipts."); return; }
+  const [d, a, s, u] = await Promise.all(["db", "assets", "sample", "user"].map(n => window.claude.use(n).catch(() => null)));
+  db = d; assets = a; sample = s;
+  if (sample) { try { canImages = !!(await sample.limits()).images; } catch (e) { canImages = false; } }
+  if (u) { try { if ((await u.can("data.write")) === false) canWrite = false; } catch (e) {} }
+  if (!db) { setStatus("Sign in to Claude to open your jar."); return; }
   $("addBtn").hidden = !canWrite;
-  const timer = setTimeout(() => setStatus("Your expenses can't be reached yet. They'll appear when the connection comes back."), 10000);
+  const timer = setTimeout(() => setStatus("Can't reach your receipts right now. They'll show up when the connection is back."), 10000);
   db.collection("expenses").onSnapshot(snap => {
     if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus(""); }
-    entries = snap.docs.map(normalize);
-    loaded = true;
-    render();
+    entries = snap.docs.map(normalize); loaded = true; render();
   }, err => {
     clearTimeout(timer);
-    setStatus(err && err.code === "revoked" ? "" : "Your expenses couldn't be loaded. Reopen the ledger to try again.");
+    setStatus(err && err.code === "revoked" ? "" : "Your receipts couldn't load. Reopen the jar to try again.");
   });
 })();
 </script>
