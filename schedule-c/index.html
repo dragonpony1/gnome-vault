@@ -111,6 +111,8 @@ select.year { flex: none; width: auto; appearance: none; background: var(--card)
 .pill.mahjong { background: var(--mj-soft); color: var(--mj); }
 .pill.doterra { background: var(--dt-soft); color: var(--dt); }
 .pill.review { background: var(--warn-soft); color: var(--warn); }
+.pill.claude { background: var(--accent-soft); color: var(--accent); }
+img.who { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px var(--card); }
 .memo { font-size: 0.8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .amt { font-family: var(--display); font-weight: 500; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
 
@@ -335,7 +337,8 @@ const deductible = e => e.line === "24b" ? round2(e.amount * 0.5) : e.amount;
 const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-let db = null, assets = null, sample = null, canImages = false, canWrite = true;
+let db = null, assets = null, sample = null, userNs = null, myId = null, canImages = false, canWrite = true;
+let PROFILES = {};
 let entries = [];
 let loaded = false;
 const state = { year: String(new Date().getFullYear()), biz: "all", tab: "entries" };
@@ -374,8 +377,34 @@ function normalize(snap) {
     needsReview: !!d.needsReview || !BIZ_BY[d.business],
     reviewNote: String(d.reviewNote || ""),
     source: String(d.source || ""),
+    addedBy: typeof d.addedBy === "string" ? d.addedBy : "",
     createdAt: String(d.createdAt || ""),
   };
+}
+
+// Who added a receipt: their avatar, or a little "Claude" pill for ones filed from chat.
+function whoBadge(e) {
+  if (e.addedBy) {
+    const img = document.createElement("img"); img.className = "who"; img.alt = ""; img.dataset.uid = e.addedBy;
+    paintWho(img); return img;
+  }
+  if (e.source === "claude") return Object.assign(document.createElement("span"), { className: "pill claude", textContent: "✦ Claude", title: "Claude filed this from a photo" });
+  return null;
+}
+function paintWho(img) {
+  const p = PROFILES[img.dataset.uid];
+  if (!p) { img.hidden = true; return; }
+  img.hidden = false; img.src = p.avatarUrl;
+  img.title = (p.isMe ? "You" : p.name || "Someone") + " added this";
+}
+async function resolveProfiles() {
+  if (!userNs) return;
+  const ids = [...new Set(entries.map(e => e.addedBy).filter(Boolean))];
+  if (!ids.length) return;
+  const ps = await userNs.profiles(ids);
+  const changed = ids.some(id => !PROFILES[id] || PROFILES[id].avatarUrl !== ps[id].avatarUrl || PROFILES[id].name !== ps[id].name);
+  PROFILES = ps;
+  if (changed) document.querySelectorAll("img.who[data-uid]").forEach(paintWho);
 }
 const yearEntries = () => entries.filter(e => e.date.slice(0, 4) === state.year);
 const filtered = () => { const ys = yearEntries(); return state.biz === "all" ? ys : ys.filter(e => e.business === state.biz); };
@@ -445,6 +474,7 @@ function rcptCard(e) {
   const v = document.createElement("div"); v.className = "vendor"; v.textContent = e.vendor || "Mystery receipt";
   const tags = document.createElement("div"); tags.className = "tags";
   const dt = document.createElement("span"); dt.textContent = e.date ? new Date(e.date + "T12:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No date";
+  const who = whoBadge(e); if (who) tags.appendChild(who);
   tags.appendChild(dt);
   if (e.business) tags.appendChild(Object.assign(document.createElement("span"), { className: "pill " + e.business, textContent: BIZ_BY[e.business].name }));
   tags.appendChild(Object.assign(document.createElement("span"), { className: "pill", textContent: LINE_NAME[e.line] }));
@@ -516,6 +546,7 @@ function render() {
   if (state.tab === "entries") renderReceipts(filtered(), view, `No ${who}receipts for ${state.year} yet`, "Send Claude a photo of a receipt in chat, or tap Add a receipt below.");
   else if (state.tab === "lines") renderWhere(view);
   else renderReceipts(filtered().filter(e => e.needsReview), view, "All clear!", "Receipts that need a second look will wait for you here.");
+  resolveProfiles();
 }
 ["entries", "lines", "review"].forEach(t => $("tab-" + t).onclick = () => { state.tab = t; saveUI(); render(); });
 $("year").onchange = e => { state.year = e.target.value; render(); };
@@ -639,7 +670,9 @@ $("editForm").onsubmit = async ev => {
     memo: $("f-memo").value.trim(), payment: $("f-payment").value.trim(),
     miles: LINE_SELECT.value === "9" && $("f-miles").value !== "" ? Number($("f-miles").value) : null,
     receipt: draftReceipt || "", needsReview: $("f-review").checked, reviewNote: $("f-review").checked ? $("f-note").value.trim() : "",
-    source: editing ? editing.source || "app" : "app", createdAt: editing ? editing.createdAt || now : now, updatedAt: now,
+    source: editing ? editing.source || "app" : "app",
+    addedBy: editing ? editing.addedBy : (myId || ""),
+    createdAt: editing ? editing.createdAt || now : now, updatedAt: now,
   };
   const btn = $("saveBtn"); btn.disabled = true;
   try {
@@ -670,10 +703,11 @@ render();
 (async () => {
   if (!window.claude || !window.claude.use) { setStatus("Open your Receipt Jar in Claude to see your receipts."); return; }
   const [d, a, s, u] = await Promise.all(["db", "assets", "sample", "user"].map(n => window.claude.use(n).catch(() => null)));
-  db = d; assets = a; sample = s;
+  db = d; assets = a; sample = s; userNs = u;
   if (sample) { try { canImages = !!(await sample.limits()).images; } catch (e) { canImages = false; } }
-  if (u) { try { if ((await u.can("data.write")) === false) canWrite = false; } catch (e) {} }
+  if (u) { try { myId = await u.id(); if ((await u.can("data.write")) === false) canWrite = false; } catch (e) {} }
   if (!db) { setStatus("Sign in to Claude to open your jar."); return; }
+  if (!canWrite) setStatus("You can look but not add yet. Ask the jar's owner to make you an Editor in the Share menu.");
   $("addBtn").hidden = !canWrite;
   const timer = setTimeout(() => setStatus("Can't reach your receipts right now. They'll show up when the connection is back."), 10000);
   db.collection("expenses").onSnapshot(snap => {

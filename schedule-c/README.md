@@ -26,6 +26,7 @@ collection `expenses`, doc id like `e<yyyymmdd>-<vendor-slug>-<n>`:
 | needsReview | boolean | true when the business or line is a guess |
 | reviewNote | string | why it needs review |
 | source | "claude" | |
+| addedBy | string | user id of the person who added it in the app (omit for Claude entries) |
 | createdAt / updatedAt | ISO timestamp | |
 
 Photos the owner sends in chat land in `/mnt/user-data/uploads`.
