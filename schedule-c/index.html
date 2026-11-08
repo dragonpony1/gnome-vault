@@ -1,0 +1,675 @@
+<title>Schedule C Ledger</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a phone-first ledger. Sticky header with year + business filter, year totals per business,
+   then entries grouped by month or a Schedule C line worksheet. Floating "Add receipt" button. */
+:root {
+  --bg: #edf1f0;
+  --surface: #ffffff;
+  --sunk: #e2e8e7;
+  --ink: #16242a;
+  --muted: #5a6a70;
+  --line: #d1dad9;
+  --accent: #1d5a70;
+  --accent-ink: #ffffff;
+  --anes: #2c68a8;
+  --anes-soft: #e1ebf6;
+  --mj: #b0412c;
+  --mj-soft: #f6e4e0;
+  --dt: #6b5799;
+  --dt-soft: #ebe6f4;
+  --warn: #9a6512;
+  --warn-soft: #f8edd8;
+  --bad: #b3261e;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1618; --surface: #162125; --sunk: #1d2a2f; --ink: #e2ebeb; --muted: #94a6a9; --line: #2a3a3f;
+    --accent: #6fb4cb; --accent-ink: #0b1517;
+    --anes: #7fb0e6; --anes-soft: #1b2b3d; --mj: #ec8a75; --mj-soft: #3a211c; --dt: #b4a2e0; --dt-soft: #2a2440;
+    --warn: #e6b45c; --warn-soft: #3a2e17; --bad: #f2867e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1618; --surface: #162125; --sunk: #1d2a2f; --ink: #e2ebeb; --muted: #94a6a9; --line: #2a3a3f;
+  --accent: #6fb4cb; --accent-ink: #0b1517;
+  --anes: #7fb0e6; --anes-soft: #1b2b3d; --mj: #ec8a75; --mj-soft: #3a211c; --dt: #b4a2e0; --dt-soft: #2a2440;
+  --warn: #e6b45c; --warn-soft: #3a2e17; --bad: #f2867e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 120px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 10px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.titlerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 1.55rem; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h1 small { font-family: var(--mono); font-weight: 400; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; margin-left: 6px; vertical-align: middle; }
+.tools { display: flex; gap: 8px; align-items: center; }
+select.year, .ghost { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.ghost:hover { border-color: var(--accent); }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; white-space: nowrap; font-weight: 500; font-size: 0.9rem; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 0.9rem; }
+
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.tot { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 2px; text-align: left; position: relative; overflow: hidden; }
+.tot::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--c); }
+.tot .lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.tot .amt { font-family: var(--mono); font-size: 1.25rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tot .cnt { font-size: 0.8rem; color: var(--muted); }
+.tot[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+@media (max-width: 520px) { .tot .amt { font-size: 1.02rem; } .tot { padding: 10px 10px 10px 12px; } }
+
+.tabs { display: flex; gap: 18px; margin-top: 20px; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: 0; padding: 8px 0; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--ink); border-color: var(--accent); }
+.tab .badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--warn-soft); color: var(--warn); font-size: 0.75rem; margin-left: 4px; text-align: center; }
+
+.month { margin-top: 18px; }
+.month h2 { display: flex; justify-content: space-between; font-family: var(--display); font-size: 1rem; font-weight: 600; margin: 0 0 6px; color: var(--muted); }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
+.row:first-child { border-top: 0; }
+.row:hover { background: var(--sunk); }
+.thumb { width: 44px; height: 44px; border-radius: 6px; background: var(--sunk); object-fit: cover; display: grid; place-items: center; color: var(--muted); font-size: 0.65rem; font-family: var(--mono); }
+.main { min-width: 0; display: grid; gap: 3px; }
+.vendor { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.8rem; color: var(--muted); }
+.tag { border-radius: 4px; padding: 1px 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; }
+.tag.anesthesia { background: var(--anes-soft); color: var(--anes); }
+.tag.mahjong { background: var(--mj-soft); color: var(--mj); }
+.tag.doterra { background: var(--dt-soft); color: var(--dt); }
+.tag.review { background: var(--warn-soft); color: var(--warn); }
+.ln { font-family: var(--mono); font-size: 0.75rem; }
+.amtcol { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; text-align: right; }
+
+.empty { margin-top: 24px; padding: 28px 20px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; color: var(--muted); display: grid; gap: 6px; }
+.empty strong { color: var(--ink); font-family: var(--display); font-size: 1.1rem; }
+
+.sheet { margin-top: 18px; display: grid; gap: 18px; }
+.sheet section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.sheet h3 { margin: 0; padding: 10px 12px; font-family: var(--display); font-size: 1.02rem; display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); }
+.sheet h3 .who { display: flex; align-items: center; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+td, th { padding: 7px 12px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+tr:first-child td { border-top: 0; }
+td.l { font-family: var(--mono); color: var(--muted); width: 3.2em; white-space: nowrap; }
+td.r { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .note { display: block; font-size: 0.75rem; color: var(--muted); }
+tr.sum td { font-weight: 600; background: var(--sunk); }
+tr.part td { background: var(--sunk); color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+
+.fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 6; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 13px 20px; font-weight: 600; box-shadow: 0 6px 18px rgba(10, 30, 40, 0.25); display: flex; gap: 8px; align-items: center; }
+.fab svg { width: 18px; height: 18px; }
+
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+dialog::backdrop { background: rgba(8, 18, 22, 0.55); }
+.dlg { display: grid; gap: 14px; padding: 18px; }
+.dlg h2 { margin: 0; font-family: var(--display); font-size: 1.25rem; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 460px) { .grid2 { grid-template-columns: 1fr; } }
+label { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+input, select, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-weight: 400; font-size: 0.95rem; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 56px; }
+.check { display: flex; gap: 8px; align-items: center; font-weight: 500; color: var(--ink); font-size: 0.9rem; }
+.check input { width: auto; }
+.bizpick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.bizpick button { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 4px; font-weight: 600; font-size: 0.85rem; }
+.bizpick button[aria-pressed="true"] { border-color: var(--c); background: var(--cs); color: var(--c); }
+.photo { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
+.photo img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
+.photo .ph { flex: 1; min-width: 0; font-size: 0.85rem; color: var(--muted); }
+.btn { border-radius: 8px; padding: 9px 14px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--bad); }
+.btn.danger.arm { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.actions { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.actions .right { display: flex; gap: 8px; }
+.hint { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.msg { font-size: 0.85rem; color: var(--warn); margin: 0; }
+.viewer img { display: block; width: 100%; height: auto; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; z-index: 20; }
+@media (prefers-reduced-motion: no-preference) { .row, .chip, .tot { transition: background-color .15s, border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="titlerow">
+      <h1>Schedule C Ledger <small>FORM 1040</small></h1>
+      <div class="tools">
+        <select class="year" id="year" aria-label="Tax year"></select>
+        <button class="ghost" id="exportBtn" type="button" hidden>Export CSV</button>
+      </div>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Business filter"></div>
+  </header>
+
+  <div class="status" id="status" hidden></div>
+
+  <div class="totals" id="totals"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-entries" aria-selected="true" type="button">Entries</button>
+    <button class="tab" role="tab" id="tab-lines" aria-selected="false" type="button">By line</button>
+    <button class="tab" role="tab" id="tab-review" aria-selected="false" type="button">Needs review<span class="badge" id="reviewCount" hidden></span></button>
+  </div>
+
+  <div id="view"></div>
+</div>
+
+<button class="fab" id="addBtn" type="button" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+  Add receipt
+</button>
+
+<dialog id="editDlg" aria-labelledby="editTitle">
+  <form class="dlg" id="editForm" method="dialog">
+    <h2 id="editTitle">New expense</h2>
+
+    <div class="photo" id="photoBox">
+      <img id="photoPrev" alt="Receipt" hidden>
+      <div class="ph" id="photoText">No receipt photo yet.</div>
+      <label class="btn" for="photoInput" id="photoLbl" style="color:var(--ink);font-size:.9rem">Take / choose photo</label>
+      <input type="file" id="photoInput" accept="image/*" hidden>
+    </div>
+    <p class="msg" id="scanMsg" hidden></p>
+
+    <div>
+      <label style="margin-bottom:4px">Business</label>
+      <div class="bizpick" id="bizPick"></div>
+    </div>
+
+    <div class="grid2">
+      <label>Date<input type="date" id="f-date" required></label>
+      <label>Amount ($)<input type="number" id="f-amount" step="0.01" min="0" inputmode="decimal" required></label>
+    </div>
+    <label>Vendor<input type="text" id="f-vendor" required autocomplete="off"></label>
+    <label>Schedule C line<select id="f-line"></select></label>
+    <label id="milesWrap" hidden>Business miles<input type="number" id="f-miles" step="0.1" min="0" inputmode="decimal"></label>
+    <label>What it was for<textarea id="f-memo" rows="2"></textarea></label>
+    <label>Paid with<input type="text" id="f-payment" placeholder="e.g. Amex ••1004" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" id="f-review"> Needs review</label>
+    <label id="noteWrap" hidden>Review note<input type="text" id="f-note" autocomplete="off"></label>
+
+    <div class="actions">
+      <button class="btn danger" type="button" id="delBtn" hidden>Delete</button>
+      <div class="right">
+        <button class="btn" type="button" id="cancelBtn">Cancel</button>
+        <button class="btn primary" type="submit" id="saveBtn">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="viewDlg" class="viewer" aria-label="Receipt">
+  <div class="dlg">
+    <img id="viewImg" alt="Receipt photo">
+    <div class="actions"><span></span><button class="btn" type="button" id="viewClose">Close</button></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const BIZ = [
+  { id: "anesthesia", name: "Anesthesia", c: "var(--anes)", cs: "var(--anes-soft)" },
+  { id: "mahjong", name: "Mahjong", c: "var(--mj)", cs: "var(--mj-soft)" },
+  { id: "doterra", name: "dōTERRA", c: "var(--dt)", cs: "var(--dt-soft)" },
+];
+const BIZ_BY = Object.fromEntries(BIZ.map(b => [b.id, b]));
+// Schedule C Part II expense lines, plus Part III purchases for resale inventory.
+const LINES = [
+  ["8", "Advertising"],
+  ["9", "Car and truck expenses"],
+  ["10", "Commissions and fees"],
+  ["11", "Contract labor"],
+  ["13", "Depreciation and section 179"],
+  ["14", "Employee benefit programs"],
+  ["15", "Insurance (other than health)"],
+  ["16a", "Interest: mortgage"],
+  ["16b", "Interest: other"],
+  ["17", "Legal and professional services"],
+  ["18", "Office expense"],
+  ["19", "Pension and profit-sharing plans"],
+  ["20a", "Rent or lease: vehicles, machinery, equipment"],
+  ["20b", "Rent or lease: other business property"],
+  ["21", "Repairs and maintenance"],
+  ["22", "Supplies"],
+  ["23", "Taxes and licenses"],
+  ["24a", "Travel"],
+  ["24b", "Deductible meals"],
+  ["25", "Utilities"],
+  ["26", "Wages"],
+  ["27b", "Other expenses (Part V)"],
+  ["30", "Business use of home"],
+  ["36", "Purchases for inventory (Part III, COGS)"],
+];
+const LINE_NAME = Object.fromEntries(LINES);
+const LINE_ORDER = Object.fromEntries(LINES.map((l, i) => [l[0], i]));
+
+const $ = id => document.getElementById(id);
+const money = n => (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const deductible = e => e.line === "24b" ? round2(e.amount * 0.5) : e.amount;
+const round2 = n => Math.round(n * 100) / 100;
+const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+
+let db = null, assets = null, downloads = null, sample = null, canImages = false, canWrite = true;
+let entries = [];       // [{id, ...data}]
+let loaded = false;
+const state = { year: String(new Date().getFullYear()), biz: "all", tab: "entries" };
+try { const s = JSON.parse(localStorage.getItem("schc-ui") || "{}"); if (s.biz) state.biz = s.biz; if (s.tab) state.tab = s.tab; } catch (e) {}
+const saveUI = () => { try { localStorage.setItem("schc-ui", JSON.stringify({ biz: state.biz, tab: state.tab })); } catch (e) {} };
+
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 2200); }
+function setStatus(t) { const el = $("status"); el.textContent = t || ""; el.hidden = !t; }
+
+function normalize(snap) {
+  const d = snap.data() || {};
+  return {
+    id: snap.id,
+    date: typeof d.date === "string" ? d.date : "",
+    vendor: String(d.vendor || ""),
+    amount: Number(d.amount) || 0,
+    business: BIZ_BY[d.business] ? d.business : "",
+    line: LINE_NAME[d.line] ? d.line : "27b",
+    memo: String(d.memo || ""),
+    payment: String(d.payment || ""),
+    miles: d.miles == null || d.miles === "" ? null : Number(d.miles),
+    receipt: typeof d.receipt === "string" && /^[0-9a-f]{32}$/.test(d.receipt) ? d.receipt : "",
+    needsReview: !!d.needsReview || !BIZ_BY[d.business],
+    reviewNote: String(d.reviewNote || ""),
+    source: String(d.source || ""),
+    createdAt: String(d.createdAt || ""),
+  };
+}
+
+function yearEntries() { return entries.filter(e => e.date.slice(0, 4) === state.year); }
+function filtered() { const ys = yearEntries(); return state.biz === "all" ? ys : ys.filter(e => e.business === state.biz); }
+
+function renderYears() {
+  const ys = new Set(entries.map(e => e.date.slice(0, 4)).filter(y => /^\d{4}$/.test(y)));
+  ys.add(String(new Date().getFullYear())); ys.add(state.year);
+  const sel = $("year");
+  sel.innerHTML = "";
+  [...ys].sort().reverse().forEach(y => { const o = document.createElement("option"); o.value = y; o.textContent = y; sel.appendChild(o); });
+  sel.value = state.year;
+}
+
+function renderChips() {
+  const el = $("chips"); el.innerHTML = "";
+  [{ id: "all", name: "All businesses" }, ...BIZ].forEach(b => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "chip"; btn.textContent = b.name;
+    btn.setAttribute("aria-pressed", String(state.biz === b.id));
+    btn.onclick = () => { state.biz = b.id; saveUI(); render(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderTotals() {
+  const el = $("totals"); el.innerHTML = "";
+  const ys = yearEntries();
+  BIZ.forEach(b => {
+    const mine = ys.filter(e => e.business === b.id);
+    const sum = mine.reduce((s, e) => s + deductible(e), 0);
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "tot"; btn.style.setProperty("--c", b.c);
+    btn.setAttribute("aria-pressed", String(state.biz === b.id));
+    btn.innerHTML = `<span class="lbl"></span><span class="amt"></span><span class="cnt"></span>`;
+    btn.querySelector(".lbl").textContent = b.name;
+    btn.querySelector(".amt").textContent = loaded ? money(sum) : "—";
+    btn.querySelector(".cnt").textContent = loaded ? `${mine.length} ${mine.length === 1 ? "entry" : "entries"} · ${state.year}` : "Loading…";
+    btn.onclick = () => { state.biz = state.biz === b.id ? "all" : b.id; saveUI(); render(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderTabs() {
+  ["entries", "lines", "review"].forEach(t => $("tab-" + t).setAttribute("aria-selected", String(state.tab === t)));
+  const n = filtered().filter(e => e.needsReview).length;
+  const b = $("reviewCount"); b.textContent = n; b.hidden = !n;
+}
+
+function rowFor(e) {
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "row";
+  const thumb = e.receipt ? Object.assign(document.createElement("img"), { className: "thumb", src: "/_blob/" + e.receipt, alt: "", loading: "lazy" }) : Object.assign(document.createElement("div"), { className: "thumb", textContent: "NO IMG" });
+  if (e.receipt) thumb.onerror = () => { const d = document.createElement("div"); d.className = "thumb"; d.textContent = "—"; thumb.replaceWith(d); };
+  const main = document.createElement("div"); main.className = "main";
+  const v = document.createElement("div"); v.className = "vendor"; v.textContent = e.vendor || "(no vendor)";
+  const meta = document.createElement("div"); meta.className = "meta";
+  const dt = document.createElement("span"); dt.className = "num"; dt.textContent = e.date.slice(5).replace("-", "/");
+  meta.appendChild(dt);
+  if (e.business) { const t = document.createElement("span"); t.className = "tag " + e.business; t.textContent = BIZ_BY[e.business].name; meta.appendChild(t); }
+  const ln = document.createElement("span"); ln.className = "ln"; ln.textContent = "L" + e.line + " " + LINE_NAME[e.line]; meta.appendChild(ln);
+  if (e.needsReview) { const r = document.createElement("span"); r.className = "tag review"; r.textContent = "Review"; r.title = e.reviewNote; meta.appendChild(r); }
+  main.append(v, meta);
+  if (e.memo) { const m = document.createElement("div"); m.className = "meta"; m.textContent = e.memo; main.appendChild(m); }
+  const a = document.createElement("div"); a.className = "amtcol"; a.textContent = money(e.amount);
+  btn.append(thumb, main, a);
+  btn.onclick = () => openEdit(e);
+  return btn;
+}
+
+function emptyState(title, body) {
+  const d = document.createElement("div"); d.className = "empty";
+  const s = document.createElement("strong"); s.textContent = title;
+  const p = document.createElement("span"); p.textContent = body;
+  d.append(s, p); return d;
+}
+
+function renderEntries(list, view) {
+  if (!list.length) {
+    view.appendChild(loaded
+      ? emptyState(`No ${state.biz === "all" ? "" : BIZ_BY[state.biz].name + " "}expenses for ${state.year} yet`, "Send Claude a photo of a receipt in your chat, or tap Add receipt to snap one here.")
+      : emptyState("Loading your ledger…", "Your expenses will appear here, grouped by month."));
+    return;
+  }
+  const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  const byMonth = new Map();
+  sorted.forEach(e => { const k = e.date.slice(0, 7); if (!byMonth.has(k)) byMonth.set(k, []); byMonth.get(k).push(e); });
+  byMonth.forEach((items, k) => {
+    const sec = document.createElement("section"); sec.className = "month";
+    const h = document.createElement("h2");
+    const [y, m] = k.split("-");
+    const name = isNaN(+m) ? "Undated" : new Date(+y, +m - 1, 1).toLocaleString("en-US", { month: "long" });
+    h.innerHTML = `<span></span><span class="num"></span>`;
+    h.children[0].textContent = name;
+    h.children[1].textContent = money(items.reduce((s, e) => s + e.amount, 0));
+    const l = document.createElement("div"); l.className = "list";
+    items.forEach(e => l.appendChild(rowFor(e)));
+    sec.append(h, l); view.appendChild(sec);
+  });
+}
+
+function renderLines(view) {
+  const ys = yearEntries();
+  const bizList = state.biz === "all" ? BIZ : [BIZ_BY[state.biz]];
+  const wrap = document.createElement("div"); wrap.className = "sheet";
+  bizList.forEach(b => {
+    const mine = ys.filter(e => e.business === b.id);
+    const sec = document.createElement("section");
+    const h = document.createElement("h3"); h.style.setProperty("--c", b.c);
+    h.innerHTML = `<span class="who"><span class="dot"></span><span></span></span><span class="num"></span>`;
+    h.querySelector(".who span:last-child").textContent = `${b.name} · Schedule C ${state.year}`;
+    h.querySelector(".num").textContent = money(mine.reduce((s, e) => s + deductible(e), 0));
+    sec.appendChild(h);
+    const tw = document.createElement("div"); tw.className = "tablewrap";
+    const t = document.createElement("table");
+    if (!mine.length) {
+      t.innerHTML = `<tr><td class="hint">No ${b.name} entries for ${state.year}.</td></tr>`;
+    } else {
+      const groups = {};
+      mine.forEach(e => { (groups[e.line] ||= []).push(e); });
+      const keys = Object.keys(groups).sort((a, c) => LINE_ORDER[a] - LINE_ORDER[c]);
+      const partII = keys.filter(k => k !== "36"), partIII = keys.filter(k => k === "36");
+      const addRow = k => {
+        const g = groups[k];
+        const raw = g.reduce((s, e) => s + e.amount, 0);
+        const ded = g.reduce((s, e) => s + deductible(e), 0);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="l"></td><td></td><td class="r"></td>`;
+        tr.children[0].textContent = k;
+        tr.children[1].textContent = LINE_NAME[k];
+        const note = document.createElement("span"); note.className = "note";
+        let n = `${g.length} ${g.length === 1 ? "receipt" : "receipts"}`;
+        if (k === "24b") n += ` · ${money(raw)} spent, 50% deductible`;
+        if (k === "9") { const mi = g.reduce((s, e) => s + (e.miles || 0), 0); if (mi) n += ` · ${mi.toLocaleString("en-US")} business miles logged`; }
+        note.textContent = n; tr.children[1].appendChild(note);
+        tr.children[2].textContent = money(ded);
+        t.appendChild(tr);
+      };
+      const part = label => { const tr = document.createElement("tr"); tr.className = "part"; tr.innerHTML = `<td colspan="3"></td>`; tr.firstChild.textContent = label; t.appendChild(tr); };
+      if (partII.length) {
+        part("Part II · Expenses");
+        partII.forEach(addRow);
+        const tr = document.createElement("tr"); tr.className = "sum";
+        tr.innerHTML = `<td class="l">28</td><td>Total expenses</td><td class="r"></td>`;
+        tr.children[2].textContent = money(partII.reduce((s, k) => s + groups[k].reduce((a, e) => a + deductible(e), 0), 0));
+        t.appendChild(tr);
+      }
+      if (partIII.length) { part("Part III · Cost of goods sold"); partIII.forEach(addRow); }
+    }
+    tw.appendChild(t); sec.appendChild(tw); wrap.appendChild(sec);
+  });
+  const hint = document.createElement("p"); hint.className = "hint";
+  hint.textContent = "Meals (line 24b) show at 50%. Car expenses show actual costs; if you use the standard mileage rate instead, give your preparer the miles. Totals are a worksheet for you and your preparer, not a filed return.";
+  wrap.appendChild(hint);
+  view.appendChild(wrap);
+}
+
+function render() {
+  renderYears(); renderChips(); renderTotals(); renderTabs();
+  const view = $("view"); view.innerHTML = "";
+  if (state.tab === "entries") renderEntries(filtered(), view);
+  else if (state.tab === "lines") renderLines(view);
+  else {
+    const list = filtered().filter(e => e.needsReview);
+    if (!list.length) view.appendChild(emptyState("Nothing to review", "Entries Claude wasn't sure about, or ones you flag, show up here."));
+    else renderEntries(list, view);
+  }
+}
+
+["entries", "lines", "review"].forEach(t => $("tab-" + t).onclick = () => { state.tab = t; saveUI(); render(); });
+$("year").onchange = e => { state.year = e.target.value; render(); };
+
+// ---------- edit dialog ----------
+const LINE_SELECT = $("f-line");
+LINES.forEach(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = `${k} · ${n}`; LINE_SELECT.appendChild(o); });
+let editing = null;       // entry being edited, or null for new
+let draftBiz = "";
+let draftReceipt = "";    // asset id
+let draftPhotoFile = null;
+
+function renderBizPick() {
+  const el = $("bizPick"); el.innerHTML = "";
+  BIZ.forEach(b => {
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = b.name;
+    btn.style.setProperty("--c", b.c); btn.style.setProperty("--cs", b.cs);
+    btn.setAttribute("aria-pressed", String(draftBiz === b.id));
+    btn.onclick = () => { draftBiz = b.id; renderBizPick(); };
+    el.appendChild(btn);
+  });
+}
+function syncConditional() {
+  $("milesWrap").hidden = LINE_SELECT.value !== "9";
+  $("noteWrap").hidden = !$("f-review").checked;
+}
+LINE_SELECT.onchange = syncConditional;
+$("f-review").onchange = syncConditional;
+
+function setPhoto(src, text) {
+  const img = $("photoPrev");
+  if (src) { img.src = src; img.hidden = false; } else { img.removeAttribute("src"); img.hidden = true; }
+  $("photoText").textContent = text;
+}
+
+function openEdit(e) {
+  editing = e || null;
+  $("editTitle").textContent = e ? "Edit expense" : "New expense";
+  draftBiz = e ? e.business : (state.biz !== "all" ? state.biz : "");
+  draftReceipt = e ? e.receipt : "";
+  draftPhotoFile = null;
+  $("f-date").value = e ? e.date : todayISO();
+  $("f-amount").value = e ? e.amount : "";
+  $("f-vendor").value = e ? e.vendor : "";
+  LINE_SELECT.value = e ? e.line : "22";
+  $("f-miles").value = e && e.miles != null ? e.miles : "";
+  $("f-memo").value = e ? e.memo : "";
+  $("f-payment").value = e ? e.payment : "";
+  $("f-review").checked = e ? e.needsReview : false;
+  $("f-note").value = e ? e.reviewNote : "";
+  $("scanMsg").hidden = true;
+  if (draftReceipt) setPhoto("/_blob/" + draftReceipt, "Receipt attached. Tap the photo to view it.");
+  else setPhoto("", assets ? (canImages ? "Snap the receipt and Claude fills in the fields." : "Attach a photo of the receipt.") : "Photos can be attached by the ledger's owner.");
+  $("photoLbl").hidden = !assets;
+  const del = $("delBtn"); del.hidden = !e; del.classList.remove("arm"); del.textContent = "Delete";
+  renderBizPick(); syncConditional();
+  $("editDlg").showModal();
+}
+$("photoPrev").onclick = () => { if ($("photoPrev").src) { $("viewImg").src = $("photoPrev").src; $("viewDlg").showModal(); } };
+$("viewClose").onclick = () => $("viewDlg").close();
+$("cancelBtn").onclick = () => $("editDlg").close();
+$("addBtn").onclick = () => openEdit(null);
+
+$("photoInput").onchange = async ev => {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  draftPhotoFile = file;
+  const local = URL.createObjectURL(file);
+  setPhoto(local, "Saving photo…");
+  const msg = $("scanMsg"); msg.hidden = true;
+  // Upload and read the receipt in parallel.
+  const up = (async () => {
+    try {
+      const type = /^image\/(png|jpeg|gif|webp)$/.test(file.type) ? file.type : "image/jpeg";
+      const r = await assets.upload(file, { type });
+      draftReceipt = r.id; return true;
+    } catch (err) {
+      msg.textContent = err && err.code === "unsupported_type" ? "That photo format can't be stored. Try a JPEG or PNG (on iPhone: Settings › Camera › Formats › Most Compatible)." : "The photo couldn't be saved. You can still save the entry and attach a photo later.";
+      msg.hidden = false; return false;
+    }
+  })();
+  const read = canImages ? scanReceipt(file) : Promise.resolve(null);
+  setPhoto(local, canImages ? "Reading the receipt…" : "Saving photo…");
+  const [ok, fields] = await Promise.all([up, read]);
+  if (fields) applyScan(fields);
+  setPhoto(local, fields ? "Filled in from the receipt. Check it, then Save." : ok ? "Photo attached." : "Photo not saved.");
+};
+
+async function scanReceipt(file) {
+  const lines = LINES.map(([k, n]) => `${k}: ${n}`).join("\n");
+  const prompt = `You are filing a receipt for a sole proprietor's IRS Schedule C. The image is a photo of one receipt or invoice.
+The owner runs three businesses:
+- "anesthesia": an anesthesia practice (anesthesia/medical supplies, scrubs, CME and conferences, licenses, DEA and board renewals, malpractice insurance, professional dues, medical equipment).
+- "mahjong": custom American mahjong tile sets sold online (blank tiles, sticker or vinyl, Cricut supplies, printing, packaging, shipping, Etsy fees and ads, design software).
+- "doterra": a doTERRA essential-oil business (doTERRA product orders, samples, diffusers, class supplies, display items).
+Schedule C lines:
+${lines}
+Use "36" only for goods bought to resell. Use "24b" for restaurant meals. Today is ${todayISO()}.
+Reply with only a JSON object with these keys:
+{"date":"YYYY-MM-DD or empty","vendor":"store or payee","amount":total paid as a number,"business":"anesthesia|mahjong|doterra|unknown","line":"line number from the list","memo":"short description of what was bought","payment":"card brand and last 4 digits if shown, else empty","confident":true or false,"note":"why it needs review, if not confident"}`;
+  try {
+    return await sample.json(prompt, { images: file, modelTier: "default" });
+  } catch (err) {
+    const msg = $("scanMsg");
+    msg.textContent = err && err.code === "not_granted" ? "Allow Claude for this page to read receipts automatically. You can type the details in." : "Couldn't read the receipt automatically. Type the details in.";
+    msg.hidden = false;
+    return null;
+  }
+}
+
+function applyScan(f) {
+  if (!f || typeof f !== "object") return;
+  if (typeof f.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f.date)) $("f-date").value = f.date;
+  const amt = Number(f.amount); if (isFinite(amt) && amt > 0) $("f-amount").value = round2(amt);
+  if (f.vendor) $("f-vendor").value = String(f.vendor).slice(0, 120);
+  if (LINE_NAME[String(f.line)]) LINE_SELECT.value = String(f.line);
+  if (f.memo) $("f-memo").value = String(f.memo).slice(0, 300);
+  if (f.payment) $("f-payment").value = String(f.payment).slice(0, 60);
+  if (BIZ_BY[f.business] && !draftBiz) draftBiz = f.business;
+  if (f.confident === false || !BIZ_BY[f.business]) { $("f-review").checked = true; $("f-note").value = String(f.note || "Check the business and line.").slice(0, 200); }
+  renderBizPick(); syncConditional();
+}
+
+$("editForm").onsubmit = async ev => {
+  ev.preventDefault();
+  if (!db) return;
+  const amount = round2(Number($("f-amount").value));
+  if (!draftBiz) { const m = $("scanMsg"); m.textContent = "Pick which business this expense belongs to."; m.hidden = false; return; }
+  if (!$("f-date").value || !$("f-vendor").value.trim() || !isFinite(amount)) return;
+  const now = new Date().toISOString();
+  const body = {
+    date: $("f-date").value,
+    vendor: $("f-vendor").value.trim(),
+    amount,
+    business: draftBiz,
+    line: LINE_SELECT.value,
+    memo: $("f-memo").value.trim(),
+    payment: $("f-payment").value.trim(),
+    miles: LINE_SELECT.value === "9" && $("f-miles").value !== "" ? Number($("f-miles").value) : null,
+    receipt: draftReceipt || "",
+    needsReview: $("f-review").checked,
+    reviewNote: $("f-review").checked ? $("f-note").value.trim() : "",
+    source: editing ? editing.source || "app" : "app",
+    createdAt: editing ? editing.createdAt || now : now,
+    updatedAt: now,
+  };
+  const btn = $("saveBtn"); btn.disabled = true;
+  try {
+    const ref = editing ? db.collection("expenses").doc(editing.id) : db.collection("expenses").doc("e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    await ref.set(body);
+    if (body.date.slice(0, 4) !== state.year) state.year = body.date.slice(0, 4);
+    $("editDlg").close();
+    toast(editing ? "Saved" : "Added");
+  } catch (err) {
+    const m = $("scanMsg");
+    m.textContent = err && err.code === "quota_exceeded" ? "The ledger is full. Delete old entries to add more." : err && err.code === "invalid_argument" ? "You don't have permission to change this ledger." : "Couldn't save. Check your connection and try again.";
+    m.hidden = false;
+  } finally { btn.disabled = false; }
+};
+
+$("delBtn").onclick = async () => {
+  const b = $("delBtn");
+  if (!b.classList.contains("arm")) { b.classList.add("arm"); b.textContent = "Tap again to delete"; return; }
+  try {
+    const rec = editing.receipt;
+    await db.collection("expenses").doc(editing.id).delete();
+    if (rec && assets && !entries.some(e => e.id !== editing.id && e.receipt === rec)) { try { await assets.delete(rec); } catch (e) {} }
+    $("editDlg").close(); toast("Deleted");
+  } catch (err) { b.textContent = "Couldn't delete"; }
+};
+
+// ---------- CSV export ----------
+$("exportBtn").onclick = async () => {
+  const rows = [["Date", "Business", "Line", "Line name", "Vendor", "Description", "Amount", "Deductible amount", "Miles", "Paid with", "Needs review", "Review note", "Receipt photo"]];
+  [...filtered()].sort((a, b) => a.date.localeCompare(b.date)).forEach(e => rows.push([
+    e.date, e.business ? BIZ_BY[e.business].name : "", e.line, LINE_NAME[e.line], e.vendor, e.memo,
+    e.amount.toFixed(2), deductible(e).toFixed(2), e.miles ?? "", e.payment, e.needsReview ? "yes" : "", e.reviewNote, e.receipt ? "yes" : "no",
+  ]));
+  const csv = rows.map(r => r.map(v => { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\n");
+  const who = state.biz === "all" ? "all" : state.biz;
+  try { await downloads.save({ filename: `schedule-c-${state.year}-${who}.csv`, data: csv }); toast("Exported"); }
+  catch (err) { if (!err || err.code !== "declined") toast("Export isn't available here"); }
+};
+
+// ---------- boot ----------
+render();
+(async () => {
+  if (!window.claude || !window.claude.use) { setStatus("Open this ledger in Claude to load your expenses."); return; }
+  const [d, a, dl, s, u] = await Promise.all(["db", "assets", "downloads", "sample", "user"].map(n => window.claude.use(n).catch(() => null)));
+  db = d; assets = a; downloads = dl; sample = s;
+  if (downloads) $("exportBtn").hidden = false;
+  if (sample) { try { const lim = await sample.limits(); canImages = !!lim.images; } catch (e) { canImages = false; } }
+  if (u) { try { const w = await u.can("data.write"); if (w === false) canWrite = false; } catch (e) {} }
+  if (!db) { setStatus("Sign in to Claude to see your expenses."); return; }
+  $("addBtn").hidden = !canWrite;
+  const timer = setTimeout(() => setStatus("Your expenses can't be reached yet. They'll appear when the connection comes back."), 10000);
+  db.collection("expenses").onSnapshot(snap => {
+    if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus(""); }
+    entries = snap.docs.map(normalize);
+    loaded = true;
+    render();
+  }, err => {
+    clearTimeout(timer);
+    setStatus(err && err.code === "revoked" ? "" : "Your expenses couldn't be loaded. Reopen the ledger to try again.");
+  });
+})();
+</script>
