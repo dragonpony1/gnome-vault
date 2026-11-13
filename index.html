@@ -20,6 +20,7 @@
     --line:#DDE3D4; --accent:#35694C; --accent-ink:#F3F5EF;
     --accent-soft:#E3EBDD; --danger:#A4432F; --danger-ink:#FFFFFF; --soft:#EAEEE3;
     --focus:#35694C66; --shadow:0 1px 2px rgba(35,43,33,.07),0 6px 18px rgba(35,43,33,.06);
+    --warn:#8A5A06; --warn-soft:#F6E7C8; --warn-ink:#FFFFFF;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -27,6 +28,7 @@
       --line:#333B2F; --accent:#82B394; --accent-ink:#12231A;
       --accent-soft:#28352C; --danger:#DE8168; --danger-ink:#1A1410; --soft:#2A3128;
       --focus:#82B39466; --shadow:0 1px 3px rgba(0,0,0,.45);
+      --warn:#E5B85C; --warn-soft:#3A3120; --warn-ink:#1A1410;
     }
   }
   :root[data-theme="dark"]{
@@ -34,6 +36,7 @@
     --line:#333B2F; --accent:#82B394; --accent-ink:#12231A;
     --accent-soft:#28352C; --danger:#DE8168; --danger-ink:#1A1410; --soft:#2A3128;
     --focus:#82B39466; --shadow:0 1px 3px rgba(0,0,0,.45);
+      --warn:#E5B85C; --warn-soft:#3A3120; --warn-ink:#1A1410;
   }
   *{box-sizing:border-box}
   body{
@@ -151,6 +154,43 @@
   .menu button{display:block; width:100%; text-align:left; border-radius:0; background:transparent; padding:13px 16px}
   .menu button:hover{background:var(--soft)}
 
+  /* ---- tabs ---- */
+  .tabs{display:flex; gap:6px; background:var(--soft); border-radius:13px; padding:4px; margin-bottom:14px}
+  .tabs button{flex:1; background:transparent; padding:9px 10px; font-weight:600; color:var(--muted); border-radius:10px}
+  .tabs button.on{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
+  .tabs .count{display:inline-block; min-width:20px; padding:0 6px; margin-left:4px; border-radius:999px; background:var(--warn); color:var(--warn-ink); font-size:12px; line-height:20px}
+
+  /* ---- credentials ---- */
+  .grouphead{font-size:12.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:18px 4px 8px}
+  .grouphead:first-child{margin-top:4px}
+  .badge{display:inline-block; font-size:12px; font-weight:600; border-radius:999px; padding:2px 9px; margin-top:6px}
+  .badge.ok{background:var(--accent-soft); color:var(--ink)}
+  .badge.soon{background:var(--warn-soft); color:var(--warn)}
+  .badge.bad{background:var(--danger); color:var(--danger-ink)}
+  .entry.soon{border-color:var(--warn)}
+  .entry.bad{border-color:var(--danger)}
+  .files{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  .filechip{display:inline-flex; align-items:center; gap:6px; background:var(--soft); border-radius:10px; padding:6px 10px; font-size:13px; max-width:100%; cursor:pointer}
+  .filechip img{width:44px; height:44px; object-fit:cover; border-radius:7px; border:1px solid var(--line)}
+  .filechip .fn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px}
+  .editfiles{display:flex; flex-direction:column; gap:8px; margin-top:4px}
+  .editfile{display:flex; align-items:center; gap:10px; background:var(--soft); border-radius:10px; padding:7px 10px; font-size:13.5px}
+  .editfile img{width:40px; height:40px; object-fit:cover; border-radius:7px}
+  .editfile .fn{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tworow{display:flex; gap:10px}
+  .tworow > div{flex:1; min-width:0}
+  select,input[type=date]{
+    width:100%; font:inherit; color:var(--ink); background:var(--card);
+    border:1px solid var(--line); border-radius:11px; padding:11px 12px; min-height:46px;
+    -webkit-appearance:none; appearance:none;
+  }
+  .banner.warn{background:var(--warn-soft)}
+  .banner.warn.bad{background:var(--danger); color:var(--danger-ink)}
+  #docOverlay{flex-direction:column; align-items:stretch; padding:12px; background:rgba(0,0,0,.9)}
+  #docOverlay .docbar{display:flex; gap:8px; margin-bottom:10px}
+  #docOverlay .docbar .grow{flex:1; color:#fff; font-size:14px; align-self:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #docFrame{flex:1; width:100%; min-height:75vh; border:none; border-radius:10px; background:#fff}
+
   #toast{
     position:fixed; left:50%; bottom:96px; transform:translateX(-50%);
     background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px;
@@ -235,6 +275,17 @@
     <button class="small ghost" id="backupLaterBtn">Later</button>
   </div>
 
+  <div class="tabs" role="tablist">
+    <button id="tabPw" class="on" role="tab">🔑 Passwords</button>
+    <button id="tabCred" role="tab">📋 Credentials<span class="count hidden" id="credAlertCount"></span></button>
+  </div>
+
+  <div class="banner warn hidden" id="credBanner">
+    <span>⚠️</span>
+    <span class="grow" id="credBannerText"></span>
+    <button class="small" id="credBannerBtn">View</button>
+  </div>
+
   <div class="searchrow">
     <input type="search" id="searchBox" placeholder="Search… (site, username)">
   </div>
@@ -242,13 +293,13 @@
   <div id="entryList"></div>
 
   <div class="empty hidden" id="emptyState">
-    <div class="big">🌱</div>
-    <div>Nothing saved yet.<br>Tap the green <strong>+</strong> button to add your first password.</div>
+    <div class="big" id="emptyBig">🌱</div>
+    <div id="emptyText">Nothing saved yet.<br>Tap the green <strong>+</strong> button to add your first password.</div>
   </div>
 
   <p class="foot"></p>
 
-  <button class="fab" id="addBtn" title="Add a password">+</button>
+  <button class="fab" id="addBtn" title="Add">+</button>
 </div>
 
 <!-- ============ ADD / EDIT MODAL ============ -->
@@ -319,7 +370,7 @@
 <div class="overlay hidden" id="shareOverlay">
   <div class="modal">
     <h2>Share this card</h2>
-    <p class="sub">This card has a photo. What should go out?</p>
+    <p class="sub" id="shareSub">This card has a photo. What should go out?</p>
     <div class="sharebtns">
       <button class="primary" id="shareBothBtn">Details and photo</button>
       <button id="shareTextBtn">Details only</button>
@@ -327,6 +378,46 @@
       <button class="ghost" id="shareCancelBtn">Cancel</button>
     </div>
   </div>
+</div>
+
+<!-- ============ ADD / EDIT CREDENTIAL ============ -->
+<div class="overlay hidden" id="credOverlay">
+  <div class="modal">
+    <h2 id="credTitle">Add a credential</h2>
+    <label for="cName">What is it?</label>
+    <input type="text" id="cName" placeholder="e.g. Iowa APRN license, ACLS card, DEA">
+    <label for="cCat">Type</label>
+    <select id="cCat"></select>
+    <label for="cNum">Number (optional)</label>
+    <input type="text" id="cNum" autocomplete="off" class="mono">
+    <label for="cIssuer">Issued by (optional)</label>
+    <input type="text" id="cIssuer" placeholder="e.g. Iowa Board of Nursing, AHA, NBCRNA">
+    <div class="tworow">
+      <div><label for="cIssued">Issued</label><input type="date" id="cIssued"></div>
+      <div><label for="cExp">Expires</label><input type="date" id="cExp"></div>
+    </div>
+    <label for="cNotes">Notes (optional)</label>
+    <textarea id="cNotes" placeholder="Renewal steps, CE hours needed, login for the board site…"></textarea>
+    <label>Files (photos or PDFs)</label>
+    <div class="editfiles" id="cFileList"></div>
+    <div class="genrow"><button class="small" id="cFileBtn">📎 Add photo or PDF</button></div>
+    <input type="file" id="cFileInput" accept="image/*,application/pdf,.pdf" multiple class="hidden">
+    <div class="modalbtns">
+      <button class="danger hidden" id="cDeleteBtn">Delete</button>
+      <button class="ghost" id="cCancelBtn">Cancel</button>
+      <button class="primary" id="cSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PDF VIEWER ============ -->
+<div class="overlay hidden" id="docOverlay">
+  <div class="docbar">
+    <span class="grow" id="docName"></span>
+    <button class="small" id="docShareBtn">📤 Share / Save</button>
+    <button class="small primary" id="docCloseBtn">Close</button>
+  </div>
+  <iframe id="docFrame" title="Document"></iframe>
 </div>
 
 <div class="overlay hidden" id="photoOverlay"><img id="photoFull" alt=""></div>
@@ -348,7 +439,7 @@
    restored backup and the local copy can be merged without loss.
    ============================================================ */
 
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/";   // the one Gnome Vault link — this is what gets shared
 const STORE_KEY   = "gnome-vault-v1";
 const PENDING_KEY = "gnome-vault-pending-v1";
@@ -368,6 +459,7 @@ let syncState = "checking";   // checking | synced | offline | problem
 let persisting = false, remotePending = null;
 let pendingImport = null;
 let pendingPhoto = "";   // data URL for the entry being edited
+let pendingFiles = [];   // attachments for the credential being edited
 let deleteArmed = false, deleteArmTimer = null;
 
 /* ---------- helpers ---------- */
@@ -398,38 +490,89 @@ function readMeta(){ try { const m = JSON.parse(lsGet(META_KEY)); if (m) return 
 function writeMeta(m){ memMeta = m; lsSet(META_KEY, JSON.stringify(m)); }
 function inViewer(){ return !!(window.claude && typeof window.claude.use === "function"); }
 
-/* ---------- the blob on this device ---------- */
-function getBlob(){
-  try { const p = JSON.parse(lsGet(STORE_KEY)); if (p && p.ct) return p; } catch(e){}
-  return currentBlob;
+/* ---------- the blob on this device ----------
+   Kept in IndexedDB (room for credential PDFs and photos; localStorage
+   tops out around 5 MB on a phone). Older versions used localStorage —
+   that copy is moved over on first open, then removed. The in-memory
+   copy is the working one; disk writes are queued in order. */
+const IDB_NAME = "gnome-vault", IDB_STORE = "kv";
+let idbPromise = null, saveChain = Promise.resolve();
+const bc = (typeof BroadcastChannel === "function") ? new BroadcastChannel("gnome-vault") : null;
+function idb(){
+  if (!idbPromise) idbPromise = new Promise(res => {
+    try {
+      const r = indexedDB.open(IDB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+      r.onblocked = () => res(null);
+    } catch(e){ res(null); }
+  });
+  return idbPromise;
 }
+async function idbGet(k){
+  const db = await idb(); if (!db) return undefined;
+  return new Promise(res => {
+    try { const q = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(k);
+      q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }
+    catch(e){ res(undefined); }
+  });
+}
+async function idbPut(k, v){
+  const db = await idb(); if (!db) return false;
+  return new Promise(res => {
+    try { const tx = db.transaction(IDB_STORE, "readwrite");
+      if (v === undefined) tx.objectStore(IDB_STORE).delete(k); else tx.objectStore(IDB_STORE).put(v, k);
+      tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false); }
+    catch(e){ res(false); }
+  });
+}
+function lsTrySet(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } }
+function writeDurable(key, blob){
+  saveChain = saveChain.then(async () => {
+    if (await idbPut(key, blob === null ? undefined : blob)){ lsDel(key); return; }
+    if (blob === null){ lsDel(key); return; }
+    if (!lsTrySet(key, JSON.stringify(blob))) toast("Couldn't save to this phone — storage is full. Save a backup file now.");
+  });
+  return saveChain;
+}
+function readLegacy(key){ try { const p = JSON.parse(lsGet(key)); if (p && p.ct) return p; } catch(e){} return null; }
+async function loadDurable(){
+  const a = await idbGet(STORE_KEY);
+  if (a && a.ct) currentBlob = a;
+  else { const l = readLegacy(STORE_KEY); if (l){ currentBlob = l; writeDurable(STORE_KEY, l); } }
+  const b = await idbGet(PENDING_KEY);
+  if (b && b.ct) pendingBlob = b;
+  else { const l = readLegacy(PENDING_KEY); if (l){ pendingBlob = l; writeDurable(PENDING_KEY, l); } }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch(e){}
+}
+function getBlob(){ return currentBlob; }
 function setBlob(blob){
   currentBlob = blob;
-  lsSet(STORE_KEY, JSON.stringify(blob));
+  writeDurable(STORE_KEY, blob);
+  try { if (bc) bc.postMessage(blob); } catch(e){}
 }
 // a blob whose cloud push failed — the cloud doesn't have these changes yet
 function markUnsynced(blob){ const m = readMeta(); m.unsynced = blob.ct; writeMeta(m); }
 function clearUnsynced(){ const m = readMeta(); if (m.unsynced){ delete m.unsynced; writeMeta(m); } }
 function isUnsynced(blob){ return !!blob && readMeta().unsynced === blob.ct; }
 // stash: an unsynced local blob set aside when a newer cloud copy replaced it while locked
-function getStash(){
-  try { const p = JSON.parse(lsGet(PENDING_KEY)); if (p && p.ct) return p; } catch(e){}
-  return pendingBlob;
-}
-function setStash(blob){ pendingBlob = blob; lsSet(PENDING_KEY, JSON.stringify(blob)); }
-function clearStash(){ pendingBlob = null; lsDel(PENDING_KEY); }
+function getStash(){ return pendingBlob; }
+function setStash(blob){ pendingBlob = blob; writeDurable(PENDING_KEY, blob); }
+function clearStash(){ if (pendingBlob){ pendingBlob = null; writeDurable(PENDING_KEY, null); } }
 function stashIfUnsynced(local){
   if (local && isUnsynced(local)){
     const s = getStash();
     if (!s || s.ct !== local.ct) setStash(local);
   }
 }
-window.addEventListener("storage", e => {
-  if (e.key !== STORE_KEY) return;
-  if (!sessionKey){ prepUnlockField(); return; }
+if (bc) bc.onmessage = e => {
+  const p = e.data;
+  if (!p || !p.ct) return;
+  if (!sessionKey){ currentBlob = p; prepUnlockField(); return; }
   // another tab on this device saved — fold it in like a remote change
-  try { const p = JSON.parse(e.newValue); if (p && p.ct && p.ct !== lastSeenCt) handleRemote(p); } catch(err){}
-});
+  if (p.ct !== lastSeenCt) handleRemote(p);
+};
 
 /* ---------- crypto ---------- */
 async function deriveKey(password, salt){
@@ -629,53 +772,89 @@ async function shareApp(){
    as plain text, with the photo attached where the browser allows files.
    Everything must happen inside the tap, so the photo is unpacked
    synchronously — no awaits before navigator.share(). */
+function fmtDate(iso){
+  if (!iso) return "";
+  const d = new Date(iso + "T12:00:00");
+  return isNaN(d) ? iso : d.toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" });
+}
 function entryText(e){
+  if (e.kind === "cred"){
+    const lines = [e.site || ""];
+    if (e.category) lines.push("Type: " + e.category);
+    if (e.number) lines.push("Number: " + e.number);
+    if (e.issuer) lines.push("Issued by: " + e.issuer);
+    if (e.issued) lines.push("Issued: " + fmtDate(e.issued));
+    if (e.expires) lines.push("Expires: " + fmtDate(e.expires));
+    if (e.notes) lines.push("Notes: " + e.notes);
+    return lines.join("\n");
+  }
   const lines = [e.site || ""];
   if (e.user) lines.push("Username: " + e.user);
   lines.push("Password: " + (e.pass || ""));
   if (e.notes) lines.push("Notes: " + e.notes);
   return lines.join("\n");
 }
-function entryPhotoFile(e){
+function safeStem(s){ return (s || "").replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "card"; }
+function dataUrlToFile(dataUrl, name){
   try {
-    const m = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+\/=]+)$/i.exec(e.photo || "");
+    const m = /^data:([a-z0-9.+\/-]+);base64,([A-Za-z0-9+\/=]+)$/i.exec(dataUrl || "");
     if (!m || typeof File !== "function") return null;
-    const type = m[1].toLowerCase();
-    const ext = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
-    const stem = (e.site || "").replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "card";
-    return new File([unb64(m[2])], stem + "." + ext, { type });
+    return new File([unb64(m[2])], name, { type: m[1].toLowerCase() });
   } catch(err){ return null; }
+}
+function extFor(type){
+  return type === "application/pdf" ? "pdf" : type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
+}
+// every attachment on a card, as File objects (built synchronously — must stay inside the tap)
+function entryFiles(e){
+  if (e.kind === "cred"){
+    return (e.files || []).map((f, i) => {
+      const name = f.name || (safeStem(e.site) + (i ? "-" + (i + 1) : "") + "." + extFor(f.type));
+      return dataUrlToFile(f.data, name);
+    }).filter(Boolean);
+  }
+  if (!e.photo) return [];
+  const type = (/^data:([^;]+);/.exec(e.photo) || [])[1] || "image/jpeg";
+  const f = dataUrlToFile(e.photo, safeStem(e.site) + "." + extFor(type));
+  return f ? [f] : [];
 }
 let shareTarget = null;   // the card the share chooser is open for
 function shareEntry(e){
-  if (!e.photo) return sendCard(e, "text");
+  const n = e.kind === "cred" ? (e.files || []).length : (e.photo ? 1 : 0);
+  if (!n) return sendCard(e, "text");
   shareTarget = e;
+  const word = e.kind === "cred" ? (n === 1 ? "file" : "files") : "photo";
+  $("shareSub").textContent = e.kind === "cred"
+    ? "This card has " + n + " " + word + ". What should go out?"
+    : "This card has a photo. What should go out?";
+  $("shareBothBtn").textContent = "Details and " + word;
+  $("sharePhotoBtn").textContent = (word.charAt(0).toUpperCase() + word.slice(1)) + " only";
   $("shareOverlay").classList.remove("hidden");
 }
 function closeShare(){ shareTarget = null; $("shareOverlay").classList.add("hidden"); }
-// what: "text" (details), "photo", or "both". Some apps on the receiving end only
+// what: "text" (details), "photo" (attachments), or "both". Some apps on the receiving end only
 // take one kind of thing, so each choice is its own share.
 async function sendCard(e, what){
   const text = entryText(e);
-  const file = what === "text" ? null : entryPhotoFile(e);
-  const canFiles = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files:[file] }));
+  const files = what === "text" ? [] : entryFiles(e);
+  const canFiles = !!(files.length && navigator.share && navigator.canShare && navigator.canShare({ files }));
   if (navigator.share){
     const payload = {};
     if (what !== "photo"){ payload.title = e.site || "Gnome Vault card"; payload.text = text; }
-    if (canFiles) payload.files = [file];
+    if (canFiles) payload.files = files;
     if (payload.text || payload.files){
       try {
         await navigator.share(payload);
-        if (what === "both" && !canFiles) toast("Sent the details — this phone won't attach photos here");
-        else if (what === "photo") toast("Photo sent");
-        else if (what === "both") toast("Sent with the photo");
+        if (what === "both" && !canFiles) toast("Sent the details — this phone won't attach files here");
+        else if (what === "photo") toast("Sent");
+        else if (what === "both") toast("Sent with attachments");
         return;
       } catch(err){ if (err && err.name === "AbortError") return; }   // user closed the sheet
     }
   }
-  // no share sheet here (desktop browser, or it refused): details go to the clipboard, the photo becomes a download
-  if (what !== "photo") await copyText(text, what === "both" ? "Card copied; photo saved to your downloads" : "Card copied — paste it into a message");
-  if (file) savePhoto(file, what === "photo" ? "Photo saved to your downloads" : null);
+  // no share sheet here (desktop browser, or it refused): details go to the clipboard, files become downloads
+  if (what !== "photo") await copyText(text, what === "both" ? "Card copied; files saved to your downloads" : "Card copied — paste it into a message");
+  files.forEach((f, i) => savePhoto(f, what === "photo" && i === 0 ? "Saved to your downloads" : null));
 }
 function savePhoto(file, msg){
   try {
@@ -684,7 +863,7 @@ function savePhoto(file, msg){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     if (msg) toast(msg);
-  } catch(err){ toast("Couldn't save the photo"); }
+  } catch(err){ toast("Couldn't save the file"); }
 }
 $("shareBothBtn").addEventListener("click", () => { const e = shareTarget; closeShare(); if (e) sendCard(e, "both"); });
 $("shareTextBtn").addEventListener("click", () => { const e = shareTarget; closeShare(); if (e) sendCard(e, "text"); });
@@ -703,7 +882,7 @@ function show(screen){
 }
 function closeOverlays(){
   shareTarget = null;
-  ["editOverlay","changeOverlay","restoreOverlay","shareOverlay","photoOverlay","menuBox"].forEach(id => $(id).classList.add("hidden"));
+  ["editOverlay","credOverlay","changeOverlay","restoreOverlay","shareOverlay","photoOverlay","menuBox"].forEach(id => $(id).classList.add("hidden"));
 }
 function lock(message, isInfo){
   sessionToken++;
@@ -711,6 +890,7 @@ function lock(message, isInfo){
   clearTimeout(idleTimer);
   $("entryList").innerHTML = "";
   setPendingPhoto(""); $("photoFull").removeAttribute("src");
+  closeDoc(); pendingFiles = []; currentTab = "pw"; $("tabPw").classList.add("on"); $("tabCred").classList.remove("on");
   $("unlockPw").value = "";
   const m = $("unlockMsg");
   m.textContent = message || "";
@@ -737,18 +917,95 @@ function bumpIdle(){
   document.addEventListener(ev, bumpIdle, { passive:true }));
 
 /* ---------- rendering ---------- */
+let currentTab = "pw";   // pw | cred
+const CRED_CATS = ["License", "Board certification", "ACLS / BLS / PALS", "DEA / CSA",
+  "Education / diploma", "Insurance / COI", "Health / immunizations", "ID", "CME", "References", "Other"];
+const WARN_DAYS = 90;
+function isCred(e){ return e.kind === "cred"; }
+function daysUntil(iso){
+  if (!iso) return null;
+  const d = new Date(iso + "T00:00:00"); if (isNaN(d)) return null;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d - t) / 86400000);
+}
+function credStatus(e){
+  const n = daysUntil(e.expires);
+  if (n === null) return { level:"none" };
+  if (n < 0) return { level:"bad", n, text: "Expired " + fmtDate(e.expires) };
+  if (n === 0) return { level:"bad", n, text: "Expires today" };
+  if (n <= WARN_DAYS) return { level:"soon", n, text: "Expires in " + n + (n === 1 ? " day" : " days") + " — " + fmtDate(e.expires) };
+  return { level:"ok", n, text: "Good until " + fmtDate(e.expires) };
+}
+function setTab(t){
+  currentTab = t;
+  $("tabPw").classList.toggle("on", t === "pw");
+  $("tabCred").classList.toggle("on", t === "cred");
+  $("searchBox").value = "";
+  $("searchBox").placeholder = t === "pw" ? "Search… (site, username)" : "Search… (name, number, type)";
+  $("addBtn").title = t === "pw" ? "Add a password" : "Add a credential";
+  render();
+  window.scrollTo(0, 0);
+}
+function renderCredAlerts(creds){
+  const bad = [], soon = [];
+  for (const e of creds){
+    const st = credStatus(e);
+    if (st.level === "bad") bad.push(e.site);
+    else if (st.level === "soon") soon.push(e.site + " (" + st.n + "d)");
+  }
+  const total = bad.length + soon.length;
+  const cnt = $("credAlertCount");
+  cnt.textContent = total; cnt.classList.toggle("hidden", total === 0);
+  const parts = [];
+  if (bad.length) parts.push("Expired: " + bad.join(", ") + ".");
+  if (soon.length) parts.push("Expiring within " + WARN_DAYS + " days: " + soon.join(", ") + ".");
+  $("credBannerText").textContent = parts.join(" ");
+  $("credBanner").classList.toggle("hidden", total === 0);
+  $("credBanner").classList.toggle("bad", bad.length > 0);
+  $("credBannerBtn").classList.toggle("hidden", currentTab === "cred");
+}
 function render(){
   if (!vault) return;
   const q = $("searchBox").value.trim().toLowerCase();
   const list = $("entryList");
   const live = liveEntries();
-  const items = live
+  const creds = live.filter(isCred), pws = live.filter(e => !isCred(e));
+  renderCredAlerts(creds);
+  list.innerHTML = "";
+
+  if (currentTab === "cred"){
+    $("emptyState").classList.toggle("hidden", creds.length !== 0);
+    $("emptyBig").textContent = "📋";
+    $("emptyText").innerHTML = "No credentials yet.<br>Tap <strong>+</strong> to add a license, certification, DEA, diploma, or immunization record — with photos or PDFs and an expiration date.";
+    $("countLine").textContent = creds.length === 0 ? "Your credentialing file"
+      : creds.length === 1 ? "1 credential saved" : creds.length + " credentials saved";
+    const items = creds
+      .filter(e => !q || [e.site, e.number, e.issuer, e.category, e.notes].join(" ").toLowerCase().includes(q))
+      .sort((a, b) => {
+        const ca = CRED_CATS.indexOf(a.category), cb = CRED_CATS.indexOf(b.category);
+        return ((ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb)) || a.site.localeCompare(b.site, undefined, { sensitivity:"base" });
+      });
+    let lastCat = null;
+    for (const e of items){
+      const cat = e.category || "Other";
+      if (cat !== lastCat){
+        const h = document.createElement("div");
+        h.className = "grouphead"; h.textContent = cat;
+        list.appendChild(h); lastCat = cat;
+      }
+      list.appendChild(credCard(e));
+    }
+    return;
+  }
+
+  const items = pws
     .filter(e => !q || (e.site + " " + (e.user || "")).toLowerCase().includes(q))
     .sort((a, b) => a.site.localeCompare(b.site, undefined, { sensitivity:"base" }));
-  list.innerHTML = "";
-  $("emptyState").classList.toggle("hidden", live.length !== 0);
-  $("countLine").textContent = live.length === 0 ? "Your private vault"
-    : live.length === 1 ? "1 password saved" : live.length + " passwords saved";
+  $("emptyState").classList.toggle("hidden", pws.length !== 0);
+  $("emptyBig").textContent = "🌱";
+  $("emptyText").innerHTML = "Nothing saved yet.<br>Tap the green <strong>+</strong> button to add your first password.";
+  $("countLine").textContent = pws.length === 0 ? "Your private vault"
+    : pws.length === 1 ? "1 password saved" : pws.length + " passwords saved";
 
   for (const e of items){
     const div = document.createElement("div");
@@ -786,6 +1043,80 @@ function render(){
     list.appendChild(div);
   }
 }
+function credCard(e){
+  const st = credStatus(e);
+  const div = document.createElement("div");
+  div.className = "entry" + (st.level === "bad" ? " bad" : st.level === "soon" ? " soon" : "");
+  const field = (label, val, copy) => val ? '<div class="field"><span class="flabel">'+label+'</span>'+
+    '<span class="fval'+(copy ? " mono" : "")+'">'+esc(val)+'</span>'+
+    (copy ? '<button class="small" data-act="copynum">Copy</button>' : "")+'</div>' : "";
+  div.innerHTML =
+    '<div class="toprow"><div class="name">'+esc(e.site)+'</div>'+
+    '<button class="small ghost" data-act="share" title="Send this to someone">📤 Share</button>'+
+    '<button class="small ghost" data-act="edit">✏️ Edit</button></div>'+
+    (st.level !== "none" ? '<span class="badge '+st.level+'">'+(st.level === "bad" ? "⚠️ " : st.level === "soon" ? "⏳ " : "✓ ")+esc(st.text)+'</span>' : "")+
+    field("Number", e.number, true)+
+    field("Issued by", e.issuer)+
+    field("Issued", fmtDate(e.issued))+
+    (e.notes ? '<div class="notes">'+esc(e.notes)+'</div>' : "")+
+    ((e.files || []).length ? '<div class="files"></div>' : "");
+  const box = div.querySelector(".files");
+  (e.files || []).forEach((f, i) => {
+    const chip = document.createElement("span");
+    chip.className = "filechip"; chip.setAttribute("data-file", i);
+    if ((f.type || "").startsWith("image/")){
+      const img = document.createElement("img"); img.src = f.data; img.alt = ""; img.loading = "lazy";
+      chip.appendChild(img);
+    } else {
+      chip.appendChild(document.createTextNode("📄"));
+      const n = document.createElement("span"); n.className = "fn"; n.textContent = f.name || "Document.pdf";
+      chip.appendChild(n);
+    }
+    box.appendChild(chip);
+  });
+  div.addEventListener("click", ev => {
+    const chip = ev.target.closest("[data-file]");
+    if (chip){ openFile(e, (e.files || [])[+chip.getAttribute("data-file")]); return; }
+    const act = ev.target.getAttribute("data-act");
+    if (act === "edit") openCred(e.id);
+    else if (act === "share") shareEntry(e);
+    else if (act === "copynum") copyText(e.number || "", "Number copied");
+  });
+  return div;
+}
+/* ---------- viewing an attachment ---------- */
+let docUrl = null, docFile = null;
+function openFile(e, f){
+  if (!f) return;
+  if ((f.type || "").startsWith("image/")){
+    $("photoFull").src = f.data; $("photoOverlay").classList.remove("hidden"); return;
+  }
+  closeDoc();
+  docFile = dataUrlToFile(f.data, f.name || (safeStem(e.site) + ".pdf"));
+  if (!docFile){ toast("Couldn't open that file"); return; }
+  docUrl = URL.createObjectURL(docFile);
+  $("docName").textContent = docFile.name;
+  $("docFrame").src = docUrl;
+  $("docOverlay").classList.remove("hidden");
+}
+function closeDoc(){
+  $("docOverlay").classList.add("hidden");
+  $("docFrame").removeAttribute("src");
+  if (docUrl){ URL.revokeObjectURL(docUrl); docUrl = null; }
+  docFile = null;
+}
+$("docCloseBtn").addEventListener("click", closeDoc);
+$("docShareBtn").addEventListener("click", async () => {
+  if (!docFile) return;
+  const files = [docFile];
+  if (navigator.share && navigator.canShare && navigator.canShare({ files })){
+    try { await navigator.share({ files }); return; } catch(err){ if (err && err.name === "AbortError") return; }
+  }
+  savePhoto(docFile, "Saved to your downloads");
+});
+$("tabPw").addEventListener("click", () => setTab("pw"));
+$("tabCred").addEventListener("click", () => setTab("cred"));
+$("credBannerBtn").addEventListener("click", () => setTab("cred"));
 async function copyText(text, msg){
   try {
     await navigator.clipboard.writeText(text);
@@ -903,6 +1234,153 @@ $("fPhotoFile").addEventListener("change", async () => {
 });
 $("photoOverlay").addEventListener("click", () => {
   $("photoOverlay").classList.add("hidden"); $("photoFull").removeAttribute("src");
+});
+
+/* ---------- credentials: add / edit / delete ----------
+   A credential is an entry with kind:"cred". Its files (photos shrunk to a
+   readable size, PDFs kept as-is) are encrypted with everything else. */
+const DOC_MAX_PX = 1800, DOC_TARGET_BYTES = 480 * 1024, PDF_MAX_BYTES = 6 * 1024 * 1024;
+let credEditingId = null, cDeleteArmed = false, cDeleteTimer = null;
+(function fillCats(){
+  $("cCat").innerHTML = CRED_CATS.map(c => '<option>' + esc(c) + '</option>').join("");
+})();
+function cDisarm(){
+  cDeleteArmed = false; clearTimeout(cDeleteTimer);
+  const b = $("cDeleteBtn"); b.textContent = "Delete"; b.classList.remove("armed");
+}
+function openCred(id){
+  credEditingId = id; cDisarm();
+  const isNew = id === null;
+  $("credTitle").textContent = isNew ? "Add a credential" : "Edit credential";
+  $("cDeleteBtn").classList.toggle("hidden", isNew);
+  const e = isNew ? {} : (vault.find(x => x.id === id) || {});
+  $("cName").value = e.site || "";
+  $("cCat").value = CRED_CATS.includes(e.category) ? e.category : (isNew ? "License" : "Other");
+  $("cNum").value = e.number || ""; $("cIssuer").value = e.issuer || "";
+  $("cIssued").value = e.issued || ""; $("cExp").value = e.expires || "";
+  $("cNotes").value = e.notes || "";
+  pendingFiles = (e.files || []).map(f => Object.assign({}, f));
+  renderPendingFiles();
+  $("credOverlay").classList.remove("hidden");
+  $("credOverlay").scrollTop = 0;
+  if (isNew) setTimeout(() => $("cName").focus(), 50);
+}
+function renderPendingFiles(){
+  const box = $("cFileList"); box.innerHTML = "";
+  pendingFiles.forEach((f, i) => {
+    const row = document.createElement("div"); row.className = "editfile";
+    if ((f.type || "").startsWith("image/")){
+      const img = document.createElement("img"); img.src = f.data; img.alt = ""; row.appendChild(img);
+    } else row.appendChild(document.createTextNode("📄"));
+    const n = document.createElement("span"); n.className = "fn"; n.textContent = f.name || "File"; row.appendChild(n);
+    const rm = document.createElement("button"); rm.className = "small ghost"; rm.textContent = "Remove";
+    rm.addEventListener("click", () => { pendingFiles.splice(i, 1); renderPendingFiles(); });
+    row.appendChild(rm);
+    box.appendChild(row);
+  });
+  $("cFileBtn").textContent = pendingFiles.length ? "📎 Add another" : "📎 Add photo or PDF";
+}
+function readAsDataURL(file){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result); r.onerror = () => rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
+async function shrinkDoc(file){
+  const img = await loadImage(file);
+  const scale = Math.min(1, DOC_MAX_PX / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(1, Math.round(img.naturalWidth * scale)), h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+  let q = 0.85, out = c.toDataURL("image/jpeg", q);
+  while (out.length > DOC_TARGET_BYTES * 1.37 && q > 0.5){ q -= 0.1; out = c.toDataURL("image/jpeg", q); }
+  return out;
+}
+$("cFileBtn").addEventListener("click", () => $("cFileInput").click());
+$("cFileInput").addEventListener("change", async () => {
+  const files = [...($("cFileInput").files || [])];
+  $("cFileInput").value = "";
+  if (!files.length) return;
+  $("cFileBtn").disabled = true; $("cFileBtn").textContent = "Adding…";
+  const base = safeStem($("cName").value.trim() || "credential");
+  try {
+    for (const file of files){
+      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+      try {
+        if (isPdf){
+          if (file.size > PDF_MAX_BYTES){ toast("That PDF is over 6 MB — try a smaller scan"); continue; }
+          const data = (await readAsDataURL(file)).replace(/^data:[^;]*;/, "data:application/pdf;");
+          pendingFiles.push({ name: file.name || base + ".pdf", type:"application/pdf", data });
+        } else {
+          const data = await shrinkDoc(file);
+          const stem = (file.name || "").replace(/\.[^.]+$/, "");
+          const name = (stem && !/^image$/i.test(stem) ? safeStem(stem) : base + "-" + (pendingFiles.length + 1)) + ".jpg";
+          pendingFiles.push({ name, type:"image/jpeg", data });
+        }
+      } catch(err){ toast("Couldn't read " + (file.name || "that file")); }
+    }
+  } finally {
+    $("cFileBtn").disabled = false; renderPendingFiles();
+  }
+});
+$("cCancelBtn").addEventListener("click", () => { cDisarm(); $("credOverlay").classList.add("hidden"); pendingFiles = []; });
+$("cSaveBtn").addEventListener("click", async () => {
+  if ($("cSaveBtn").disabled || !sessionKey) return;
+  const site = $("cName").value.trim();
+  if (!site){ $("cName").focus(); toast("Give it a name first (what is it?)"); return; }
+  $("cSaveBtn").disabled = true; $("cSaveBtn").textContent = "Saving…"; $("cDeleteBtn").disabled = true;
+  try {
+    const data = {
+      kind: "cred", site,
+      category: $("cCat").value,
+      number: $("cNum").value.trim(),
+      issuer: $("cIssuer").value.trim(),
+      issued: $("cIssued").value,
+      expires: $("cExp").value,
+      notes: $("cNotes").value.trim(),
+      files: pendingFiles.slice(),
+      updated: Date.now()
+    };
+    if (credEditingId === null){
+      data.id = crypto.getRandomValues(new Uint32Array(2)).join("-");
+      vault.push(data);
+      credEditingId = data.id;
+    } else {
+      const i = vault.findIndex(x => x.id === credEditingId);
+      if (i >= 0) vault[i] = Object.assign({}, vault[i], data, { deleted:false });
+      else { data.id = credEditingId; vault.push(data); }
+    }
+    await persist();
+    if (!sessionKey) return;
+    $("credOverlay").classList.add("hidden"); pendingFiles = [];
+    render(); checkBackupBanner();
+    toast("Saved");
+  } finally {
+    $("cSaveBtn").disabled = false; $("cSaveBtn").textContent = "Save"; $("cDeleteBtn").disabled = false;
+  }
+});
+$("cDeleteBtn").addEventListener("click", async () => {
+  if ($("cDeleteBtn").disabled || !sessionKey) return;
+  if (!cDeleteArmed){
+    cDeleteArmed = true;
+    $("cDeleteBtn").textContent = "Tap again to delete"; $("cDeleteBtn").classList.add("armed");
+    cDeleteTimer = setTimeout(cDisarm, 4000);
+    return;
+  }
+  cDisarm();
+  $("cDeleteBtn").disabled = true; $("cSaveBtn").disabled = true;
+  try {
+    const i = vault.findIndex(x => x.id === credEditingId);
+    if (i >= 0) vault[i] = { id: vault[i].id, deleted:true, updated: Date.now() };
+    await persist();
+    if (!sessionKey) return;
+    $("credOverlay").classList.add("hidden"); pendingFiles = [];
+    render(); checkBackupBanner();
+    toast("Deleted");
+  } finally {
+    $("cDeleteBtn").disabled = false; $("cSaveBtn").disabled = false;
+  }
 });
 
 /* ---------- backup / restore ---------- */
@@ -1105,7 +1583,7 @@ $("restoreBtn").addEventListener("click", () => $("importFile").click());
 $("restoreBtn2").addEventListener("click", () => $("importFile").click());
 
 /* ---------- main wiring ---------- */
-$("addBtn").addEventListener("click", () => openEdit(null));
+$("addBtn").addEventListener("click", () => currentTab === "cred" ? openCred(null) : openEdit(null));
 $("searchBox").addEventListener("input", render);
 $("lockBtn").addEventListener("click", () => lock());
 $("lockBtn2").addEventListener("click", () => lock());
@@ -1282,6 +1760,7 @@ $("changeSaveBtn").addEventListener("click", async () => {
   }
   fillVersion();
   setSync("checking");
+  await loadDurable();
   try {
     if (inViewer()){
       window.claude.use("downloads").then(ns => { downloadsNS = ns; }).catch(() => {});
