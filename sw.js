@@ -1,7 +1,7 @@
 // Gnome Vault offline cache. Network first: when online you always get the newest
 // version; when offline the last copy opens. Only this site's own files are cached.
-const CACHE = "gnome-vault-1";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+const CACHE = "gnome-vault-2";
+const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./pdf-lib.min.js"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });

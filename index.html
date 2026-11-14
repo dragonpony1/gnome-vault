@@ -191,6 +191,28 @@
   #docOverlay .docbar .grow{flex:1; color:#fff; font-size:14px; align-self:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   #docFrame{flex:1; width:100%; min-height:75vh; border:none; border-radius:10px; background:#fff}
 
+  /* ---- credentials packet ---- */
+  .packetrow{margin:-4px 0 14px}
+  .packetrow button{width:100%; background:var(--accent-soft); font-weight:600; padding:12px}
+  .pickbar{display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:14px; color:var(--muted)}
+  .picklist{max-height:42vh; overflow-y:auto; border:1px solid var(--line); border-radius:12px; margin-top:6px}
+  label.pick{display:flex; gap:11px; align-items:center; padding:10px 12px; margin:0; border-bottom:1px solid var(--line); font-size:15px; font-weight:400; color:var(--ink); cursor:pointer}
+  label.pick:last-child{border-bottom:none}
+  .pick input,.checkline input{width:20px; height:20px; flex-shrink:0; accent-color:var(--accent)}
+  .pick .pn{flex:1; min-width:0; overflow-wrap:anywhere}
+  .pick .pm{display:block; font-size:12.5px; color:var(--muted)}
+  .pick .pm.bad{color:var(--danger)}
+  .pick .pm.soon{color:var(--warn)}
+  label.checkline{display:flex; gap:10px; align-items:center; font-weight:400; font-size:15px; color:var(--ink); margin-top:16px; cursor:pointer}
+  .seg{display:flex; gap:6px; background:var(--soft); border-radius:12px; padding:4px}
+  .seg button{flex:1; background:transparent; padding:9px 8px; font-weight:600; color:var(--muted); border-radius:9px}
+  .seg button.on{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
+  .phint{color:var(--muted); font-size:13px; margin:8px 2px 0}
+  .readybox{display:flex; gap:12px; align-items:center; background:var(--soft); border-radius:12px; padding:14px; margin-top:16px; font-size:15px}
+  .readybox .big{font-size:30px}
+  .readybox .sub{margin:2px 0 0; font-size:13.5px; overflow-wrap:anywhere}
+  .readybox strong{overflow-wrap:anywhere}
+
   #toast{
     position:fixed; left:50%; bottom:96px; transform:translateX(-50%);
     background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px;
@@ -288,6 +310,10 @@
 
   <div class="searchrow">
     <input type="search" id="searchBox" placeholder="Search… (site, username)">
+  </div>
+
+  <div class="packetrow hidden" id="packetRow">
+    <button id="packetBtn">📦 Make a packet to send</button>
   </div>
 
   <div id="entryList"></div>
@@ -410,6 +436,42 @@
   </div>
 </div>
 
+<!-- ============ CREDENTIALS PACKET ============ -->
+<div class="overlay hidden" id="packetOverlay">
+  <div class="modal">
+    <h2>Send a credentials packet</h2>
+    <div id="packetPick">
+      <p class="sub">Pick what goes in. It's put together right here on your phone — nothing is uploaded.</p>
+      <div class="pickbar"><span id="pickCount"></span><button class="small ghost" id="pickAllBtn">Select none</button></div>
+      <div class="picklist" id="pickList"></div>
+      <label for="pName">Your name on the cover (optional)</label>
+      <input type="text" id="pName" placeholder="e.g. Jane Doe, CRNA">
+      <label for="pFor">Who it's for (optional)</label>
+      <input type="text" id="pFor" placeholder="e.g. a staffing agency or hospital">
+      <label class="checkline"><input type="checkbox" id="pNotes"> Include my notes</label>
+      <label>Send as</label>
+      <div class="seg" id="pFormat">
+        <button data-f="pdf" class="on">One PDF</button>
+        <button data-f="jpg">Pictures (JPEG)</button>
+      </div>
+      <p class="phint" id="pFormatHint"></p>
+      <div class="modalbtns">
+        <button class="ghost" id="packetCancelBtn">Cancel</button>
+        <button class="primary" id="packetBuildBtn">Make packet</button>
+      </div>
+    </div>
+    <div id="packetReady" class="hidden">
+      <div class="readybox"><span class="big">📦</span><div><strong id="readyName"></strong><p class="sub" id="readyInfo"></p></div></div>
+      <div class="sharebtns">
+        <button class="primary" id="packetSendBtn">📤 Send</button>
+        <button id="packetPreviewBtn">👀 Preview</button>
+        <button id="packetSaveBtn">💾 Save to phone</button>
+        <button class="ghost" id="packetBackBtn">Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ PDF VIEWER ============ -->
 <div class="overlay hidden" id="docOverlay">
   <div class="docbar">
@@ -439,7 +501,7 @@
    restored backup and the local copy can be merged without loss.
    ============================================================ */
 
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.3";
 const SHARE_URL = "https://dragonpony1.github.io/gnome-vault/";   // the one Gnome Vault link — this is what gets shared
 const STORE_KEY   = "gnome-vault-v1";
 const PENDING_KEY = "gnome-vault-pending-v1";
@@ -882,7 +944,7 @@ function show(screen){
 }
 function closeOverlays(){
   shareTarget = null;
-  ["editOverlay","credOverlay","changeOverlay","restoreOverlay","shareOverlay","photoOverlay","menuBox"].forEach(id => $(id).classList.add("hidden"));
+  ["editOverlay","credOverlay","changeOverlay","restoreOverlay","shareOverlay","packetOverlay","photoOverlay","menuBox"].forEach(id => $(id).classList.add("hidden"));
 }
 function lock(message, isInfo){
   sessionToken++;
@@ -890,7 +952,7 @@ function lock(message, isInfo){
   clearTimeout(idleTimer);
   $("entryList").innerHTML = "";
   setPendingPhoto(""); $("photoFull").removeAttribute("src");
-  closeDoc(); pendingFiles = []; currentTab = "pw"; $("tabPw").classList.add("on"); $("tabCred").classList.remove("on");
+  closeDoc(); pendingFiles = []; packetOut = null; currentTab = "pw"; $("tabPw").classList.add("on"); $("tabCred").classList.remove("on");
   $("unlockPw").value = "";
   const m = $("unlockMsg");
   m.textContent = message || "";
@@ -922,6 +984,10 @@ const CRED_CATS = ["License", "Board certification", "ACLS / BLS / PALS", "DEA /
   "Education / diploma", "Insurance / COI", "Health / immunizations", "ID", "CME", "References", "Other"];
 const WARN_DAYS = 90;
 function isCred(e){ return e.kind === "cred"; }
+function credOrder(a, b){
+  const ca = CRED_CATS.indexOf(a.category), cb = CRED_CATS.indexOf(b.category);
+  return ((ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb)) || a.site.localeCompare(b.site, undefined, { sensitivity:"base" });
+}
 function daysUntil(iso){
   if (!iso) return null;
   const d = new Date(iso + "T00:00:00"); if (isNaN(d)) return null;
@@ -971,6 +1037,7 @@ function render(){
   const live = liveEntries();
   const creds = live.filter(isCred), pws = live.filter(e => !isCred(e));
   renderCredAlerts(creds);
+  $("packetRow").classList.toggle("hidden", currentTab !== "cred" || creds.length === 0);
   list.innerHTML = "";
 
   if (currentTab === "cred"){
@@ -981,10 +1048,7 @@ function render(){
       : creds.length === 1 ? "1 credential saved" : creds.length + " credentials saved";
     const items = creds
       .filter(e => !q || [e.site, e.number, e.issuer, e.category, e.notes].join(" ").toLowerCase().includes(q))
-      .sort((a, b) => {
-        const ca = CRED_CATS.indexOf(a.category), cb = CRED_CATS.indexOf(b.category);
-        return ((ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb)) || a.site.localeCompare(b.site, undefined, { sensitivity:"base" });
-      });
+      .sort(credOrder);
     let lastCat = null;
     for (const e of items){
       const cat = e.category || "Other";
@@ -1091,8 +1155,11 @@ function openFile(e, f){
   if ((f.type || "").startsWith("image/")){
     $("photoFull").src = f.data; $("photoOverlay").classList.remove("hidden"); return;
   }
+  showDocFile(dataUrlToFile(f.data, f.name || (safeStem(e.site) + ".pdf")));
+}
+function showDocFile(file){
   closeDoc();
-  docFile = dataUrlToFile(f.data, f.name || (safeStem(e.site) + ".pdf"));
+  docFile = file;
   if (!docFile){ toast("Couldn't open that file"); return; }
   docUrl = URL.createObjectURL(docFile);
   $("docName").textContent = docFile.name;
@@ -1380,6 +1447,290 @@ $("cDeleteBtn").addEventListener("click", async () => {
     toast("Deleted");
   } finally {
     $("cDeleteBtn").disabled = false; $("cSaveBtn").disabled = false;
+  }
+});
+
+/* ---------- credentials packet ----------
+   Pick credentials, then build ONE PDF (summary page + every photo and
+   PDF) or a set of JPEGs (summary picture + each photo; attached PDFs go
+   as-is). Built on the device; nothing leaves until the user taps Send.
+   Building is a separate tap from sending because the share sheet only
+   opens straight from a tap. pdf-lib is loaded on first use. */
+let packetFormat = "pdf", packetOut = null;
+let pdfLibPromise = null;
+function loadPdfLib(){
+  if (window.PDFLib) return Promise.resolve(window.PDFLib);
+  if (!pdfLibPromise) pdfLibPromise = new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "pdf-lib.min.js";
+    s.onload = () => window.PDFLib ? res(window.PDFLib) : rej(new Error("nolib"));
+    s.onerror = () => { pdfLibPromise = null; s.remove(); rej(new Error("nolib")); };
+    document.head.appendChild(s);
+  });
+  return pdfLibPromise;
+}
+const PC = { ink:[.14,.17,.13], muted:[.41,.45,.37], red:[.64,.26,.18], line:[.80,.83,.77] };
+const CP1252 = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+// the built-in PDF fonts only know Western characters — drop anything else (emoji etc.)
+function pdfSafe(s){
+  return String(s || "").replace(/[\t\r]/g, " ").split("").filter(c => {
+    const n = c.charCodeAt(0);
+    return (n >= 0x20 && n <= 0x7E) || (n >= 0xA0 && n <= 0xFF) || CP1252.includes(c);
+  }).join("");
+}
+function dataUrlBytes(dataUrl){
+  const m = /^data:[^;]*;base64,(.*)$/.exec(dataUrl || "");
+  try { return m ? unb64(m[1]) : null; } catch(e){ return null; }
+}
+function todayStamp(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function packetStem(o){ return "Credentials" + (o.name ? "-" + safeStem(o.name) : "") + "-" + todayStamp(); }
+function fmtSize(n){ return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
+const tick = () => new Promise(r => setTimeout(r, 0));
+
+function wrapText(d, s, size, bold, maxW){
+  const out = [];
+  for (const raw of String(s).split(/\n/)){
+    let line = "";
+    for (let w of raw.split(/\s+/).filter(Boolean)){
+      const t = line ? line + " " + w : w;
+      if (d.width(t, size, bold) <= maxW){ line = t; continue; }
+      if (line){ out.push(line); line = ""; }
+      while (w.length > 1 && d.width(w, size, bold) > maxW){   // one very long word
+        let k = w.length - 1;
+        while (k > 1 && d.width(w.slice(0, k), size, bold) > maxW) k--;
+        out.push(w.slice(0, k)); w = w.slice(k);
+      }
+      line = w;
+    }
+    out.push(line);
+  }
+  return out;
+}
+// The summary page(s). `d` is a drawing surface (PDF page or canvas) in points, y measured from the top.
+function layoutCover(d, creds, o){
+  const M = d.M, maxW = d.W - 2 * M;
+  let y = M;
+  const need = h => { if (y + h > d.H - M){ d.newPage(); y = M; } };
+  const para = (s, size, bold, color, gap) => {
+    for (const ln of wrapText(d, s, size, bold, maxW)){
+      need(size * 1.4); y += size * 1.1; d.text(M, y, ln, size, bold, color); y += size * 0.3;
+    }
+    if (gap) y += gap;
+  };
+  para("Credentials" + (o.name ? " — " + o.name : ""), 22, true, PC.ink, 4);
+  const when = "Prepared " + new Date().toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" }) +
+    (o.forWho ? " for " + o.forWho : "");
+  para(when + "  ·  " + creds.length + (creds.length === 1 ? " credential" : " credentials"), 11, false, PC.muted, 10);
+  d.rule(y); y += 16;
+  for (const e of creds){
+    need(64);
+    para(e.site, 13.5, true, PC.ink, 1);
+    const meta = [e.category, e.number ? "No. " + e.number : ""].filter(Boolean).join("  ·  ");
+    if (meta) para(meta, 10.5, false, PC.ink);
+    if (e.issuer) para("Issued by " + e.issuer, 10.5, false, PC.ink);
+    const n = daysUntil(e.expires), expired = n !== null && n < 0;
+    const dates = [e.issued ? "Issued " + fmtDate(e.issued) : "", e.expires ? "Expires " + fmtDate(e.expires) : ""].filter(Boolean).join("  ·  ");
+    if (dates) para(dates + (expired ? "  (EXPIRED)" : ""), 10.5, expired, expired ? PC.red : PC.ink);
+    if (o.notes && e.notes) para("Notes: " + e.notes, 10, false, PC.muted);
+    const fl = e.files || [];
+    const ni = fl.filter(f => (f.type || "").startsWith("image/")).length, np = fl.length - ni;
+    para(fl.length ? "Attached: " + [ni ? ni + (ni === 1 ? " photo" : " photos") : "", np ? np + (np === 1 ? " PDF" : " PDFs") : ""].filter(Boolean).join(", ")
+      : "No files attached", 9.5, false, PC.muted);
+    y += 8; need(12); d.rule(y); y += 14;
+  }
+}
+
+async function buildPdfPacket(creds, o){
+  const L = await loadPdfLib();
+  const doc = await L.PDFDocument.create();
+  doc.setTitle(pdfSafe("Credentials" + (o.name ? " — " + o.name : "")));
+  doc.setCreator("Gnome Vault"); doc.setProducer("Gnome Vault");
+  const fR = await doc.embedFont(L.StandardFonts.Helvetica), fB = await doc.embedFont(L.StandardFonts.HelveticaBold);
+  const W = 612, H = 792;   // US Letter
+  let page = null;
+  const col = c => L.rgb(c[0], c[1], c[2]);
+  const d = { W, H, M:54,
+    newPage(){ page = doc.addPage([W, H]); },
+    width(s, size, bold){ return (bold ? fB : fR).widthOfTextAtSize(pdfSafe(s), size); },
+    text(x, y, s, size, bold, c){ const t = pdfSafe(s); if (t) page.drawText(t, { x, y: H - y, size, font: bold ? fB : fR, color: col(c) }); },
+    rule(y){ page.drawLine({ start:{ x:54, y:H - y }, end:{ x:W - 54, y:H - y }, thickness:0.6, color: col(PC.line) }); }
+  };
+  d.newPage(); layoutCover(d, creds, o);
+
+  const extras = [];   // PDFs that couldn't be merged (password-locked etc.) go along as their own files
+  for (const e of creds){
+    const fl = e.files || [];
+    for (let i = 0; i < fl.length; i++){
+      const f = fl[i], bytes = dataUrlBytes(f.data);
+      const fname = f.name || (safeStem(e.site) + (i ? "-" + (i + 1) : "") + "." + extFor(f.type));
+      if (!bytes) continue;
+      if ((f.type || "").startsWith("image/")){
+        let img = null;
+        try { img = f.type === "image/png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes); }
+        catch(err){ try { img = await doc.embedPng(bytes); } catch(e2){ img = null; } }
+        if (!img){ const x = dataUrlToFile(f.data, fname); if (x) extras.push(x); continue; }
+        const land = img.width > img.height, pw = land ? H : W, ph = land ? W : H;
+        const pg = doc.addPage([pw, ph]), m = 36, band = 22;
+        const s = Math.min((pw - 2 * m) / img.width, (ph - 2 * m - band) / img.height, 1.5);
+        const w = img.width * s, h = img.height * s;
+        pg.drawText(pdfSafe(e.site + (fl.length > 1 ? "  ·  " + (i + 1) + " of " + fl.length : "")),
+          { x:m, y:ph - m - 9, size:9, font:fR, color: col(PC.muted) });
+        pg.drawImage(img, { x:(pw - w) / 2, y: m + (ph - 2 * m - band - h) / 2, width:w, height:h });
+      } else {
+        try {
+          const src = await L.PDFDocument.load(bytes, { ignoreEncryption:true });
+          if (src.isEncrypted) throw new Error("locked");
+          const pages = await doc.copyPages(src, src.getPageIndices());
+          pages.forEach(p => doc.addPage(p));
+        } catch(err){ const x = dataUrlToFile(f.data, fname); if (x) extras.push(x); }
+      }
+      await tick();
+    }
+  }
+  const out = await doc.save();
+  const main = new File([out], packetStem(o) + ".pdf", { type:"application/pdf" });
+  return { kind:"pdf", files:[main].concat(extras), pages: doc.getPageCount(), extras: extras.length };
+}
+
+async function buildJpgPacket(creds, o){
+  const S = 150 / 72, W = 612, H = 792;   // letter-size picture at 150 dpi
+  const canvases = []; let ctx = null;
+  const font = (size, bold) => (bold ? "700 " : "400 ") + (size * S) + "px Helvetica, Arial, sans-serif";
+  const css = c => "rgb(" + c.map(v => Math.round(v * 255)).join(",") + ")";
+  const d = { W, H, M:54,
+    newPage(){
+      const c = document.createElement("canvas"); c.width = Math.round(W * S); c.height = Math.round(H * S);
+      ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      canvases.push(c);
+    },
+    width(s, size, bold){ ctx.font = font(size, bold); return ctx.measureText(s).width / S; },
+    text(x, y, s, size, bold, c){ ctx.font = font(size, bold); ctx.fillStyle = css(c); ctx.fillText(s, x * S, y * S); },
+    rule(y){ ctx.fillStyle = css(PC.line); ctx.fillRect(54 * S, y * S, (W - 108) * S, Math.max(1, 0.6 * S)); }
+  };
+  d.newPage(); layoutCover(d, creds, o);
+  const stem = packetStem(o), files = [];
+  canvases.forEach((c, i) => files.push(dataUrlToFile(c.toDataURL("image/jpeg", 0.9),
+    stem + "-summary" + (canvases.length > 1 ? "-" + (i + 1) : "") + ".jpg")));
+  const used = new Set();
+  for (const e of creds){
+    const fl = e.files || [];
+    fl.forEach((f, i) => {
+      let name = safeStem(e.site) + (fl.length > 1 ? "-" + (i + 1) : "") + "." + extFor(f.type);
+      for (let k = 2; used.has(name); k++) name = name.replace(/(-dup\d+)?(\.\w+)$/, "-dup" + k + "$2");
+      used.add(name);
+      files.push(dataUrlToFile(f.data, name));
+    });
+  }
+  return { kind:"jpg", files: files.filter(Boolean), extras:0 };
+}
+
+function setPacketFormat(f){
+  packetFormat = f;
+  $("pFormat").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.getAttribute("data-f") === f));
+  $("pFormatHint").textContent = f === "pdf"
+    ? "A summary page first, then every photo and PDF — all in one file. Easiest to email or upload."
+    : "A summary picture plus each photo as its own JPEG. Any PDFs you attached go along as PDFs.";
+}
+function pickBoxes(){ return [...$("pickList").querySelectorAll("input[type=checkbox]")]; }
+function updatePickCount(){
+  const boxes = pickBoxes(), on = boxes.filter(b => b.checked).length;
+  $("pickCount").textContent = on + " of " + boxes.length + " picked";
+  $("pickAllBtn").textContent = on === boxes.length ? "Select none" : "Select all";
+  $("packetBuildBtn").disabled = on === 0;
+}
+function openPacket(){
+  if (!vault) return;
+  packetOut = null;
+  const creds = liveEntries().filter(isCred).sort(credOrder);
+  const list = $("pickList"); list.innerHTML = "";
+  for (const e of creds){
+    const st = credStatus(e), n = (e.files || []).length;
+    const bits = [];
+    if (st.level !== "none") bits.push(st.text);
+    bits.push(n ? n + (n === 1 ? " file" : " files") : "no files");
+    const row = document.createElement("label"); row.className = "pick";
+    row.innerHTML = '<input type="checkbox" checked><span class="pn">' + esc(e.site) +
+      '<span class="pm ' + (st.level === "bad" || st.level === "soon" ? st.level : "") + '">' + esc((e.category || "Other") + " · " + bits.join(" · ")) + '</span></span>';
+    row.querySelector("input").value = e.id;
+    list.appendChild(row);
+  }
+  $("pName").value = readMeta().packetName || "";
+  $("pFor").value = ""; $("pNotes").checked = false;
+  setPacketFormat(packetFormat);
+  updatePickCount();
+  $("packetPick").classList.remove("hidden"); $("packetReady").classList.add("hidden");
+  $("packetOverlay").classList.remove("hidden"); $("packetOverlay").scrollTop = 0; list.scrollTop = 0;
+}
+function closePacket(){ packetOut = null; $("packetOverlay").classList.add("hidden"); $("pickList").innerHTML = ""; }
+$("packetBtn").addEventListener("click", openPacket);
+$("pickList").addEventListener("change", updatePickCount);
+$("pickAllBtn").addEventListener("click", () => {
+  const boxes = pickBoxes(), all = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !all; }); updatePickCount();
+});
+$("pFormat").addEventListener("click", ev => { const f = ev.target.getAttribute("data-f"); if (f) setPacketFormat(f); });
+$("packetCancelBtn").addEventListener("click", closePacket);
+$("packetBackBtn").addEventListener("click", () => {
+  packetOut = null; $("packetReady").classList.add("hidden"); $("packetPick").classList.remove("hidden");
+});
+$("packetBuildBtn").addEventListener("click", async () => {
+  const btn = $("packetBuildBtn");
+  if (btn.disabled || !sessionKey) return;
+  const ids = new Set(pickBoxes().filter(b => b.checked).map(b => b.value));
+  const creds = liveEntries().filter(e => isCred(e) && ids.has(e.id)).sort(credOrder);
+  if (!creds.length){ toast("Pick at least one credential"); return; }
+  const o = { name: $("pName").value.trim(), forWho: $("pFor").value.trim(), notes: $("pNotes").checked };
+  const m = readMeta(); if ((m.packetName || "") !== o.name){ m.packetName = o.name; writeMeta(m); }
+  const token = sessionToken;
+  btn.disabled = true; btn.textContent = "Making…";
+  let out = null;
+  try {
+    out = packetFormat === "pdf" ? await buildPdfPacket(creds, o) : await buildJpgPacket(creds, o);
+  } catch(err){
+    toast(err && err.message === "nolib" ? "Couldn't load the PDF maker — check your connection and try again" : "Couldn't make the packet");
+  } finally {
+    btn.disabled = false; btn.textContent = "Make packet";
+  }
+  if (!out || token !== sessionToken || !sessionKey) return;   // locked while building
+  packetOut = out;
+  const total = out.files.reduce((s, f) => s + f.size, 0);
+  const info = [];
+  if (out.kind === "pdf"){
+    info.push(out.pages + (out.pages === 1 ? " page" : " pages") + " · " + fmtSize(out.files[0].size));
+    if (out.extras) info.push("Plus " + out.extras + (out.extras === 1 ? " file that's" : " files that are") + " locked or couldn't be merged — sent alongside as-is.");
+  } else {
+    info.push(out.files.length + (out.files.length === 1 ? " file" : " files") + " · " + fmtSize(total));
+  }
+  if (total > 20 * 1048576) info.push("That's big for email — uploading it may work better.");
+  $("readyName").textContent = out.kind === "pdf" ? out.files[0].name : creds.length + (creds.length === 1 ? " credential" : " credentials") + " as pictures";
+  $("readyInfo").textContent = info.join(" ");
+  $("packetPreviewBtn").classList.toggle("hidden", !out.files.length);
+  $("packetPick").classList.add("hidden"); $("packetReady").classList.remove("hidden");
+});
+$("packetSendBtn").addEventListener("click", async () => {
+  if (!packetOut) return;
+  const files = packetOut.files;
+  if (navigator.share && navigator.canShare && navigator.canShare({ files })){
+    try { await navigator.share({ files }); toast("Sent"); return; }
+    catch(err){ if (err && err.name === "AbortError") return; }
+  }
+  files.forEach((f, i) => savePhoto(f, i === 0 ? "This browser can't share files — saved to your downloads" : null));
+});
+$("packetSaveBtn").addEventListener("click", () => {
+  if (!packetOut) return;
+  packetOut.files.forEach((f, i) => savePhoto(f, i === 0 ? "Saved to your downloads" : null));
+});
+$("packetPreviewBtn").addEventListener("click", () => {
+  if (!packetOut || !packetOut.files.length) return;
+  const f = packetOut.files[0];
+  if (f.type === "application/pdf") showDocFile(f);
+  else {
+    const r = new FileReader();
+    r.onload = () => { $("photoFull").src = r.result; $("photoOverlay").classList.remove("hidden"); };
+    r.readAsDataURL(f);
   }
 });
 
